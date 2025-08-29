@@ -5,14 +5,51 @@ grammar IsaVODEtoCPP;
  * ===================== */
 
 program
-  : (dataspaceDecl | abbrevDecl | contextBlock)* EOF
+  : (theoryBlock | contextBlock | dataspaceDecl | abbrevDecl | definitionDecl)* EOF
+  ;
+
+/* ---- theory ----
+   theory <Name>
+   imports <Import1> <Import2> ...
+   begin
+     ...
+   end
+   Imports can be unquoted (dotted identifiers) or quoted strings.
+*/
+theoryBlock
+  : THEORY dottedName importsClause? BEGIN theoryBody END
+  ;
+
+importsClause
+  : IMPORTS importItem+                // one or more imports
+  ;
+
+importItem
+  : importName
+  | QUOTED_TEXT                        // "Hybrid-Verification.Hybrid_Verification"
+  ;
+
+importName
+  : dottedName
+  ;
+
+dottedName
+  : ident (DOT ident)*
+  ;
+
+theoryBody
+  : (contextBlock
+    | dataspaceDecl
+    | abbrevDecl
+    | definitionDecl
+    | constantsClause
+    | assumesClause
+    | variablesClause
+    )*
   ;
 
 /* ---- context ----
-   context <name>
-   begin
-     <abbrev/definition/...>
-   end
+   context <name> begin ... end
 */
 contextBlock
   : CONTEXT ident BEGIN contextBody END
@@ -22,7 +59,7 @@ contextBody
   : (abbrevDecl | definitionDecl | constantsClause | assumesClause | variablesClause)*
   ;
 
-/* Minimal support for Isabelle 'definition' lines used in examples */
+/* Minimal 'definition' support */
 definitionDecl
   : DEFINITION QUOTED_TEXT
   ;
@@ -126,6 +163,7 @@ antiquotUnit
   | ASSIGN | COLON | D_COLON
   | DATASPACE | CONSTANTS | ASSUMES | VARIABLES | ABBREVIATION | WHERE | AND
   | CONTEXT | BEGIN | END | DEFINITION
+  | THEORY | IMPORTS
   ;
 
 /* ---- types ---- */
@@ -182,20 +220,22 @@ ANTI_OPEN   : '\\' '<' 'open' '>' ;
 ANTI_CLOSE  : '\\' '<' 'close' '>' ;
 
 /* Keywords / punctuation */
-DATASPACE    : 'dataspace' ;
-CONSTANTS    : 'constants' ;
-ASSUMES      : 'assumes' ;
-VARIABLES    : 'variables' ;
-ABBREVIATION : 'abbreviation' ;
-DEFINITION   : 'definition' ;
-WHERE        : 'where' ;
-AND          : 'and' ;
-CONTEXT      : 'context' ;
-BEGIN        : 'begin' ;
-END          : 'end' ;
-ASSIGN       : '=' ;
-D_COLON      : '::' ;
-COLON        : ':' ;
+THEORY      : 'theory' ;
+IMPORTS     : 'imports' ;
+DATASPACE   : 'dataspace' ;
+CONSTANTS   : 'constants' ;
+ASSUMES     : 'assumes' ;
+VARIABLES   : 'variables' ;
+ABBREVIATION: 'abbreviation' ;
+DEFINITION  : 'definition' ;
+WHERE       : 'where' ;
+AND         : 'and' ;
+CONTEXT     : 'context' ;
+BEGIN       : 'begin' ;
+END         : 'end' ;
+ASSIGN      : '=' ;
+D_COLON     : '::' ;
+COLON       : ':' ;
 
 ARROW      : '=>' ;
 LPAREN     : '(' ;
@@ -220,7 +260,7 @@ ASCII_ID
   : (LETTER | '_' | APOSTROPHE) (LETTER | DIGIT | '_' | APOSTROPHE)*
   ;
 
-/* Isabelle symbol: \<phi>, \<epsilon>, \<le>, \<tau>, etc.  (must be after ANTI_* to avoid conflict) */
+/* Isabelle symbol: \<phi>, \<epsilon>, \<le>, \<tau>, etc.  (placed after ANTI_* to avoid conflict) */
 SYMBOL_IDENT
   : '\\' '<' SYMBOL_NAME '>'
   ;

@@ -17,6 +17,36 @@ public interface IsaVODEtoCPPVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitProgram(IsaVODEtoCPPParser.ProgramContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#theoryBlock}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTheoryBlock(IsaVODEtoCPPParser.TheoryBlockContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#importsClause}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitImportsClause(IsaVODEtoCPPParser.ImportsClauseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#importName}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitImportName(IsaVODEtoCPPParser.ImportNameContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#dottedName}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDottedName(IsaVODEtoCPPParser.DottedNameContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#theoryBody}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTheoryBody(IsaVODEtoCPPParser.TheoryBodyContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#contextBlock}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

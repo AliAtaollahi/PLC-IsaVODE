@@ -18,6 +18,56 @@ public interface IsaVODEtoCPPListener extends ParseTreeListener {
 	 */
 	void exitProgram(IsaVODEtoCPPParser.ProgramContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#theoryBlock}.
+	 * @param ctx the parse tree
+	 */
+	void enterTheoryBlock(IsaVODEtoCPPParser.TheoryBlockContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#theoryBlock}.
+	 * @param ctx the parse tree
+	 */
+	void exitTheoryBlock(IsaVODEtoCPPParser.TheoryBlockContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#importsClause}.
+	 * @param ctx the parse tree
+	 */
+	void enterImportsClause(IsaVODEtoCPPParser.ImportsClauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#importsClause}.
+	 * @param ctx the parse tree
+	 */
+	void exitImportsClause(IsaVODEtoCPPParser.ImportsClauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#importName}.
+	 * @param ctx the parse tree
+	 */
+	void enterImportName(IsaVODEtoCPPParser.ImportNameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#importName}.
+	 * @param ctx the parse tree
+	 */
+	void exitImportName(IsaVODEtoCPPParser.ImportNameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#dottedName}.
+	 * @param ctx the parse tree
+	 */
+	void enterDottedName(IsaVODEtoCPPParser.DottedNameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#dottedName}.
+	 * @param ctx the parse tree
+	 */
+	void exitDottedName(IsaVODEtoCPPParser.DottedNameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#theoryBody}.
+	 * @param ctx the parse tree
+	 */
+	void enterTheoryBody(IsaVODEtoCPPParser.TheoryBodyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#theoryBody}.
+	 * @param ctx the parse tree
+	 */
+	void exitTheoryBody(IsaVODEtoCPPParser.TheoryBodyContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#contextBlock}.
 	 * @param ctx the parse tree
 	 */
