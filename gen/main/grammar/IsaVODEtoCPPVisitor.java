@@ -65,6 +65,54 @@ public interface IsaVODEtoCPPVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitVarDecl(IsaVODEtoCPPParser.VarDeclContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#abbrevDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAbbrevDecl(IsaVODEtoCPPParser.AbbrevDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#printSpec}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrintSpec(IsaVODEtoCPPParser.PrintSpecContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#precedenceAnn}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrecedenceAnn(IsaVODEtoCPPParser.PrecedenceAnnContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#innerPrec}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInnerPrec(IsaVODEtoCPPParser.InnerPrecContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#mixfixForm}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMixfixForm(IsaVODEtoCPPParser.MixfixFormContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#antiquotBlock}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAntiquotBlock(IsaVODEtoCPPParser.AntiquotBlockContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#antiquotContent}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAntiquotContent(IsaVODEtoCPPParser.AntiquotContentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#antiquotUnit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAntiquotUnit(IsaVODEtoCPPParser.AntiquotUnitContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#typeSpec}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -94,4 +142,10 @@ public interface IsaVODEtoCPPVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitIdsegOrNum(IsaVODEtoCPPParser.IdsegOrNumContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#numberList}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNumberList(IsaVODEtoCPPParser.NumberListContext ctx);
 }

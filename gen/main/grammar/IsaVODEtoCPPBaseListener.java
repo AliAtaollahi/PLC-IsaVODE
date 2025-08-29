@@ -125,6 +125,102 @@ public class IsaVODEtoCPPBaseListener implements IsaVODEtoCPPListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterAbbrevDecl(IsaVODEtoCPPParser.AbbrevDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAbbrevDecl(IsaVODEtoCPPParser.AbbrevDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPrintSpec(IsaVODEtoCPPParser.PrintSpecContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPrintSpec(IsaVODEtoCPPParser.PrintSpecContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPrecedenceAnn(IsaVODEtoCPPParser.PrecedenceAnnContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPrecedenceAnn(IsaVODEtoCPPParser.PrecedenceAnnContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterInnerPrec(IsaVODEtoCPPParser.InnerPrecContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInnerPrec(IsaVODEtoCPPParser.InnerPrecContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMixfixForm(IsaVODEtoCPPParser.MixfixFormContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMixfixForm(IsaVODEtoCPPParser.MixfixFormContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterAntiquotBlock(IsaVODEtoCPPParser.AntiquotBlockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAntiquotBlock(IsaVODEtoCPPParser.AntiquotBlockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterAntiquotContent(IsaVODEtoCPPParser.AntiquotContentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAntiquotContent(IsaVODEtoCPPParser.AntiquotContentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterAntiquotUnit(IsaVODEtoCPPParser.AntiquotUnitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAntiquotUnit(IsaVODEtoCPPParser.AntiquotUnitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterTypeSpec(IsaVODEtoCPPParser.TypeSpecContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -180,6 +276,18 @@ public class IsaVODEtoCPPBaseListener implements IsaVODEtoCPPListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitIdsegOrNum(IsaVODEtoCPPParser.IdsegOrNumContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNumberList(IsaVODEtoCPPParser.NumberListContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNumberList(IsaVODEtoCPPParser.NumberListContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

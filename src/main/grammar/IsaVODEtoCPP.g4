@@ -5,18 +5,22 @@ grammar IsaVODEtoCPP;
  * ===================== */
 
 program
-  : (dataspaceDecl)* EOF
+  : (dataspaceDecl | abbrevDecl)* EOF
   ;
 
+/* ---- dataspace ---- */
 dataspaceDecl
   : DATASPACE ident ASSIGN dataspaceBody
   ;
 
 dataspaceBody
-  : (constantsClause)? (assumesClause)? (variablesClause)?
+  : (constantsClause
+    | assumesClause
+    | variablesClause
+    | abbrevDecl
+    )*
   ;
 
-// ---- constants ----
 constantsClause
   : CONSTANTS constantDecl+
   ;
@@ -25,17 +29,14 @@ constantDecl
   : ident D_COLON typeSpec
   ;
 
-// ---- assumes ----
-// supports: assumes lbl: "A" "B" and other: "C"
 assumesClause
   : ASSUMES assumptionDecl (AND assumptionDecl)*
   ;
 
 assumptionDecl
-  : ident COLON QUOTED_TEXT+       // allow multiple quoted texts, e.g. "0 < e" "e \<le> 1"
+  : ident COLON QUOTED_TEXT+                 // supports: "A" "B"
   ;
 
-// ---- variables ----
 variablesClause
   : VARIABLES varDecl+
   ;
@@ -44,23 +45,89 @@ varDecl
   : ident D_COLON typeSpec
   ;
 
-// ---- types ----
+/* ---- abbreviation ----
+   1) abbreviation."…"
+   2) abbreviation "…"
+   3) abbreviation (input)? name (:: "TYPE")? (printSpec)? (precedenceAnn)? where "lhs ≡ rhs"
+*/
+abbrevDecl
+  : ABBREVIATION (DOT)? QUOTED_TEXT
+  | ABBREVIATION (LPAREN ASCII_ID RPAREN)? ident (D_COLON QUOTED_TEXT)?
+      printSpec? precedenceAnn? WHERE QUOTED_TEXT
+  ;
+
+/* PRINTFORM:
+   - ("print")
+   - (infixr "…" 100)
+   - ( \<open> … \<close> [1000] 999 )   // precedence may be INSIDE the same parens
+*/
+printSpec
+  : LPAREN ( QUOTED_TEXT | mixfixForm | antiquotBlock )? innerPrec? RPAREN
+  ;
+
+/* Precedence AFTER printSpec:
+   [1000,200] 999   |   [1000]   |   999
+   (non-empty by construction)
+*/
+precedenceAnn
+  : (LBRACK numberList RBRACK (NUMBER)?)     // [list] or [list] num
+  | NUMBER                                   // or just num
+  ;
+
+/* Precedence INSIDE parens (used by printSpec) */
+innerPrec
+  : LBRACK numberList RBRACK (NUMBER)?
+  ;
+
+/* e.g., infixr "↓_V_e_c" 100, infixl "++" 70, binder "∑" 10 */
+mixfixForm
+  : ASCII_ID QUOTED_TEXT (NUMBER)?
+  ;
+
+/* ---- nested antiquotation as a parser construct ----
+   antiquotBlock matches:  \<open> (content ... possibly nested antiquotBlock) \<close>
+*/
+antiquotBlock
+  : ANTI_OPEN antiquotContent ANTI_CLOSE
+  ;
+
+antiquotContent
+  : (antiquotUnit)*
+  ;
+
+antiquotUnit
+  : antiquotBlock                         // nesting
+  | QUOTED_TEXT
+  | ident
+  | NUMBER
+  | SUPERSCRIPT                           // <-- allow \<^sup> inside antiquotations
+  | ARROW | LPAREN | RPAREN
+  | LBRACK | RBRACK | COMMA
+  | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | ASSIGN | COLON | D_COLON
+  | DATASPACE | CONSTANTS | ASSUMES | VARIABLES | ABBREVIATION | WHERE | AND
+  ;
+
+/* ---- types ---- */
 typeSpec
   : QUOTED_TEXT
-  | typeAtom+                      // unquoted type expression
+  | typeAtom+                                // e.g., real vec[2], R^n
   ;
 
 typeAtom
   : ident
   | NUMBER
+  | SUPERSCRIPT                              // harmless outside antiquotations
   | ARROW | LPAREN | RPAREN | LBRACK | RBRACK
-  | COMMA | CARET | STAR | PLUS | MINUS | DOT
+  | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
   ;
 
-// Identifier: normal names, \<phi>-style symbols, and subscript chains f\<^sub>m\<^sub>a\<^sub>x,
-// incl. numeric subscripts like K\<^sub>1, K\<^sub>2
+/* ---- identifiers ----
+   names, Isabelle symbols (\<phi>), and subscript chains f\<^sub>m\<^sub>a\<^sub>x,
+   including numeric subscripts like K\<^sub>1, K\<^sub>2
+*/
 ident
-  : idseg (SUBSCRIPT idsegOrNum)*   // base ( ^sub seg )*
+  : idseg (SUBSCRIPT idsegOrNum)*
   ;
 
 idseg
@@ -73,32 +140,38 @@ idsegOrNum
   | NUMBER
   ;
 
+/* ===== helper list ===== */
+numberList
+  : NUMBER (COMMA NUMBER)*
+  ;
+
 /* =====================
  * Lexer rules
  * ===================== */
 
-/* Skip Isabelle’s \<comment> \<open>...\<close> and raw \<open>...\<close> blocks */
+/* --- Skip full comment antiquotation blocks:  \<comment> \<open> … \<close> --- */
 ISABELLE_COMMENT_BLOCK
   : '\\' '<' 'comment' '>' SPACES* '\\' '<' 'open' '>'
-    ( . | '\r' | '\n' )*? '\\' '<' 'close' '>'
+    ( . | '\r' | '\n' )*?
+    '\\' '<' 'close' '>'
     -> skip
   ;
 
-ISABELLE_OPEN_BLOCK
-  : '\\' '<' 'open' '>'
-    ( . | '\r' | '\n' )*? '\\' '<' 'close' '>'
-    -> skip
-  ;
+/* --- Tokenize antiquotation delimiters so the parser can nest them --- */
+ANTI_OPEN   : '\\' '<' 'open' '>' ;
+ANTI_CLOSE  : '\\' '<' 'close' '>' ;
 
 /* Keywords / punctuation */
-DATASPACE  : 'dataspace' ;
-CONSTANTS  : 'constants' ;
-ASSUMES    : 'assumes' ;
-VARIABLES  : 'variables' ;
-AND        : 'and' ;
-ASSIGN     : '=' ;
-D_COLON    : '::' ;
-COLON      : ':' ;
+DATASPACE    : 'dataspace' ;
+CONSTANTS    : 'constants' ;
+ASSUMES      : 'assumes' ;
+VARIABLES    : 'variables' ;
+ABBREVIATION : 'abbreviation' ;
+WHERE        : 'where' ;
+AND          : 'and' ;
+ASSIGN       : '=' ;
+D_COLON      : '::' ;
+COLON        : ':' ;
 
 ARROW      : '=>' ;
 LPAREN     : '(' ;
@@ -111,36 +184,42 @@ STAR       : '*' ;
 PLUS       : '+' ;
 MINUS      : '-' ;
 DOT        : '.' ;
+SLASH      : '/' ;
 
 /* Identifiers */
 fragment LETTER      : [\p{L}] ;
 fragment DIGIT       : [0-9] ;
 fragment APOSTROPHE  : '\'' ;
 
+/* Standard Isabelle-like identifier */
 ASCII_ID
   : (LETTER | '_' | APOSTROPHE) (LETTER | DIGIT | '_' | APOSTROPHE)*
   ;
 
-/* Isabelle symbol: \<phi>, \<epsilon>, \<le>, etc. */
+/* Isabelle symbol: \<phi>, \<epsilon>, \<le>, \<tau>, etc.  (must be after ANTI_* to avoid conflict) */
 SYMBOL_IDENT
   : '\\' '<' SYMBOL_NAME '>'
+  ;
+
+/* Subscript / superscript commands inside identifiers:  \<^sub> / \<^sup> */
+SUBSCRIPT
+  : '\\' '<^sub>'
+  ;
+SUPERSCRIPT
+  : '\\' '<^sup>'
   ;
 
 fragment SYMBOL_NAME
   : [a-zA-Z0-9_]+ ('.' [a-zA-Z0-9_]+)*
   ;
 
-/* Subscript command inside identifiers:  \<^sub> */
-SUBSCRIPT
-  : '\\' '<^sub>'
-  ;
-
-/* Numbers for vec dimensions etc. */
+/* Numbers for precedences, vec dims, etc. */
 NUMBER : DIGIT+ ;
 
-/* Quoted text for logic/types; allows "" inside */
+/* Quoted text — allows newlines and Isabelle symbols inside.
+   Double quotes inside strings can be written as "" (Isabelle style). */
 QUOTED_TEXT
-  : '"' ( '""' | ~["\r\n] )* '"'
+  : '"' ( '""' | ~'"' )* '"'
   ;
 
 /* Whitespace & ML-style comments */

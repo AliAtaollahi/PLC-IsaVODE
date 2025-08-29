@@ -98,6 +98,86 @@ public interface IsaVODEtoCPPListener extends ParseTreeListener {
 	 */
 	void exitVarDecl(IsaVODEtoCPPParser.VarDeclContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#abbrevDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterAbbrevDecl(IsaVODEtoCPPParser.AbbrevDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#abbrevDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitAbbrevDecl(IsaVODEtoCPPParser.AbbrevDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#printSpec}.
+	 * @param ctx the parse tree
+	 */
+	void enterPrintSpec(IsaVODEtoCPPParser.PrintSpecContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#printSpec}.
+	 * @param ctx the parse tree
+	 */
+	void exitPrintSpec(IsaVODEtoCPPParser.PrintSpecContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#precedenceAnn}.
+	 * @param ctx the parse tree
+	 */
+	void enterPrecedenceAnn(IsaVODEtoCPPParser.PrecedenceAnnContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#precedenceAnn}.
+	 * @param ctx the parse tree
+	 */
+	void exitPrecedenceAnn(IsaVODEtoCPPParser.PrecedenceAnnContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#innerPrec}.
+	 * @param ctx the parse tree
+	 */
+	void enterInnerPrec(IsaVODEtoCPPParser.InnerPrecContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#innerPrec}.
+	 * @param ctx the parse tree
+	 */
+	void exitInnerPrec(IsaVODEtoCPPParser.InnerPrecContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#mixfixForm}.
+	 * @param ctx the parse tree
+	 */
+	void enterMixfixForm(IsaVODEtoCPPParser.MixfixFormContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#mixfixForm}.
+	 * @param ctx the parse tree
+	 */
+	void exitMixfixForm(IsaVODEtoCPPParser.MixfixFormContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#antiquotBlock}.
+	 * @param ctx the parse tree
+	 */
+	void enterAntiquotBlock(IsaVODEtoCPPParser.AntiquotBlockContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#antiquotBlock}.
+	 * @param ctx the parse tree
+	 */
+	void exitAntiquotBlock(IsaVODEtoCPPParser.AntiquotBlockContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#antiquotContent}.
+	 * @param ctx the parse tree
+	 */
+	void enterAntiquotContent(IsaVODEtoCPPParser.AntiquotContentContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#antiquotContent}.
+	 * @param ctx the parse tree
+	 */
+	void exitAntiquotContent(IsaVODEtoCPPParser.AntiquotContentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#antiquotUnit}.
+	 * @param ctx the parse tree
+	 */
+	void enterAntiquotUnit(IsaVODEtoCPPParser.AntiquotUnitContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#antiquotUnit}.
+	 * @param ctx the parse tree
+	 */
+	void exitAntiquotUnit(IsaVODEtoCPPParser.AntiquotUnitContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#typeSpec}.
 	 * @param ctx the parse tree
 	 */
@@ -147,4 +227,14 @@ public interface IsaVODEtoCPPListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitIdsegOrNum(IsaVODEtoCPPParser.IdsegOrNumContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#numberList}.
+	 * @param ctx the parse tree
+	 */
+	void enterNumberList(IsaVODEtoCPPParser.NumberListContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#numberList}.
+	 * @param ctx the parse tree
+	 */
+	void exitNumberList(IsaVODEtoCPPParser.NumberListContext ctx);
 }
