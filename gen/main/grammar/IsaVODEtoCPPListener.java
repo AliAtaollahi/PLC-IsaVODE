@@ -18,6 +18,36 @@ public interface IsaVODEtoCPPListener extends ParseTreeListener {
 	 */
 	void exitProgram(IsaVODEtoCPPParser.ProgramContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#contextBlock}.
+	 * @param ctx the parse tree
+	 */
+	void enterContextBlock(IsaVODEtoCPPParser.ContextBlockContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#contextBlock}.
+	 * @param ctx the parse tree
+	 */
+	void exitContextBlock(IsaVODEtoCPPParser.ContextBlockContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#contextBody}.
+	 * @param ctx the parse tree
+	 */
+	void enterContextBody(IsaVODEtoCPPParser.ContextBodyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#contextBody}.
+	 * @param ctx the parse tree
+	 */
+	void exitContextBody(IsaVODEtoCPPParser.ContextBodyContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#definitionDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterDefinitionDecl(IsaVODEtoCPPParser.DefinitionDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#definitionDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitDefinitionDecl(IsaVODEtoCPPParser.DefinitionDeclContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#dataspaceDecl}.
 	 * @param ctx the parse tree
 	 */

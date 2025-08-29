@@ -29,6 +29,42 @@ public class IsaVODEtoCPPBaseListener implements IsaVODEtoCPPListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterContextBlock(IsaVODEtoCPPParser.ContextBlockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitContextBlock(IsaVODEtoCPPParser.ContextBlockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterContextBody(IsaVODEtoCPPParser.ContextBodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitContextBody(IsaVODEtoCPPParser.ContextBodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDefinitionDecl(IsaVODEtoCPPParser.DefinitionDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDefinitionDecl(IsaVODEtoCPPParser.DefinitionDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterDataspaceDecl(IsaVODEtoCPPParser.DataspaceDeclContext ctx) { }
 	/**
 	 * {@inheritDoc}

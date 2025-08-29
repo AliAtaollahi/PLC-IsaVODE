@@ -17,6 +17,24 @@ public interface IsaVODEtoCPPVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitProgram(IsaVODEtoCPPParser.ProgramContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#contextBlock}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitContextBlock(IsaVODEtoCPPParser.ContextBlockContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#contextBody}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitContextBody(IsaVODEtoCPPParser.ContextBodyContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#definitionDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDefinitionDecl(IsaVODEtoCPPParser.DefinitionDeclContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#dataspaceDecl}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

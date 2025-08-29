@@ -5,7 +5,26 @@ grammar IsaVODEtoCPP;
  * ===================== */
 
 program
-  : (dataspaceDecl | abbrevDecl)* EOF
+  : (dataspaceDecl | abbrevDecl | contextBlock)* EOF
+  ;
+
+/* ---- context ----
+   context <name>
+   begin
+     <abbrev/definition/...>
+   end
+*/
+contextBlock
+  : CONTEXT ident BEGIN contextBody END
+  ;
+
+contextBody
+  : (abbrevDecl | definitionDecl | constantsClause | assumesClause | variablesClause)*
+  ;
+
+/* Minimal support for Isabelle 'definition' lines used in examples */
+definitionDecl
+  : DEFINITION QUOTED_TEXT
   ;
 
 /* ---- dataspace ---- */
@@ -18,6 +37,7 @@ dataspaceBody
     | assumesClause
     | variablesClause
     | abbrevDecl
+    | definitionDecl
     )*
   ;
 
@@ -34,7 +54,7 @@ assumesClause
   ;
 
 assumptionDecl
-  : ident COLON QUOTED_TEXT+                 // supports: "A" "B"
+  : ident COLON QUOTED_TEXT+                 // allows: a: "P" "Q"
   ;
 
 variablesClause
@@ -48,7 +68,7 @@ varDecl
 /* ---- abbreviation ----
    1) abbreviation."…"
    2) abbreviation "…"
-   3) abbreviation (input)? name (:: "TYPE")? (printSpec)? (precedenceAnn)? where "lhs ≡ rhs"
+   3) abbreviation (input)? name (:: "TYPE")? (printSpec)? (precedenceAnn)? where "…"
 */
 abbrevDecl
   : ABBREVIATION (DOT)? QUOTED_TEXT
@@ -67,7 +87,6 @@ printSpec
 
 /* Precedence AFTER printSpec:
    [1000,200] 999   |   [1000]   |   999
-   (non-empty by construction)
 */
 precedenceAnn
   : (LBRACK numberList RBRACK (NUMBER)?)     // [list] or [list] num
@@ -100,12 +119,13 @@ antiquotUnit
   | QUOTED_TEXT
   | ident
   | NUMBER
-  | SUPERSCRIPT                           // <-- allow \<^sup> inside antiquotations
+  | SUPERSCRIPT                           // allow \<^sup> inside antiquotations
   | ARROW | LPAREN | RPAREN
   | LBRACK | RBRACK | COMMA
   | CARET | STAR | PLUS | MINUS | DOT | SLASH
   | ASSIGN | COLON | D_COLON
   | DATASPACE | CONSTANTS | ASSUMES | VARIABLES | ABBREVIATION | WHERE | AND
+  | CONTEXT | BEGIN | END | DEFINITION
   ;
 
 /* ---- types ---- */
@@ -117,7 +137,7 @@ typeSpec
 typeAtom
   : ident
   | NUMBER
-  | SUPERSCRIPT                              // harmless outside antiquotations
+  | SUPERSCRIPT
   | ARROW | LPAREN | RPAREN | LBRACK | RBRACK
   | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
   ;
@@ -167,8 +187,12 @@ CONSTANTS    : 'constants' ;
 ASSUMES      : 'assumes' ;
 VARIABLES    : 'variables' ;
 ABBREVIATION : 'abbreviation' ;
+DEFINITION   : 'definition' ;
 WHERE        : 'where' ;
 AND          : 'and' ;
+CONTEXT      : 'context' ;
+BEGIN        : 'begin' ;
+END          : 'end' ;
 ASSIGN       : '=' ;
 D_COLON      : '::' ;
 COLON        : ':' ;
@@ -201,7 +225,7 @@ SYMBOL_IDENT
   : '\\' '<' SYMBOL_NAME '>'
   ;
 
-/* Subscript / superscript commands inside identifiers:  \<^sub> / \<^sup> */
+/* Subscript / superscript commands used in identifiers:  \<^sub> / \<^sup> */
 SUBSCRIPT
   : '\\' '<^sub>'
   ;
@@ -216,8 +240,7 @@ fragment SYMBOL_NAME
 /* Numbers for precedences, vec dims, etc. */
 NUMBER : DIGIT+ ;
 
-/* Quoted text — allows newlines and Isabelle symbols inside.
-   Double quotes inside strings can be written as "" (Isabelle style). */
+/* Quoted text — allows newlines and Isabelle-style doubled quotes "" */
 QUOTED_TEXT
   : '"' ( '""' | ~'"' )* '"'
   ;
