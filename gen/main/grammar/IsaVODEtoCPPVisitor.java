@@ -29,6 +29,12 @@ public interface IsaVODEtoCPPVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitImportsClause(IsaVODEtoCPPParser.ImportsClauseContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#importItem}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitImportItem(IsaVODEtoCPPParser.ImportItemContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#importName}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -142,6 +148,48 @@ public interface IsaVODEtoCPPVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitMixfixForm(IsaVODEtoCPPParser.MixfixFormContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#lemmaDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLemmaDecl(IsaVODEtoCPPParser.LemmaDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#lemmaHead}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLemmaHead(IsaVODEtoCPPParser.LemmaHeadContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#lemmaAssumesShows}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLemmaAssumesShows(IsaVODEtoCPPParser.LemmaAssumesShowsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#lemmaProof}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLemmaProof(IsaVODEtoCPPParser.LemmaProofContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#proofScript}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitProofScript(IsaVODEtoCPPParser.ProofScriptContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#proofItems}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitProofItems(IsaVODEtoCPPParser.ProofItemsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#proofItem}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitProofItem(IsaVODEtoCPPParser.ProofItemContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoCPPParser#antiquotBlock}.
 	 * @param ctx the parse tree

@@ -5,28 +5,23 @@ grammar IsaVODEtoCPP;
  * ===================== */
 
 program
-  : (theoryBlock | contextBlock | dataspaceDecl | abbrevDecl | definitionDecl)* EOF
+  : (theoryBlock | contextBlock | dataspaceDecl | abbrevDecl | definitionDecl | lemmaDecl)* EOF
   ;
 
 /* ---- theory ----
-   theory <Name>
-   imports <Import1> <Import2> ...
-   begin
-     ...
-   end
-   Imports can be unquoted (dotted identifiers) or quoted strings.
+   Allows missing final 'end' at EOF to accommodate some generated files.
 */
 theoryBlock
-  : THEORY dottedName importsClause? BEGIN theoryBody END
+  : THEORY dottedName importsClause? BEGIN theoryBody END?
   ;
 
 importsClause
-  : IMPORTS importItem+                // one or more imports
+  : IMPORTS importItem+
   ;
 
 importItem
   : importName
-  | QUOTED_TEXT                        // "Hybrid-Verification.Hybrid_Verification"
+  | QUOTED_TEXT                        // e.g. "Hybrid-Verification.Hybrid_Verification"
   ;
 
 importName
@@ -42,21 +37,20 @@ theoryBody
     | dataspaceDecl
     | abbrevDecl
     | definitionDecl
+    | lemmaDecl
     | constantsClause
     | assumesClause
     | variablesClause
     )*
   ;
 
-/* ---- context ----
-   context <name> begin ... end
-*/
+/* ---- context ---- */
 contextBlock
   : CONTEXT ident BEGIN contextBody END
   ;
 
 contextBody
-  : (abbrevDecl | definitionDecl | constantsClause | assumesClause | variablesClause)*
+  : (abbrevDecl | definitionDecl | lemmaDecl | constantsClause | assumesClause | variablesClause)*
   ;
 
 /* Minimal 'definition' support */
@@ -75,6 +69,7 @@ dataspaceBody
     | variablesClause
     | abbrevDecl
     | definitionDecl
+    | lemmaDecl
     )*
   ;
 
@@ -122,12 +117,9 @@ printSpec
   : LPAREN ( QUOTED_TEXT | mixfixForm | antiquotBlock )? innerPrec? RPAREN
   ;
 
-/* Precedence AFTER printSpec:
-   [1000,200] 999   |   [1000]   |   999
-*/
+/* Precedence AFTER printSpec: [1000,200] 999 | [1000] | 999 */
 precedenceAnn
-  : (LBRACK numberList RBRACK (NUMBER)?)     // [list] or [list] num
-  | NUMBER                                   // or just num
+  : (LBRACK numberList RBRACK (NUMBER)?) | NUMBER
   ;
 
 /* Precedence INSIDE parens (used by printSpec) */
@@ -135,13 +127,69 @@ innerPrec
   : LBRACK numberList RBRACK (NUMBER)?
   ;
 
-/* e.g., infixr "↓_V_e_c" 100, infixl "++" 70, binder "∑" 10 */
 mixfixForm
   : ASCII_ID QUOTED_TEXT (NUMBER)?
   ;
 
+/* ---- lemma ----
+   Supports:
+     lemma "…"
+       (unfolding …)? (using …)? by …
+     lemma name: "…" …
+     lemma name: assumes "…" and … shows "…" and …
+       unfolding … using … by …
+     lemma "…" … oops
+*/
+lemmaDecl
+  : LEMMA (ident COLON)? lemmaHead lemmaProof?
+  ;
+
+lemmaHead
+  : QUOTED_TEXT+                                                    // one or more quoted chunks
+  | lemmaAssumesShows                                               // structured head, non-empty
+  ;
+
+// At least one of ASSUMES / SHOWS must be present
+lemmaAssumesShows
+  : ASSUMES QUOTED_TEXT (AND QUOTED_TEXT)*                          // only assumes
+  | (ASSUMES QUOTED_TEXT (AND QUOTED_TEXT)*)?
+    SHOWS   QUOTED_TEXT (AND QUOTED_TEXT)*                          // shows (with optional assumes)
+  ;
+
+lemmaProof
+  : OOPS                                                            // abort proof
+  | (UNFOLDING proofItems)? (USING proofItems)? BY proofItems        // one-liner
+  | (FIND_LOCAL_FLOW proofItems? )? proofScript+                     // script style; at least one cmd
+  ;
+
+proofScript
+  : APPLY  proofItems
+  | INTRO  proofItems
+  | SUBGOAL proofItems
+  | USING  proofItems
+  | UNFOLDING proofItems
+  | BY     proofItems
+  | DONE
+  | QED
+  ;
+
+proofItems
+  : (proofItem)+
+  ;
+
+proofItem
+  : QUOTED_TEXT
+  | antiquotBlock
+  | ident | NUMBER
+  | SUPERSCRIPT | SUBSCRIPT
+  | ARROW | LPAREN | RPAREN
+  | LBRACK | RBRACK | COMMA
+  | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | ASSIGN | COLON | D_COLON
+  ;
+
 /* ---- nested antiquotation as a parser construct ----
-   antiquotBlock matches:  \<open> (content ... possibly nested antiquotBlock) \<close>
+   \<open> (content … possibly nested) \<close>
 */
 antiquotBlock
   : ANTI_OPEN antiquotContent ANTI_CLOSE
@@ -152,18 +200,18 @@ antiquotContent
   ;
 
 antiquotUnit
-  : antiquotBlock                         // nesting
+  : antiquotBlock
   | QUOTED_TEXT
   | ident
   | NUMBER
-  | SUPERSCRIPT                           // allow \<^sup> inside antiquotations
+  | SUPERSCRIPT
   | ARROW | LPAREN | RPAREN
   | LBRACK | RBRACK | COMMA
   | CARET | STAR | PLUS | MINUS | DOT | SLASH
   | ASSIGN | COLON | D_COLON
   | DATASPACE | CONSTANTS | ASSUMES | VARIABLES | ABBREVIATION | WHERE | AND
   | CONTEXT | BEGIN | END | DEFINITION
-  | THEORY | IMPORTS
+  | THEORY | IMPORTS | LEMMA | SHOWS | BY | APPLY | USING | UNFOLDING | FIND_LOCAL_FLOW | OOPS
   ;
 
 /* ---- types ---- */
@@ -180,10 +228,7 @@ typeAtom
   | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
   ;
 
-/* ---- identifiers ----
-   names, Isabelle symbols (\<phi>), and subscript chains f\<^sub>m\<^sub>a\<^sub>x,
-   including numeric subscripts like K\<^sub>1, K\<^sub>2
-*/
+/* ---- identifiers ---- */
 ident
   : idseg (SUBSCRIPT idsegOrNum)*
   ;
@@ -207,7 +252,7 @@ numberList
  * Lexer rules
  * ===================== */
 
-/* --- Skip full comment antiquotation blocks:  \<comment> \<open> … \<close> --- */
+/* Skip \<comment> \<open> … \<close> completely */
 ISABELLE_COMMENT_BLOCK
   : '\\' '<' 'comment' '>' SPACES* '\\' '<' 'open' '>'
     ( . | '\r' | '\n' )*?
@@ -215,27 +260,39 @@ ISABELLE_COMMENT_BLOCK
     -> skip
   ;
 
-/* --- Tokenize antiquotation delimiters so the parser can nest them --- */
+/* Tokenize antiquotation delimiters for nested parsing */
 ANTI_OPEN   : '\\' '<' 'open' '>' ;
 ANTI_CLOSE  : '\\' '<' 'close' '>' ;
 
 /* Keywords / punctuation */
-THEORY      : 'theory' ;
-IMPORTS     : 'imports' ;
-DATASPACE   : 'dataspace' ;
-CONSTANTS   : 'constants' ;
-ASSUMES     : 'assumes' ;
-VARIABLES   : 'variables' ;
-ABBREVIATION: 'abbreviation' ;
-DEFINITION  : 'definition' ;
-WHERE       : 'where' ;
-AND         : 'and' ;
-CONTEXT     : 'context' ;
-BEGIN       : 'begin' ;
-END         : 'end' ;
-ASSIGN      : '=' ;
-D_COLON     : '::' ;
-COLON       : ':' ;
+THEORY       : 'theory' ;
+IMPORTS      : 'imports' ;
+DATASPACE    : 'dataspace' ;
+CONSTANTS    : 'constants' ;
+ASSUMES      : 'assumes' ;
+SHOWS        : 'shows' ;
+VARIABLES    : 'variables' ;
+ABBREVIATION : 'abbreviation' ;
+DEFINITION   : 'definition' ;
+LEMMA        : 'lemma' ;
+OOPS         : 'oops' ;
+WHERE        : 'where' ;
+AND          : 'and' ;
+CONTEXT      : 'context' ;
+BEGIN        : 'begin' ;
+END          : 'end' ;
+ASSIGN       : '=' ;
+D_COLON      : '::' ;
+COLON        : ':' ;
+BY           : 'by' ;
+APPLY        : 'apply' ;
+USING        : 'using' ;
+UNFOLDING    : 'unfolding' ;
+INTRO        : 'intro' ;
+SUBGOAL      : 'subgoal' ;
+DONE         : 'done' ;
+QED          : 'qed' ;
+FIND_LOCAL_FLOW : 'find_local_flow' ;
 
 ARROW      : '=>' ;
 LPAREN     : '(' ;
@@ -255,12 +312,11 @@ fragment LETTER      : [\p{L}] ;
 fragment DIGIT       : [0-9] ;
 fragment APOSTROPHE  : '\'' ;
 
-/* Standard Isabelle-like identifier */
 ASCII_ID
   : (LETTER | '_' | APOSTROPHE) (LETTER | DIGIT | '_' | APOSTROPHE)*
   ;
 
-/* Isabelle symbol: \<phi>, \<epsilon>, \<le>, \<tau>, etc.  (placed after ANTI_* to avoid conflict) */
+/* Isabelle symbol: \<phi>, \<epsilon>, \<le>, \<tau>, etc. */
 SYMBOL_IDENT
   : '\\' '<' SYMBOL_NAME '>'
   ;

@@ -53,6 +53,18 @@ public class IsaVODEtoCPPBaseListener implements IsaVODEtoCPPListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterImportItem(IsaVODEtoCPPParser.ImportItemContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitImportItem(IsaVODEtoCPPParser.ImportItemContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterImportName(IsaVODEtoCPPParser.ImportNameContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -276,6 +288,90 @@ public class IsaVODEtoCPPBaseListener implements IsaVODEtoCPPListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitMixfixForm(IsaVODEtoCPPParser.MixfixFormContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLemmaDecl(IsaVODEtoCPPParser.LemmaDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLemmaDecl(IsaVODEtoCPPParser.LemmaDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLemmaHead(IsaVODEtoCPPParser.LemmaHeadContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLemmaHead(IsaVODEtoCPPParser.LemmaHeadContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLemmaAssumesShows(IsaVODEtoCPPParser.LemmaAssumesShowsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLemmaAssumesShows(IsaVODEtoCPPParser.LemmaAssumesShowsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLemmaProof(IsaVODEtoCPPParser.LemmaProofContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLemmaProof(IsaVODEtoCPPParser.LemmaProofContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterProofScript(IsaVODEtoCPPParser.ProofScriptContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitProofScript(IsaVODEtoCPPParser.ProofScriptContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterProofItems(IsaVODEtoCPPParser.ProofItemsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitProofItems(IsaVODEtoCPPParser.ProofItemsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterProofItem(IsaVODEtoCPPParser.ProofItemContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitProofItem(IsaVODEtoCPPParser.ProofItemContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

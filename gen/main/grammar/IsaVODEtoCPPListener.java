@@ -38,6 +38,16 @@ public interface IsaVODEtoCPPListener extends ParseTreeListener {
 	 */
 	void exitImportsClause(IsaVODEtoCPPParser.ImportsClauseContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#importItem}.
+	 * @param ctx the parse tree
+	 */
+	void enterImportItem(IsaVODEtoCPPParser.ImportItemContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#importItem}.
+	 * @param ctx the parse tree
+	 */
+	void exitImportItem(IsaVODEtoCPPParser.ImportItemContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#importName}.
 	 * @param ctx the parse tree
 	 */
@@ -227,6 +237,76 @@ public interface IsaVODEtoCPPListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitMixfixForm(IsaVODEtoCPPParser.MixfixFormContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#lemmaDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterLemmaDecl(IsaVODEtoCPPParser.LemmaDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#lemmaDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitLemmaDecl(IsaVODEtoCPPParser.LemmaDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#lemmaHead}.
+	 * @param ctx the parse tree
+	 */
+	void enterLemmaHead(IsaVODEtoCPPParser.LemmaHeadContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#lemmaHead}.
+	 * @param ctx the parse tree
+	 */
+	void exitLemmaHead(IsaVODEtoCPPParser.LemmaHeadContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#lemmaAssumesShows}.
+	 * @param ctx the parse tree
+	 */
+	void enterLemmaAssumesShows(IsaVODEtoCPPParser.LemmaAssumesShowsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#lemmaAssumesShows}.
+	 * @param ctx the parse tree
+	 */
+	void exitLemmaAssumesShows(IsaVODEtoCPPParser.LemmaAssumesShowsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#lemmaProof}.
+	 * @param ctx the parse tree
+	 */
+	void enterLemmaProof(IsaVODEtoCPPParser.LemmaProofContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#lemmaProof}.
+	 * @param ctx the parse tree
+	 */
+	void exitLemmaProof(IsaVODEtoCPPParser.LemmaProofContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#proofScript}.
+	 * @param ctx the parse tree
+	 */
+	void enterProofScript(IsaVODEtoCPPParser.ProofScriptContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#proofScript}.
+	 * @param ctx the parse tree
+	 */
+	void exitProofScript(IsaVODEtoCPPParser.ProofScriptContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#proofItems}.
+	 * @param ctx the parse tree
+	 */
+	void enterProofItems(IsaVODEtoCPPParser.ProofItemsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#proofItems}.
+	 * @param ctx the parse tree
+	 */
+	void exitProofItems(IsaVODEtoCPPParser.ProofItemsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#proofItem}.
+	 * @param ctx the parse tree
+	 */
+	void enterProofItem(IsaVODEtoCPPParser.ProofItemContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoCPPParser#proofItem}.
+	 * @param ctx the parse tree
+	 */
+	void exitProofItem(IsaVODEtoCPPParser.ProofItemContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoCPPParser#antiquotBlock}.
 	 * @param ctx the parse tree
