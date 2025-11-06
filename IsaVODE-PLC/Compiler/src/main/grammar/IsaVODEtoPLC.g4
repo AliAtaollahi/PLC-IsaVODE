@@ -34,13 +34,18 @@ topItem
   | methodSetupDecl
   | parseTranslationDecl
   | termDecl
+  | thmDecl
   | mlBlock
   | mlFileDecl
   | sectionCommand
   | subsectionCommand
   | subsubsectionCommand
   | textCommand
+  | proofScript
+  | proofMiscLine
+  | END               // <- NEW: tolerate stray 'end' at top-level
   ;
+
 
 /* ---- theory ---- */
 
@@ -98,12 +103,15 @@ theoryBody
     | methodSetupDecl
     | parseTranslationDecl
     | termDecl
+    | thmDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
     | subsectionCommand
     | subsubsectionCommand
     | textCommand
+    | proofScript        // NEW: allow proof scripts inside theory
+    | proofMiscLine      // NEW: allow misc proof lines inside theory
     )*
   ;
 
@@ -154,12 +162,15 @@ contextBody
     | methodSetupDecl
     | parseTranslationDecl
     | termDecl
+    | thmDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
     | subsectionCommand
     | subsubsectionCommand
     | textCommand
+    | proofScript        // NEW
+    | proofMiscLine      // NEW
     )*
   ;
 
@@ -184,12 +195,15 @@ bundleBody
     | methodSetupDecl
     | parseTranslationDecl
     | termDecl
+    | thmDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
     | subsectionCommand
     | subsubsectionCommand
     | textCommand
+    | proofScript        // NEW
+    | proofMiscLine      // NEW
     )*
   ;
 
@@ -246,12 +260,15 @@ dataspaceBody
     | methodSetupDecl
     | parseTranslationDecl
     | termDecl
+    | thmDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
     | subsectionCommand
     | subsubsectionCommand
     | textCommand
+    | proofScript        // NEW
+    | proofMiscLine      // NEW
     )*
   ;
 
@@ -320,7 +337,7 @@ mixfixForm
 /* ---- lemma ---- */
 
 lemmaDecl
-  : LEMMA lemmaPrefix? lemmaHeadGeneric lemmaProof
+  : LEMMA lemmaPrefix? lemmaHeadGeneric lemmaTrailer?
   ;
 
 lemmaPrefix
@@ -364,23 +381,44 @@ lemmaHeadToken
   | ASSUMES | SHOWS | FIXES | IS
   ;
 
-/* proofs */
+/* simplified lemma trailers:
+   - immediate 'oops'
+   - one-line 'by ...'
+   - structured 'proof ... qed'
+   All other script is parsed as separate top-level proofScript/proofMiscLine.
+*/
 
-lemmaProof
+lemmaTrailer
   : OOPS
   | (UNFOLDING proofItems)? (USING proofItems)? BY proofItems
-  | (FIND_LOCAL_FLOW proofItems? )? proofScript+ OOPS?
+  | proofBlock                          // structured Isar proof:  proof ... qed
   ;
 
+/* ---- proofs (standalone commands) ---- */
+
+/* structured proof block is a single token */
+proofBlock
+  : PROOF_BLOCK
+  ;
+
+/* simple script commands; can appear at top level or inside theory bodies */
 proofScript
   : APPLY  proofItems
   | INTRO  proofItems
   | SUBGOAL proofItems
   | USING  proofItems
   | UNFOLDING proofItems
+  | PREFER proofItems
   | BY     proofItems
   | DONE
   | QED
+  | FIND_LOCAL_FLOW proofItems?
+  | OOPS
+  ;
+
+/* bare "misc" proof lines: just a bunch of items like 'at_le at_within_open' */
+proofMiscLine
+  : proofItem+
   ;
 
 proofItems
@@ -400,6 +438,8 @@ proofItem
   | BANG
   | SEMI | QUESTION | BAR
   | WHERE
+  | AND
+  | FOR
   ;
 
 /* ---- lemmas (collections) ---- */
@@ -410,12 +450,10 @@ lemmasDecl
 
 /* ---- method / method_setup ---- */
 
-// force every 'method' to have a body
 methodDecl
   : METHOD methodBody
   ;
 
-// be liberal: treat whole tail as body
 methodSetupDecl
   : METHOD_SETUP methodBody
   ;
@@ -444,12 +482,10 @@ methodAtom
 
 /* ---- nested antiquotation ---- */
 
-/* We treat any \<open> ... \<close> (optionally preceded by ML) as a single block */
 antiquotBlock
   : ML_BLOCK
   ;
 
-// (these two are unused now but kept for completeness)
 antiquotContent
   : (antiquotUnit)*
   ;
@@ -586,10 +622,14 @@ exprConstructorDecl
   : EXPR_CONSTRUCTOR_CMD
   ;
 
-/* ---- term (opaque) ---- */
+/* ---- term / thm (opaque) ---- */
 
 termDecl
   : TERM_CMD
+  ;
+
+thmDecl
+  : THM_CMD
   ;
 
 /* ---- types ---- */
@@ -690,6 +730,12 @@ ML_FILE_CMD
     '\\' '<' 'close' '>'
   ;
 
+/* structured proof blocks: proof ... qed */
+
+PROOF_BLOCK
+  : 'proof' ( . | '\r' | '\n' )*? 'qed'
+  ;
+
 /* antiquotation delimiters (not really used now, ML_BLOCK wins) */
 
 ANTI_OPEN   : '\\' '<' 'open' '>' ;
@@ -726,6 +772,7 @@ USING        : 'using' ;
 UNFOLDING    : 'unfolding' ;
 INTRO        : 'intro' ;
 SUBGOAL      : 'subgoal' ;
+PREFER       : 'prefer' ;
 DONE         : 'done' ;
 QED          : 'qed' ;
 FIND_LOCAL_FLOW : 'find_local_flow' ;
@@ -771,6 +818,10 @@ LEMMAS_CMD
 
 TERM_CMD
   : 'term' ~[\r\n]*
+  ;
+
+THM_CMD
+  : 'thm' ~[\r\n]*    // entire 'thm ...' line as one token
   ;
 
 /* punctuation */
@@ -832,4 +883,6 @@ QUOTED_TEXT
 /* whitespace & comments */
 
 WS       : SPACES+ -> skip ;
-COMMENT  : '(*' ( . | '\r' | '\n' )*? '*)' -> skip ;
+
+/* greedy, to cope with nested Isabelle comments reasonably well */
+COMMENT  : '(*' ( . | '\r' | '\n' )* '*)' -> skip ;
