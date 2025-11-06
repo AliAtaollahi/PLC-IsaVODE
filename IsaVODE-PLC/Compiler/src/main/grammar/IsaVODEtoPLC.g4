@@ -20,6 +20,7 @@ topItem
   | assumesClause
   | variablesClause
   | typeSynDecl
+  | nonterminalDecl
   | syntaxDecl
   | translationsDecl
   | bundleBlock
@@ -31,10 +32,13 @@ topItem
   | exprConstructorDecl
   | methodDecl
   | methodSetupDecl
+  | parseTranslationDecl
+  | termDecl
   | mlBlock
   | mlFileDecl
   | sectionCommand
   | subsectionCommand
+  | subsubsectionCommand
   | textCommand
   ;
 
@@ -80,6 +84,7 @@ theoryBody
     | assumesClause
     | variablesClause
     | typeSynDecl
+    | nonterminalDecl
     | syntaxDecl
     | translationsDecl
     | bundleBlock
@@ -91,10 +96,13 @@ theoryBody
     | exprConstructorDecl
     | methodDecl
     | methodSetupDecl
+    | parseTranslationDecl
+    | termDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
     | subsectionCommand
+    | subsubsectionCommand
     | textCommand
     )*
   ;
@@ -107,6 +115,10 @@ sectionCommand
 
 subsectionCommand
   : SUBSECTION_BLOCK
+  ;
+
+subsubsectionCommand
+  : SUBSUBSECTION_BLOCK
   ;
 
 textCommand
@@ -128,6 +140,7 @@ contextBody
     | assumesClause
     | variablesClause
     | typeSynDecl
+    | nonterminalDecl
     | syntaxDecl
     | translationsDecl
     | bundleBlock
@@ -139,10 +152,13 @@ contextBody
     | exprConstructorDecl
     | methodDecl
     | methodSetupDecl
+    | parseTranslationDecl
+    | termDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
     | subsectionCommand
+    | subsubsectionCommand
     | textCommand
     )*
   ;
@@ -166,10 +182,13 @@ bundleBody
     | abbrevDecl
     | methodDecl
     | methodSetupDecl
+    | parseTranslationDecl
+    | termDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
     | subsectionCommand
+    | subsubsectionCommand
     | textCommand
     )*
   ;
@@ -178,7 +197,24 @@ bundleBody
 
 definitionDecl
   : DEFINITION QUOTED_TEXT
-  | DEFINITION ident (D_COLON QUOTED_TEXT)? WHERE QUOTED_TEXT
+  | DEFINITION ident definitionHead? WHERE QUOTED_TEXT
+  ;
+
+definitionHead
+  : definitionHeadToken+
+  ;
+
+definitionHeadToken
+  : QUOTED_TEXT
+  | antiquotBlock
+  | ident
+  | NUMBER
+  | SUPERSCRIPT | SUBSCRIPT
+  | LPAREN | RPAREN | LBRACK | RBRACK | LBRACE | RBRACE
+  | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | ASSIGN | COLON | D_COLON
+  | EQEQ | ARROW | REV_ARROW
+  | AND | FOR
   ;
 
 /* ---- dataspace ---- */
@@ -196,6 +232,7 @@ dataspaceBody
     | lemmaDecl
     | lemmasDecl
     | typeSynDecl
+    | nonterminalDecl
     | syntaxDecl
     | translationsDecl
     | bundleBlock
@@ -207,10 +244,13 @@ dataspaceBody
     | exprConstructorDecl
     | methodDecl
     | methodSetupDecl
+    | parseTranslationDecl
+    | termDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
     | subsectionCommand
+    | subsubsectionCommand
     | textCommand
     )*
   ;
@@ -243,6 +283,12 @@ varDecl
 
 typeSynDecl
   : TYPE_SYNONYM typeSpec ASSIGN typeSpec
+  ;
+
+/* ---- nonterminal ---- */
+
+nonterminalDecl
+  : NONTERMINAL ident (AND ident)*
   ;
 
 /* ---- abbreviation ---- */
@@ -369,7 +415,7 @@ methodDecl
   : METHOD methodBody
   ;
 
-// match:  method_setup kstar = \<open> ... \<close> "introduce an invariant"
+// be liberal: treat whole tail as body
 methodSetupDecl
   : METHOD_SETUP methodBody
   ;
@@ -396,13 +442,14 @@ methodAtom
   | FIND_LOCAL_FLOW
   ;
 
-
 /* ---- nested antiquotation ---- */
 
+/* We treat any \<open> ... \<close> (optionally preceded by ML) as a single block */
 antiquotBlock
   : ML_BLOCK
   ;
 
+// (these two are unused now but kept for completeness)
 antiquotContent
   : (antiquotUnit)*
   ;
@@ -435,14 +482,34 @@ mlFileDecl
   : ML_FILE_CMD
   ;
 
+/* ---- parse_translation ---- */
+
+parseTranslationDecl
+  : PARSE_TRANSLATION mlBlock
+  ;
+
 /* ---- syntax / translations / unbundle / declare / no_notation ---- */
 
 syntaxDecl
-  : SYNTAX syntaxEntry+
+  : SYNTAX syntaxTail
   ;
 
-syntaxEntry
-  : QUOTED_TEXT D_COLON QUOTED_TEXT printSpec?
+syntaxTail
+  : syntaxToken+
+  ;
+
+syntaxToken
+  : QUOTED_TEXT
+  | antiquotBlock
+  | ident
+  | NUMBER
+  | SUPERSCRIPT | SUBSCRIPT
+  | LPAREN | RPAREN | LBRACK | RBRACK | LBRACE | RBRACE
+  | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | ASSIGN | COLON | D_COLON
+  | EQEQ | ARROW | REV_ARROW
+  | BANG
+  | SEMI | QUESTION | BAR
   ;
 
 translationsDecl
@@ -519,6 +586,12 @@ exprConstructorDecl
   : EXPR_CONSTRUCTOR_CMD
   ;
 
+/* ---- term (opaque) ---- */
+
+termDecl
+  : TERM_CMD
+  ;
+
 /* ---- types ---- */
 
 typeSpec
@@ -591,13 +664,19 @@ SUBSECTION_BLOCK
     '\\' '<' 'close' '>'
   ;
 
+SUBSUBSECTION_BLOCK
+  : 'subsubsection' SPACES* '\\' '<' 'open' '>'
+    ( . | '\r' | '\n' )*?
+    '\\' '<' 'close' '>'
+  ;
+
 TEXT_BLOCK
   : 'text' SPACES* '\\' '<' 'open' '>'
     ( . | '\r' | '\n' )*?
     '\\' '<' 'close' '>'
   ;
 
-/* ML blocks */
+/* ML blocks: ML \<open>...\<close> or just \<open>...\<close> */
 
 ML_BLOCK
   : ('ML' SPACES*)? '\\' '<' 'open' '>'
@@ -611,7 +690,7 @@ ML_FILE_CMD
     '\\' '<' 'close' '>'
   ;
 
-/* antiquotation delimiters */
+/* antiquotation delimiters (not really used now, ML_BLOCK wins) */
 
 ANTI_OPEN   : '\\' '<' 'open' '>' ;
 ANTI_CLOSE  : '\\' '<' 'close' '>' ;
@@ -663,6 +742,9 @@ TYPE_SYNONYM  : 'type_synonym' ;
 METHOD        : 'method' ;
 METHOD_SETUP  : 'method_setup' ;
 
+NONTERMINAL   : 'nonterminal' ;
+PARSE_TRANSLATION : 'parse_translation' ;
+
 EQEQ       : '==';
 ARROW      : '=>' ;
 REV_ARROW  : '<=' ;
@@ -685,6 +767,10 @@ EXPR_CONSTRUCTOR_CMD
 
 LEMMAS_CMD
   : 'lemmas' ~[\r\n]*
+  ;
+
+TERM_CMD
+  : 'term' ~[\r\n]*
   ;
 
 /* punctuation */
