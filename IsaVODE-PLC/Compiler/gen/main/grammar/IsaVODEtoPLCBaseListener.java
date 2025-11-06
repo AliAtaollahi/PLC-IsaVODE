@@ -473,37 +473,25 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLemmaHead(IsaVODEtoPLCParser.LemmaHeadContext ctx) { }
+	@Override public void enterLemmaHeadGeneric(IsaVODEtoPLCParser.LemmaHeadGenericContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitLemmaHead(IsaVODEtoPLCParser.LemmaHeadContext ctx) { }
+	@Override public void exitLemmaHeadGeneric(IsaVODEtoPLCParser.LemmaHeadGenericContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLemmaAssumesShows(IsaVODEtoPLCParser.LemmaAssumesShowsContext ctx) { }
+	@Override public void enterLemmaHeadToken(IsaVODEtoPLCParser.LemmaHeadTokenContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitLemmaAssumesShows(IsaVODEtoPLCParser.LemmaAssumesShowsContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterLemmaFacts(IsaVODEtoPLCParser.LemmaFactsContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLemmaFacts(IsaVODEtoPLCParser.LemmaFactsContext ctx) { }
+	@Override public void exitLemmaHeadToken(IsaVODEtoPLCParser.LemmaHeadTokenContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -564,6 +552,54 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitLemmasDecl(IsaVODEtoPLCParser.LemmasDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMethodDecl(IsaVODEtoPLCParser.MethodDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMethodDecl(IsaVODEtoPLCParser.MethodDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMethodSetupDecl(IsaVODEtoPLCParser.MethodSetupDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMethodSetupDecl(IsaVODEtoPLCParser.MethodSetupDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMethodBody(IsaVODEtoPLCParser.MethodBodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMethodBody(IsaVODEtoPLCParser.MethodBodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMethodAtom(IsaVODEtoPLCParser.MethodAtomContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMethodAtom(IsaVODEtoPLCParser.MethodAtomContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -701,13 +737,25 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterDeclItem(IsaVODEtoPLCParser.DeclItemContext ctx) { }
+	@Override public void enterDeclTail(IsaVODEtoPLCParser.DeclTailContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitDeclItem(IsaVODEtoPLCParser.DeclItemContext ctx) { }
+	@Override public void exitDeclTail(IsaVODEtoPLCParser.DeclTailContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDeclAtom(IsaVODEtoPLCParser.DeclAtomContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDeclAtom(IsaVODEtoPLCParser.DeclAtomContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

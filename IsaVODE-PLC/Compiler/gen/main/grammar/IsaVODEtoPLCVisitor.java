@@ -239,23 +239,17 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAttribute(IsaVODEtoPLCParser.AttributeContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaHead}.
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaHeadGeneric}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitLemmaHead(IsaVODEtoPLCParser.LemmaHeadContext ctx);
+	T visitLemmaHeadGeneric(IsaVODEtoPLCParser.LemmaHeadGenericContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaAssumesShows}.
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaHeadToken}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitLemmaAssumesShows(IsaVODEtoPLCParser.LemmaAssumesShowsContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaFacts}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitLemmaFacts(IsaVODEtoPLCParser.LemmaFactsContext ctx);
+	T visitLemmaHeadToken(IsaVODEtoPLCParser.LemmaHeadTokenContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaProof}.
 	 * @param ctx the parse tree
@@ -286,6 +280,30 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitLemmasDecl(IsaVODEtoPLCParser.LemmasDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#methodDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMethodDecl(IsaVODEtoPLCParser.MethodDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#methodSetupDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMethodSetupDecl(IsaVODEtoPLCParser.MethodSetupDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#methodBody}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMethodBody(IsaVODEtoPLCParser.MethodBodyContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#methodAtom}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMethodAtom(IsaVODEtoPLCParser.MethodAtomContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#antiquotBlock}.
 	 * @param ctx the parse tree
@@ -353,11 +371,17 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDeclareDecl(IsaVODEtoPLCParser.DeclareDeclContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#declItem}.
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#declTail}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitDeclItem(IsaVODEtoPLCParser.DeclItemContext ctx);
+	T visitDeclTail(IsaVODEtoPLCParser.DeclTailContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#declAtom}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDeclAtom(IsaVODEtoPLCParser.DeclAtomContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#noNotationDecl}.
 	 * @param ctx the parse tree

@@ -4,7 +4,6 @@ grammar IsaVODEtoPLC;
  * Parser rules
  * ===================== */
 
-/* Allow all outer commands at top-level */
 program
   : (topItem)* EOF
   ;
@@ -30,6 +29,8 @@ topItem
   | notationDecl
   | namedTheoremsDecl
   | exprConstructorDecl
+  | methodDecl
+  | methodSetupDecl
   | mlBlock
   | mlFileDecl
   | sectionCommand
@@ -37,9 +38,8 @@ topItem
   | textCommand
   ;
 
-/* ---- theory ----
-   Allows missing final 'end' at EOF to accommodate some generated files.
-*/
+/* ---- theory ---- */
+
 theoryBlock
   : THEORY dottedName importsClause? keywordsClause? BEGIN theoryBody END?
   ;
@@ -50,7 +50,7 @@ importsClause
 
 importItem
   : importName
-  | QUOTED_TEXT                        // e.g. "Hybrid-Verification.Hybrid_Verification"
+  | QUOTED_TEXT
   ;
 
 importName
@@ -61,7 +61,6 @@ dottedName
   : ident (DOT ident)*
   ;
 
-/* keywords "find_local_flow" :: diag */
 keywordsClause
   : KEYWORDS keywordSpec+
   ;
@@ -90,6 +89,8 @@ theoryBody
     | notationDecl
     | namedTheoremsDecl
     | exprConstructorDecl
+    | methodDecl
+    | methodSetupDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
@@ -98,9 +99,7 @@ theoryBody
     )*
   ;
 
-/* ---- section / subsection / text ----
-   These are treated as opaque blocks: section \<open>...\<close>, etc.
-*/
+/* ---- section / subsection / text ---- */
 
 sectionCommand
   : SECTION_BLOCK
@@ -115,6 +114,7 @@ textCommand
   ;
 
 /* ---- context ---- */
+
 contextBlock
   : CONTEXT ident BEGIN contextBody END
   ;
@@ -137,6 +137,8 @@ contextBody
     | notationDecl
     | namedTheoremsDecl
     | exprConstructorDecl
+    | methodDecl
+    | methodSetupDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
@@ -145,12 +147,8 @@ contextBody
     )*
   ;
 
-/* ---- bundle ----
-   bundle Hybrid_Program_Syntax
-   begin
-     ...
-   end
-*/
+/* ---- bundle ---- */
+
 bundleBlock
   : BUNDLE ident BEGIN bundleBody END
   ;
@@ -166,6 +164,8 @@ bundleBody
     | lemmaDecl
     | lemmasDecl
     | abbrevDecl
+    | methodDecl
+    | methodSetupDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
@@ -174,13 +174,15 @@ bundleBody
     )*
   ;
 
-/* Minimal 'definition' + simple named form */
+/* ---- definition ---- */
+
 definitionDecl
   : DEFINITION QUOTED_TEXT
   | DEFINITION ident (D_COLON QUOTED_TEXT)? WHERE QUOTED_TEXT
   ;
 
 /* ---- dataspace ---- */
+
 dataspaceDecl
   : DATASPACE ident ASSIGN dataspaceBody
   ;
@@ -203,6 +205,8 @@ dataspaceBody
     | notationDecl
     | namedTheoremsDecl
     | exprConstructorDecl
+    | methodDecl
+    | methodSetupDecl
     | mlBlock
     | mlFileDecl
     | sectionCommand
@@ -224,7 +228,7 @@ assumesClause
   ;
 
 assumptionDecl
-  : ident COLON QUOTED_TEXT+                 // allows: a: "P" "Q"
+  : ident COLON QUOTED_TEXT+
   ;
 
 variablesClause
@@ -236,37 +240,29 @@ varDecl
   ;
 
 /* ---- type synonym ---- */
-/* type_synonym 'a pred = "'a \<Rightarrow> bool" */
+
 typeSynDecl
   : TYPE_SYNONYM typeSpec ASSIGN typeSpec
   ;
 
-/* ---- abbreviation ----
-   1) abbreviation."…"
-   2) abbreviation "…"
-   3) abbreviation (input)? name (:: "TYPE")? (printSpec)? (precedenceAnn)? where "…"
-*/
+/* ---- abbreviation ---- */
+
 abbrevDecl
   : ABBREVIATION (DOT)? QUOTED_TEXT
   | ABBREVIATION (LPAREN ASCII_ID RPAREN)? ident (D_COLON QUOTED_TEXT)?
       printSpec? precedenceAnn? WHERE QUOTED_TEXT
   ;
 
-/* PRINTFORM:
-   - ("print")
-   - (infixr "…" 100)
-   - ( \<open> … \<close> [1000] 999 )   // precedence may be INSIDE the same parens
-*/
+/* print spec & precedence */
+
 printSpec
   : LPAREN ( QUOTED_TEXT | mixfixForm | antiquotBlock )? innerPrec? RPAREN
   ;
 
-/* Precedence AFTER printSpec: [1000,200] 999 | [1000] | 999 */
 precedenceAnn
   : (LBRACK numberList RBRACK (NUMBER)?) | NUMBER
   ;
 
-/* Precedence INSIDE parens (used by printSpec) */
 innerPrec
   : LBRACK numberList RBRACK (NUMBER)?
   ;
@@ -276,18 +272,18 @@ mixfixForm
   ;
 
 /* ---- lemma ---- */
+
 lemmaDecl
-  : LEMMA lemmaPrefix? lemmaHead lemmaProof?
+  : LEMMA lemmaPrefix? lemmaHeadGeneric lemmaProof
   ;
 
-/* optional name + attributes + colon */
 lemmaPrefix
   : lemmaNameAndAttrs COLON?
   ;
 
 lemmaNameAndAttrs
-  : ident attributes?       // named lemma, optional attributes
-  | attributes              // unnamed lemma with attributes
+  : ident attributes?
+  | attributes
   ;
 
 attributes
@@ -299,30 +295,31 @@ attrList
   ;
 
 attribute
-  : ident (BANG)?           // e.g. simp, intro!
+  : ident (BANG)?
   ;
 
-lemmaHead
-  : QUOTED_TEXT+                                                    // one or more quoted chunks
-  | lemmaAssumesShows                                               // structured head, non-empty
+/* lemma head: everything until first proof keyword */
+
+lemmaHeadGeneric
+  : lemmaHeadToken+
   ;
 
-/* structured lemma head with multiple quoted facts per assumes/shows */
-lemmaAssumesShows
-  : ASSUMES lemmaFacts (AND lemmaFacts)*                            // only assumes
-  | (ASSUMES lemmaFacts (AND lemmaFacts)*)?
-    SHOWS   lemmaFacts (AND lemmaFacts)*                            // shows (with optional assumes)
+lemmaHeadToken
+  : QUOTED_TEXT
+  | antiquotBlock
+  | ident
+  | NUMBER
+  | SUPERSCRIPT | SUBSCRIPT
+  | LPAREN | RPAREN | LBRACK | RBRACK | LBRACE | RBRACE
+  | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | ASSIGN | COLON | D_COLON
+  | EQEQ | ARROW | REV_ARROW
+  | AND | FOR
+  | ASSUMES | SHOWS | FIXES | IS
   ;
 
-lemmaFacts
-  : QUOTED_TEXT+
-  ;
+/* proofs */
 
-/* lemma proofs:
-   - oops
-   - unfolding ... using ... by ...
-   - script style (apply/using/...) with optional trailing oops
-*/
 lemmaProof
   : OOPS
   | (UNFOLDING proofItems)? (USING proofItems)? BY proofItems
@@ -351,25 +348,59 @@ proofItem
   | SUPERSCRIPT | SUBSCRIPT
   | ARROW | REV_ARROW | EQEQ
   | LPAREN | RPAREN
-  | LBRACK | RBRACK | COMMA
-  | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | LBRACK | RBRACK
+  | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
   | ASSIGN | COLON | D_COLON
   | BANG
+  | SEMI | QUESTION | BAR
+  | WHERE
   ;
 
-/* ---- lemmas (collections) ----
-   Treat the whole line as opaque.
-   Example: lemmas fbox_conseq_alt = fbox_conseq[unfolded impl_eq_leq]
-*/
+/* ---- lemmas (collections) ---- */
+
 lemmasDecl
   : LEMMAS_CMD
   ;
 
-/* ---- nested antiquotation as a parser construct ----
-   \<open> (content … possibly nested) \<close>
-*/
+/* ---- method / method_setup ---- */
+
+// force every 'method' to have a body
+methodDecl
+  : METHOD methodBody
+  ;
+
+// match:  method_setup kstar = \<open> ... \<close> "introduce an invariant"
+methodSetupDecl
+  : METHOD_SETUP methodBody
+  ;
+
+methodBody
+  : methodAtom+
+  ;
+
+methodAtom
+  : QUOTED_TEXT
+  | antiquotBlock
+  | ident
+  | NUMBER
+  | SUPERSCRIPT | SUBSCRIPT
+  | LPAREN | RPAREN | LBRACK | RBRACK | LBRACE | RBRACE
+  | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | ASSIGN | COLON | D_COLON
+  | EQEQ | ARROW | REV_ARROW
+  | BANG | SEMI | QUESTION | BAR
+  | AND
+  | FOR
+  | WHERE
+  | BY | APPLY | USING | UNFOLDING | INTRO | SUBGOAL | DONE | QED | OOPS
+  | FIND_LOCAL_FLOW
+  ;
+
+
+/* ---- nested antiquotation ---- */
+
 antiquotBlock
-  : ANTI_OPEN antiquotContent ANTI_CLOSE
+  : ML_BLOCK
   ;
 
 antiquotContent
@@ -381,27 +412,25 @@ antiquotUnit
   | QUOTED_TEXT
   | ident
   | NUMBER
-  | SUPERSCRIPT
+  | SUPERSCRIPT | SUBSCRIPT
   | ARROW | REV_ARROW | EQEQ | LPAREN | RPAREN
-  | LBRACK | RBRACK | COMMA
+  | LBRACK | RBRACK | COMMA | LBRACE | RBRACE
   | CARET | STAR | PLUS | MINUS | DOT | SLASH
   | ASSIGN | COLON | D_COLON
-  | DATASPACE | CONSTANTS | ASSUMES | VARIABLES | ABBREVIATION | WHERE | AND
+  | SEMI | QUESTION | BAR | AT | GT
+  | DATASPACE | CONSTANTS | ASSUMES | VARIABLES | ABBREVIATION | WHERE | AND | FOR | FIXES
   | CONTEXT | BEGIN | END | DEFINITION
   | THEORY | IMPORTS | LEMMA | SHOWS | BY | APPLY | USING | UNFOLDING | FIND_LOCAL_FLOW | OOPS
   | CONTROL_IDENT
   | BANG
   ;
 
-/* ---- ML blocks ----
-   ML \<open> ... arbitrary ML code ... \<close>
-   We treat the whole block as opaque (one token).
-*/
+/* ---- ML ---- */
+
 mlBlock
   : ML_BLOCK
   ;
 
-/* ML_file \<open> ... \<close> */
 mlFileDecl
   : ML_FILE_CMD
   ;
@@ -428,18 +457,30 @@ unbundleDecl
   : UNBUNDLE ident+
   ;
 
-/* declare lens_indep_impl_scene_indep_var [lens]
-   declare [[literal_variables, pretty_print_exprs, mark_state_variables=false]]
-*/
 declareDecl
-  : DECLARE (declItem+ | ATTR_CONFIG)
+  : DECLARE (ATTR_CONFIG | declTail)
   ;
 
-declItem
-  : ident attributes?
+declTail
+  : (declAtom)+
   ;
 
-/* no_notation ...  (ASCII) ... and ... */
+declAtom
+  : QUOTED_TEXT
+  | antiquotBlock
+  | ident
+  | NUMBER
+  | SUPERSCRIPT | SUBSCRIPT
+  | LPAREN | RPAREN | LBRACK | RBRACK | LBRACE | RBRACE
+  | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | ASSIGN | COLON | D_COLON
+  | EQEQ | ARROW | REV_ARROW
+  | BANG
+  | SEMI | QUESTION | BAR
+  | AND
+  | FOR
+  ;
+
 noNotationDecl
   : NO_NOTATION noNotationTail
   ;
@@ -460,12 +501,12 @@ noNotationToken
   | ASSIGN | COLON | D_COLON
   | ARROW | REV_ARROW | EQEQ
   | BANG
+  | SEMI | QUESTION | BAR
   | AND
   ;
 
-/* notation / named_theorems / expr_constructor:
-   Each full line is opaque.
-*/
+/* opaque single-line commands */
+
 notationDecl
   : NOTATION_CMD
   ;
@@ -479,9 +520,10 @@ exprConstructorDecl
   ;
 
 /* ---- types ---- */
+
 typeSpec
   : QUOTED_TEXT
-  | typeAtom+                                // e.g., real vec[2], R^n, 'a pred
+  | typeAtom+
   ;
 
 typeAtom
@@ -494,6 +536,7 @@ typeAtom
   ;
 
 /* ---- identifiers ---- */
+
 ident
   : idseg (SUBSCRIPT idsegOrNum)*
   ;
@@ -509,7 +552,8 @@ idsegOrNum
   | NUMBER
   ;
 
-/* ===== helper list ===== */
+/* helper list */
+
 numberList
   : NUMBER (COMMA NUMBER)*
   ;
@@ -518,14 +562,14 @@ numberList
  * Lexer rules
  * ===================== */
 
-/* --- fragments --- */
 fragment LETTER      : [\p{L}] ;
 fragment DIGIT       : [0-9] ;
 fragment APOSTROPHE  : '\'' ;
 fragment SPACES      : [ \t\r\n] ;
 fragment SYMBOL_NAME : [a-zA-Z0-9_]+ ('.' [a-zA-Z0-9_]+)* ;
 
-/* Skip \<comment> \<open> … \<close> completely */
+/* \<comment> \<open> … \<close> */
+
 ISABELLE_COMMENT_BLOCK
   : '\\' '<' 'comment' '>' SPACES* '\\' '<' 'open' '>'
     ( . | '\r' | '\n' )*?
@@ -533,7 +577,8 @@ ISABELLE_COMMENT_BLOCK
     -> skip
   ;
 
-/* Section / subsection / text blocks: section \<open>...\<close>, etc. */
+/* section/subsection/text blocks */
+
 SECTION_BLOCK
   : 'section' SPACES* '\\' '<' 'open' '>'
     ( . | '\r' | '\n' )*?
@@ -552,25 +597,27 @@ TEXT_BLOCK
     '\\' '<' 'close' '>'
   ;
 
-/* ML block: greedy until the LAST \<close> after ML \<open> */
+/* ML blocks */
+
 ML_BLOCK
-  : 'ML' SPACES* '\\' '<' 'open' '>'
+  : ('ML' SPACES*)? '\\' '<' 'open' '>'
     ( . | '\r' | '\n' )*
     '\\' '<' 'close' '>'
   ;
 
-/* ML_file \<open> ... \<close> as opaque */
 ML_FILE_CMD
   : 'ML_file' SPACES* '\\' '<' 'open' '>'
     ( . | '\r' | '\n' )*
     '\\' '<' 'close' '>'
   ;
 
-/* Tokenize antiquotation delimiters for nested parsing (outside the block tokens) */
+/* antiquotation delimiters */
+
 ANTI_OPEN   : '\\' '<' 'open' '>' ;
 ANTI_CLOSE  : '\\' '<' 'close' '>' ;
 
-/* Keywords / punctuation */
+/* keywords */
+
 THEORY       : 'theory' ;
 IMPORTS      : 'imports' ;
 KEYWORDS     : 'keywords' ;
@@ -578,6 +625,9 @@ DATASPACE    : 'dataspace' ;
 CONSTANTS    : 'constants' ;
 ASSUMES      : 'assumes' ;
 SHOWS        : 'shows' ;
+FIXES        : 'fixes' ;
+IS           : 'is' ;
+FOR          : 'for' ;
 VARIABLES    : 'variables' ;
 ABBREVIATION : 'abbreviation' ;
 DEFINITION   : 'definition' ;
@@ -610,17 +660,17 @@ NO_NOTATION   : 'no_notation' ;
 
 TYPE_SYNONYM  : 'type_synonym' ;
 
-/* arrows and equivalence used in translations etc */
+METHOD        : 'method' ;
+METHOD_SETUP  : 'method_setup' ;
+
 EQEQ       : '==';
 ARROW      : '=>' ;
 REV_ARROW  : '<=' ;
 
-/* Attribute config block: [[ ... ]] */
 ATTR_CONFIG
   : '[[' ( . | '\r' | '\n' )*? ']]'
   ;
 
-/* Single-line opaque commands */
 NOTATION_CMD
   : 'notation' ~[\r\n]*
   ;
@@ -637,10 +687,14 @@ LEMMAS_CMD
   : 'lemmas' ~[\r\n]*
   ;
 
+/* punctuation */
+
 LPAREN     : '(' ;
 RPAREN     : ')' ;
 LBRACK     : '[' ;
 RBRACK     : ']' ;
+LBRACE     : '{' ;
+RBRACE     : '}' ;
 COMMA      : ',' ;
 CARET      : '^' ;
 STAR       : '*' ;
@@ -649,8 +703,14 @@ MINUS      : '-' ;
 DOT        : '.' ;
 SLASH      : '/' ;
 BANG       : '!' ;
+SEMI       : ';' ;
+QUESTION   : '?' ;
+BAR        : '|' ;
+AT         : '@' ;
+GT         : '>' ;
 
-/* Subscript / superscript / control symbols:  \<^sub>, \<^sup>, \<^command_keyword>, etc. */
+/* sub/superscripts / control symbols */
+
 SUBSCRIPT
   : '\\' '<^sub>'
   ;
@@ -659,29 +719,31 @@ SUPERSCRIPT
   : '\\' '<^sup>'
   ;
 
-/* General control symbols like \<^command_keyword> */
 CONTROL_IDENT
   : '\\' '<^' SYMBOL_NAME '>'
   ;
 
-/* Isabelle symbol: \<phi>, \<epsilon>, \<le>, \<tau>, etc. */
 SYMBOL_IDENT
   : '\\' '<' SYMBOL_NAME '>'
   ;
 
-/* Identifiers */
+/* identifiers */
+
 ASCII_ID
   : (LETTER | '_' | APOSTROPHE) (LETTER | DIGIT | '_' | APOSTROPHE)*
   ;
 
-/* Numbers for precedences, vec dims, etc. */
+/* numbers */
+
 NUMBER : DIGIT+ ;
 
-/* Quoted text — allows newlines and Isabelle-style doubled quotes "" */
+/* quoted text */
+
 QUOTED_TEXT
   : '"' ( '""' | ~'"' )* '"'
   ;
 
-/* Whitespace & ML-style comments */
+/* whitespace & comments */
+
 WS       : SPACES+ -> skip ;
 COMMENT  : '(*' ( . | '\r' | '\n' )*? '*)' -> skip ;
