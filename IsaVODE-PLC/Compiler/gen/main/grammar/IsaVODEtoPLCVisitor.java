@@ -17,6 +17,12 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitProgram(IsaVODEtoPLCParser.ProgramContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#topItem}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTopItem(IsaVODEtoPLCParser.TopItemContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#theoryBlock}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -65,6 +71,24 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTheoryBody(IsaVODEtoPLCParser.TheoryBodyContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#sectionCommand}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSectionCommand(IsaVODEtoPLCParser.SectionCommandContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#subsectionCommand}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSubsectionCommand(IsaVODEtoPLCParser.SubsectionCommandContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#textCommand}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTextCommand(IsaVODEtoPLCParser.TextCommandContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#contextBlock}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -76,6 +100,18 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitContextBody(IsaVODEtoPLCParser.ContextBodyContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#bundleBlock}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBundleBlock(IsaVODEtoPLCParser.BundleBlockContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#bundleBody}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBundleBody(IsaVODEtoPLCParser.BundleBodyContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#definitionDecl}.
 	 * @param ctx the parse tree
@@ -130,6 +166,12 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitVarDecl(IsaVODEtoPLCParser.VarDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#typeSynDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypeSynDecl(IsaVODEtoPLCParser.TypeSynDeclContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#abbrevDecl}.
 	 * @param ctx the parse tree
@@ -209,6 +251,12 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLemmaAssumesShows(IsaVODEtoPLCParser.LemmaAssumesShowsContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaFacts}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLemmaFacts(IsaVODEtoPLCParser.LemmaFactsContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaProof}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -233,6 +281,12 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitProofItem(IsaVODEtoPLCParser.ProofItemContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#lemmasDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLemmasDecl(IsaVODEtoPLCParser.LemmasDeclContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#antiquotBlock}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -256,6 +310,90 @@ public interface IsaVODEtoPLCVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitMlBlock(IsaVODEtoPLCParser.MlBlockContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#mlFileDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMlFileDecl(IsaVODEtoPLCParser.MlFileDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#syntaxDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSyntaxDecl(IsaVODEtoPLCParser.SyntaxDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#syntaxEntry}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSyntaxEntry(IsaVODEtoPLCParser.SyntaxEntryContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#translationsDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTranslationsDecl(IsaVODEtoPLCParser.TranslationsDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#translationRule}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTranslationRule(IsaVODEtoPLCParser.TranslationRuleContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#unbundleDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnbundleDecl(IsaVODEtoPLCParser.UnbundleDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#declareDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDeclareDecl(IsaVODEtoPLCParser.DeclareDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#declItem}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDeclItem(IsaVODEtoPLCParser.DeclItemContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#noNotationDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNoNotationDecl(IsaVODEtoPLCParser.NoNotationDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#noNotationTail}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNoNotationTail(IsaVODEtoPLCParser.NoNotationTailContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#noNotationToken}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNoNotationToken(IsaVODEtoPLCParser.NoNotationTokenContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#notationDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNotationDecl(IsaVODEtoPLCParser.NotationDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#namedTheoremsDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNamedTheoremsDecl(IsaVODEtoPLCParser.NamedTheoremsDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#exprConstructorDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExprConstructorDecl(IsaVODEtoPLCParser.ExprConstructorDeclContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link IsaVODEtoPLCParser#typeSpec}.
 	 * @param ctx the parse tree

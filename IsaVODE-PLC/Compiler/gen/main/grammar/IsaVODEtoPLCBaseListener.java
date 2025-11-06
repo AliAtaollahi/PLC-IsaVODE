@@ -29,6 +29,18 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterTopItem(IsaVODEtoPLCParser.TopItemContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTopItem(IsaVODEtoPLCParser.TopItemContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterTheoryBlock(IsaVODEtoPLCParser.TheoryBlockContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -125,6 +137,42 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSectionCommand(IsaVODEtoPLCParser.SectionCommandContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSectionCommand(IsaVODEtoPLCParser.SectionCommandContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSubsectionCommand(IsaVODEtoPLCParser.SubsectionCommandContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSubsectionCommand(IsaVODEtoPLCParser.SubsectionCommandContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTextCommand(IsaVODEtoPLCParser.TextCommandContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTextCommand(IsaVODEtoPLCParser.TextCommandContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterContextBlock(IsaVODEtoPLCParser.ContextBlockContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -144,6 +192,30 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitContextBody(IsaVODEtoPLCParser.ContextBodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBundleBlock(IsaVODEtoPLCParser.BundleBlockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBundleBlock(IsaVODEtoPLCParser.BundleBlockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBundleBody(IsaVODEtoPLCParser.BundleBodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBundleBody(IsaVODEtoPLCParser.BundleBodyContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -252,6 +324,18 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitVarDecl(IsaVODEtoPLCParser.VarDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTypeSynDecl(IsaVODEtoPLCParser.TypeSynDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTypeSynDecl(IsaVODEtoPLCParser.TypeSynDeclContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -413,6 +497,18 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterLemmaFacts(IsaVODEtoPLCParser.LemmaFactsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLemmaFacts(IsaVODEtoPLCParser.LemmaFactsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterLemmaProof(IsaVODEtoPLCParser.LemmaProofContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -461,6 +557,18 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterLemmasDecl(IsaVODEtoPLCParser.LemmasDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLemmasDecl(IsaVODEtoPLCParser.LemmasDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterAntiquotBlock(IsaVODEtoPLCParser.AntiquotBlockContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -504,6 +612,174 @@ public class IsaVODEtoPLCBaseListener implements IsaVODEtoPLCListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitMlBlock(IsaVODEtoPLCParser.MlBlockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMlFileDecl(IsaVODEtoPLCParser.MlFileDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMlFileDecl(IsaVODEtoPLCParser.MlFileDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSyntaxDecl(IsaVODEtoPLCParser.SyntaxDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSyntaxDecl(IsaVODEtoPLCParser.SyntaxDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSyntaxEntry(IsaVODEtoPLCParser.SyntaxEntryContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSyntaxEntry(IsaVODEtoPLCParser.SyntaxEntryContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTranslationsDecl(IsaVODEtoPLCParser.TranslationsDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTranslationsDecl(IsaVODEtoPLCParser.TranslationsDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTranslationRule(IsaVODEtoPLCParser.TranslationRuleContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTranslationRule(IsaVODEtoPLCParser.TranslationRuleContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterUnbundleDecl(IsaVODEtoPLCParser.UnbundleDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUnbundleDecl(IsaVODEtoPLCParser.UnbundleDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDeclareDecl(IsaVODEtoPLCParser.DeclareDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDeclareDecl(IsaVODEtoPLCParser.DeclareDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDeclItem(IsaVODEtoPLCParser.DeclItemContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDeclItem(IsaVODEtoPLCParser.DeclItemContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNoNotationDecl(IsaVODEtoPLCParser.NoNotationDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNoNotationDecl(IsaVODEtoPLCParser.NoNotationDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNoNotationTail(IsaVODEtoPLCParser.NoNotationTailContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNoNotationTail(IsaVODEtoPLCParser.NoNotationTailContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNoNotationToken(IsaVODEtoPLCParser.NoNotationTokenContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNoNotationToken(IsaVODEtoPLCParser.NoNotationTokenContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNotationDecl(IsaVODEtoPLCParser.NotationDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNotationDecl(IsaVODEtoPLCParser.NotationDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNamedTheoremsDecl(IsaVODEtoPLCParser.NamedTheoremsDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNamedTheoremsDecl(IsaVODEtoPLCParser.NamedTheoremsDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterExprConstructorDecl(IsaVODEtoPLCParser.ExprConstructorDeclContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitExprConstructorDecl(IsaVODEtoPLCParser.ExprConstructorDeclContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

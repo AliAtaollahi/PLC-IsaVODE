@@ -4,8 +4,37 @@ grammar IsaVODEtoPLC;
  * Parser rules
  * ===================== */
 
+/* Allow all outer commands at top-level */
 program
-  : (theoryBlock | contextBlock | dataspaceDecl | abbrevDecl | definitionDecl | lemmaDecl)* EOF
+  : (topItem)* EOF
+  ;
+
+topItem
+  : theoryBlock
+  | contextBlock
+  | dataspaceDecl
+  | abbrevDecl
+  | definitionDecl
+  | lemmaDecl
+  | lemmasDecl
+  | constantsClause
+  | assumesClause
+  | variablesClause
+  | typeSynDecl
+  | syntaxDecl
+  | translationsDecl
+  | bundleBlock
+  | unbundleDecl
+  | declareDecl
+  | noNotationDecl
+  | notationDecl
+  | namedTheoremsDecl
+  | exprConstructorDecl
+  | mlBlock
+  | mlFileDecl
+  | sectionCommand
+  | subsectionCommand
+  | textCommand
   ;
 
 /* ---- theory ----
@@ -42,22 +71,47 @@ keywordSpec
   ;
 
 theoryBody
-  : (contextBlock
+  : ( contextBlock
     | dataspaceDecl
     | abbrevDecl
     | definitionDecl
     | lemmaDecl
+    | lemmasDecl
     | constantsClause
     | assumesClause
     | variablesClause
-    | mlBlock
-    | bundleBlock
+    | typeSynDecl
     | syntaxDecl
     | translationsDecl
+    | bundleBlock
     | unbundleDecl
     | declareDecl
     | noNotationDecl
+    | notationDecl
+    | namedTheoremsDecl
+    | exprConstructorDecl
+    | mlBlock
+    | mlFileDecl
+    | sectionCommand
+    | subsectionCommand
+    | textCommand
     )*
+  ;
+
+/* ---- section / subsection / text ----
+   These are treated as opaque blocks: section \<open>...\<close>, etc.
+*/
+
+sectionCommand
+  : SECTION_BLOCK
+  ;
+
+subsectionCommand
+  : SUBSECTION_BLOCK
+  ;
+
+textCommand
+  : TEXT_BLOCK
   ;
 
 /* ---- context ---- */
@@ -66,19 +120,28 @@ contextBlock
   ;
 
 contextBody
-  : (abbrevDecl
+  : ( abbrevDecl
     | definitionDecl
     | lemmaDecl
+    | lemmasDecl
     | constantsClause
     | assumesClause
     | variablesClause
-    | mlBlock
-    | bundleBlock
+    | typeSynDecl
     | syntaxDecl
     | translationsDecl
+    | bundleBlock
     | unbundleDecl
     | declareDecl
     | noNotationDecl
+    | notationDecl
+    | namedTheoremsDecl
+    | exprConstructorDecl
+    | mlBlock
+    | mlFileDecl
+    | sectionCommand
+    | subsectionCommand
+    | textCommand
     )*
   ;
 
@@ -93,19 +156,28 @@ bundleBlock
   ;
 
 bundleBody
-  : (noNotationDecl
+  : ( noNotationDecl
     | syntaxDecl
     | translationsDecl
     | declareDecl
+    | notationDecl
+    | namedTheoremsDecl
+    | exprConstructorDecl
     | lemmaDecl
+    | lemmasDecl
     | abbrevDecl
     | mlBlock
+    | mlFileDecl
+    | sectionCommand
+    | subsectionCommand
+    | textCommand
     )*
   ;
 
-/* Minimal 'definition' support */
+/* Minimal 'definition' + simple named form */
 definitionDecl
   : DEFINITION QUOTED_TEXT
+  | DEFINITION ident (D_COLON QUOTED_TEXT)? WHERE QUOTED_TEXT
   ;
 
 /* ---- dataspace ---- */
@@ -114,19 +186,28 @@ dataspaceDecl
   ;
 
 dataspaceBody
-  : (constantsClause
+  : ( constantsClause
     | assumesClause
     | variablesClause
     | abbrevDecl
     | definitionDecl
     | lemmaDecl
-    | mlBlock
-    | bundleBlock
+    | lemmasDecl
+    | typeSynDecl
     | syntaxDecl
     | translationsDecl
+    | bundleBlock
     | unbundleDecl
     | declareDecl
     | noNotationDecl
+    | notationDecl
+    | namedTheoremsDecl
+    | exprConstructorDecl
+    | mlBlock
+    | mlFileDecl
+    | sectionCommand
+    | subsectionCommand
+    | textCommand
     )*
   ;
 
@@ -152,6 +233,12 @@ variablesClause
 
 varDecl
   : ident D_COLON typeSpec
+  ;
+
+/* ---- type synonym ---- */
+/* type_synonym 'a pred = "'a \<Rightarrow> bool" */
+typeSynDecl
+  : TYPE_SYNONYM typeSpec ASSIGN typeSpec
   ;
 
 /* ---- abbreviation ----
@@ -231,10 +318,15 @@ lemmaFacts
   : QUOTED_TEXT+
   ;
 
+/* lemma proofs:
+   - oops
+   - unfolding ... using ... by ...
+   - script style (apply/using/...) with optional trailing oops
+*/
 lemmaProof
-  : OOPS                                                            // abort proof
-  | (UNFOLDING proofItems)? (USING proofItems)? BY proofItems        // one-liner
-  | (FIND_LOCAL_FLOW proofItems? )? proofScript+                     // script style; at least one cmd
+  : OOPS
+  | (UNFOLDING proofItems)? (USING proofItems)? BY proofItems
+  | (FIND_LOCAL_FLOW proofItems? )? proofScript+ OOPS?
   ;
 
 proofScript
@@ -265,7 +357,17 @@ proofItem
   | BANG
   ;
 
-/* ---- nested antiquotation as a parser construct ---- */
+/* ---- lemmas (collections) ----
+   Treat the whole line as opaque.
+   Example: lemmas fbox_conseq_alt = fbox_conseq[unfolded impl_eq_leq]
+*/
+lemmasDecl
+  : LEMMAS_CMD
+  ;
+
+/* ---- nested antiquotation as a parser construct ----
+   \<open> (content … possibly nested) \<close>
+*/
 antiquotBlock
   : ANTI_OPEN antiquotContent ANTI_CLOSE
   ;
@@ -291,9 +393,17 @@ antiquotUnit
   | BANG
   ;
 
-/* ---- ML blocks ---- */
+/* ---- ML blocks ----
+   ML \<open> ... arbitrary ML code ... \<close>
+   We treat the whole block as opaque (one token).
+*/
 mlBlock
   : ML_BLOCK
+  ;
+
+/* ML_file \<open> ... \<close> */
+mlFileDecl
+  : ML_FILE_CMD
   ;
 
 /* ---- syntax / translations / unbundle / declare / no_notation ---- */
@@ -329,6 +439,7 @@ declItem
   : ident attributes?
   ;
 
+/* no_notation ...  (ASCII) ... and ... */
 noNotationDecl
   : NO_NOTATION noNotationTail
   ;
@@ -352,10 +463,25 @@ noNotationToken
   | AND
   ;
 
+/* notation / named_theorems / expr_constructor:
+   Each full line is opaque.
+*/
+notationDecl
+  : NOTATION_CMD
+  ;
+
+namedTheoremsDecl
+  : NAMED_THEOREMS_CMD
+  ;
+
+exprConstructorDecl
+  : EXPR_CONSTRUCTOR_CMD
+  ;
+
 /* ---- types ---- */
 typeSpec
   : QUOTED_TEXT
-  | typeAtom+                                // e.g., real vec[2], R^n
+  | typeAtom+                                // e.g., real vec[2], R^n, 'a pred
   ;
 
 typeAtom
@@ -407,6 +533,25 @@ ISABELLE_COMMENT_BLOCK
     -> skip
   ;
 
+/* Section / subsection / text blocks: section \<open>...\<close>, etc. */
+SECTION_BLOCK
+  : 'section' SPACES* '\\' '<' 'open' '>'
+    ( . | '\r' | '\n' )*?
+    '\\' '<' 'close' '>'
+  ;
+
+SUBSECTION_BLOCK
+  : 'subsection' SPACES* '\\' '<' 'open' '>'
+    ( . | '\r' | '\n' )*?
+    '\\' '<' 'close' '>'
+  ;
+
+TEXT_BLOCK
+  : 'text' SPACES* '\\' '<' 'open' '>'
+    ( . | '\r' | '\n' )*?
+    '\\' '<' 'close' '>'
+  ;
+
 /* ML block: greedy until the LAST \<close> after ML \<open> */
 ML_BLOCK
   : 'ML' SPACES* '\\' '<' 'open' '>'
@@ -414,7 +559,14 @@ ML_BLOCK
     '\\' '<' 'close' '>'
   ;
 
-/* Tokenize antiquotation delimiters for nested parsing (outside ML_BLOCK) */
+/* ML_file \<open> ... \<close> as opaque */
+ML_FILE_CMD
+  : 'ML_file' SPACES* '\\' '<' 'open' '>'
+    ( . | '\r' | '\n' )*
+    '\\' '<' 'close' '>'
+  ;
+
+/* Tokenize antiquotation delimiters for nested parsing (outside the block tokens) */
 ANTI_OPEN   : '\\' '<' 'open' '>' ;
 ANTI_CLOSE  : '\\' '<' 'close' '>' ;
 
@@ -456,6 +608,9 @@ UNBUNDLE      : 'unbundle' ;
 DECLARE       : 'declare' ;
 NO_NOTATION   : 'no_notation' ;
 
+TYPE_SYNONYM  : 'type_synonym' ;
+
+/* arrows and equivalence used in translations etc */
 EQEQ       : '==';
 ARROW      : '=>' ;
 REV_ARROW  : '<=' ;
@@ -463,6 +618,23 @@ REV_ARROW  : '<=' ;
 /* Attribute config block: [[ ... ]] */
 ATTR_CONFIG
   : '[[' ( . | '\r' | '\n' )*? ']]'
+  ;
+
+/* Single-line opaque commands */
+NOTATION_CMD
+  : 'notation' ~[\r\n]*
+  ;
+
+NAMED_THEOREMS_CMD
+  : 'named_theorems' ~[\r\n]*
+  ;
+
+EXPR_CONSTRUCTOR_CMD
+  : 'expr_constructor' ~[\r\n]*
+  ;
+
+LEMMAS_CMD
+  : 'lemmas' ~[\r\n]*
   ;
 
 LPAREN     : '(' ;

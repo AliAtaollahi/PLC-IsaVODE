@@ -18,6 +18,16 @@ public interface IsaVODEtoPLCListener extends ParseTreeListener {
 	 */
 	void exitProgram(IsaVODEtoPLCParser.ProgramContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#topItem}.
+	 * @param ctx the parse tree
+	 */
+	void enterTopItem(IsaVODEtoPLCParser.TopItemContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#topItem}.
+	 * @param ctx the parse tree
+	 */
+	void exitTopItem(IsaVODEtoPLCParser.TopItemContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#theoryBlock}.
 	 * @param ctx the parse tree
 	 */
@@ -98,6 +108,36 @@ public interface IsaVODEtoPLCListener extends ParseTreeListener {
 	 */
 	void exitTheoryBody(IsaVODEtoPLCParser.TheoryBodyContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#sectionCommand}.
+	 * @param ctx the parse tree
+	 */
+	void enterSectionCommand(IsaVODEtoPLCParser.SectionCommandContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#sectionCommand}.
+	 * @param ctx the parse tree
+	 */
+	void exitSectionCommand(IsaVODEtoPLCParser.SectionCommandContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#subsectionCommand}.
+	 * @param ctx the parse tree
+	 */
+	void enterSubsectionCommand(IsaVODEtoPLCParser.SubsectionCommandContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#subsectionCommand}.
+	 * @param ctx the parse tree
+	 */
+	void exitSubsectionCommand(IsaVODEtoPLCParser.SubsectionCommandContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#textCommand}.
+	 * @param ctx the parse tree
+	 */
+	void enterTextCommand(IsaVODEtoPLCParser.TextCommandContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#textCommand}.
+	 * @param ctx the parse tree
+	 */
+	void exitTextCommand(IsaVODEtoPLCParser.TextCommandContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#contextBlock}.
 	 * @param ctx the parse tree
 	 */
@@ -117,6 +157,26 @@ public interface IsaVODEtoPLCListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitContextBody(IsaVODEtoPLCParser.ContextBodyContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#bundleBlock}.
+	 * @param ctx the parse tree
+	 */
+	void enterBundleBlock(IsaVODEtoPLCParser.BundleBlockContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#bundleBlock}.
+	 * @param ctx the parse tree
+	 */
+	void exitBundleBlock(IsaVODEtoPLCParser.BundleBlockContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#bundleBody}.
+	 * @param ctx the parse tree
+	 */
+	void enterBundleBody(IsaVODEtoPLCParser.BundleBodyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#bundleBody}.
+	 * @param ctx the parse tree
+	 */
+	void exitBundleBody(IsaVODEtoPLCParser.BundleBodyContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#definitionDecl}.
 	 * @param ctx the parse tree
@@ -207,6 +267,16 @@ public interface IsaVODEtoPLCListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitVarDecl(IsaVODEtoPLCParser.VarDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#typeSynDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterTypeSynDecl(IsaVODEtoPLCParser.TypeSynDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#typeSynDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitTypeSynDecl(IsaVODEtoPLCParser.TypeSynDeclContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#abbrevDecl}.
 	 * @param ctx the parse tree
@@ -338,6 +408,16 @@ public interface IsaVODEtoPLCListener extends ParseTreeListener {
 	 */
 	void exitLemmaAssumesShows(IsaVODEtoPLCParser.LemmaAssumesShowsContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#lemmaFacts}.
+	 * @param ctx the parse tree
+	 */
+	void enterLemmaFacts(IsaVODEtoPLCParser.LemmaFactsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#lemmaFacts}.
+	 * @param ctx the parse tree
+	 */
+	void exitLemmaFacts(IsaVODEtoPLCParser.LemmaFactsContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#lemmaProof}.
 	 * @param ctx the parse tree
 	 */
@@ -378,6 +458,16 @@ public interface IsaVODEtoPLCListener extends ParseTreeListener {
 	 */
 	void exitProofItem(IsaVODEtoPLCParser.ProofItemContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#lemmasDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterLemmasDecl(IsaVODEtoPLCParser.LemmasDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#lemmasDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitLemmasDecl(IsaVODEtoPLCParser.LemmasDeclContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#antiquotBlock}.
 	 * @param ctx the parse tree
 	 */
@@ -417,6 +507,146 @@ public interface IsaVODEtoPLCListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitMlBlock(IsaVODEtoPLCParser.MlBlockContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#mlFileDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterMlFileDecl(IsaVODEtoPLCParser.MlFileDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#mlFileDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitMlFileDecl(IsaVODEtoPLCParser.MlFileDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#syntaxDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterSyntaxDecl(IsaVODEtoPLCParser.SyntaxDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#syntaxDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitSyntaxDecl(IsaVODEtoPLCParser.SyntaxDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#syntaxEntry}.
+	 * @param ctx the parse tree
+	 */
+	void enterSyntaxEntry(IsaVODEtoPLCParser.SyntaxEntryContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#syntaxEntry}.
+	 * @param ctx the parse tree
+	 */
+	void exitSyntaxEntry(IsaVODEtoPLCParser.SyntaxEntryContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#translationsDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterTranslationsDecl(IsaVODEtoPLCParser.TranslationsDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#translationsDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitTranslationsDecl(IsaVODEtoPLCParser.TranslationsDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#translationRule}.
+	 * @param ctx the parse tree
+	 */
+	void enterTranslationRule(IsaVODEtoPLCParser.TranslationRuleContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#translationRule}.
+	 * @param ctx the parse tree
+	 */
+	void exitTranslationRule(IsaVODEtoPLCParser.TranslationRuleContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#unbundleDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterUnbundleDecl(IsaVODEtoPLCParser.UnbundleDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#unbundleDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitUnbundleDecl(IsaVODEtoPLCParser.UnbundleDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#declareDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterDeclareDecl(IsaVODEtoPLCParser.DeclareDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#declareDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitDeclareDecl(IsaVODEtoPLCParser.DeclareDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#declItem}.
+	 * @param ctx the parse tree
+	 */
+	void enterDeclItem(IsaVODEtoPLCParser.DeclItemContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#declItem}.
+	 * @param ctx the parse tree
+	 */
+	void exitDeclItem(IsaVODEtoPLCParser.DeclItemContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#noNotationDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterNoNotationDecl(IsaVODEtoPLCParser.NoNotationDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#noNotationDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitNoNotationDecl(IsaVODEtoPLCParser.NoNotationDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#noNotationTail}.
+	 * @param ctx the parse tree
+	 */
+	void enterNoNotationTail(IsaVODEtoPLCParser.NoNotationTailContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#noNotationTail}.
+	 * @param ctx the parse tree
+	 */
+	void exitNoNotationTail(IsaVODEtoPLCParser.NoNotationTailContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#noNotationToken}.
+	 * @param ctx the parse tree
+	 */
+	void enterNoNotationToken(IsaVODEtoPLCParser.NoNotationTokenContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#noNotationToken}.
+	 * @param ctx the parse tree
+	 */
+	void exitNoNotationToken(IsaVODEtoPLCParser.NoNotationTokenContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#notationDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterNotationDecl(IsaVODEtoPLCParser.NotationDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#notationDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitNotationDecl(IsaVODEtoPLCParser.NotationDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#namedTheoremsDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterNamedTheoremsDecl(IsaVODEtoPLCParser.NamedTheoremsDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#namedTheoremsDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitNamedTheoremsDecl(IsaVODEtoPLCParser.NamedTheoremsDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#exprConstructorDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterExprConstructorDecl(IsaVODEtoPLCParser.ExprConstructorDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsaVODEtoPLCParser#exprConstructorDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitExprConstructorDecl(IsaVODEtoPLCParser.ExprConstructorDeclContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link IsaVODEtoPLCParser#typeSpec}.
 	 * @param ctx the parse tree
