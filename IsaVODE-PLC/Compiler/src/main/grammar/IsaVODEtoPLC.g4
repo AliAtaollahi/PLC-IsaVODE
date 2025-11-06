@@ -50,7 +50,13 @@ theoryBody
     | constantsClause
     | assumesClause
     | variablesClause
-    | mlBlock                          // ML \<open> ... \<close>
+    | mlBlock
+    | bundleBlock
+    | syntaxDecl
+    | translationsDecl
+    | unbundleDecl
+    | declareDecl
+    | noNotationDecl
     )*
   ;
 
@@ -66,7 +72,34 @@ contextBody
     | constantsClause
     | assumesClause
     | variablesClause
-    | mlBlock                          // allow ML inside contexts
+    | mlBlock
+    | bundleBlock
+    | syntaxDecl
+    | translationsDecl
+    | unbundleDecl
+    | declareDecl
+    | noNotationDecl
+    )*
+  ;
+
+/* ---- bundle ----
+   bundle Hybrid_Program_Syntax
+   begin
+     ...
+   end
+*/
+bundleBlock
+  : BUNDLE ident BEGIN bundleBody END
+  ;
+
+bundleBody
+  : (noNotationDecl
+    | syntaxDecl
+    | translationsDecl
+    | declareDecl
+    | lemmaDecl
+    | abbrevDecl
+    | mlBlock
     )*
   ;
 
@@ -87,7 +120,13 @@ dataspaceBody
     | abbrevDecl
     | definitionDecl
     | lemmaDecl
-    | mlBlock                          // allow ML in dataspaces, just in case
+    | mlBlock
+    | bundleBlock
+    | syntaxDecl
+    | translationsDecl
+    | unbundleDecl
+    | declareDecl
+    | noNotationDecl
     )*
   ;
 
@@ -149,17 +188,31 @@ mixfixForm
   : ASCII_ID QUOTED_TEXT (NUMBER)?
   ;
 
-/* ---- lemma ----
-   Supports:
-     lemma "…"
-       (unfolding …)? (using …)? by …
-     lemma name: "…" …
-     lemma name: assumes "…" and … shows "…" and …
-       unfolding … using … by …
-     lemma "…" … oops
-*/
+/* ---- lemma ---- */
 lemmaDecl
-  : LEMMA (ident COLON)? lemmaHead lemmaProof?
+  : LEMMA lemmaPrefix? lemmaHead lemmaProof?
+  ;
+
+/* optional name + attributes + colon */
+lemmaPrefix
+  : lemmaNameAndAttrs COLON?
+  ;
+
+lemmaNameAndAttrs
+  : ident attributes?       // named lemma, optional attributes
+  | attributes              // unnamed lemma with attributes
+  ;
+
+attributes
+  : LBRACK attrList RBRACK
+  ;
+
+attrList
+  : attribute (COMMA attribute)*
+  ;
+
+attribute
+  : ident (BANG)?           // e.g. simp, intro!
   ;
 
 lemmaHead
@@ -167,11 +220,15 @@ lemmaHead
   | lemmaAssumesShows                                               // structured head, non-empty
   ;
 
-// At least one of ASSUMES / SHOWS must be present
+/* structured lemma head with multiple quoted facts per assumes/shows */
 lemmaAssumesShows
-  : ASSUMES QUOTED_TEXT (AND QUOTED_TEXT)*                          // only assumes
-  | (ASSUMES QUOTED_TEXT (AND QUOTED_TEXT)*)?
-    SHOWS   QUOTED_TEXT (AND QUOTED_TEXT)*                          // shows (with optional assumes)
+  : ASSUMES lemmaFacts (AND lemmaFacts)*                            // only assumes
+  | (ASSUMES lemmaFacts (AND lemmaFacts)*)?
+    SHOWS   lemmaFacts (AND lemmaFacts)*                            // shows (with optional assumes)
+  ;
+
+lemmaFacts
+  : QUOTED_TEXT+
   ;
 
 lemmaProof
@@ -200,15 +257,15 @@ proofItem
   | antiquotBlock
   | ident | NUMBER
   | SUPERSCRIPT | SUBSCRIPT
-  | ARROW | LPAREN | RPAREN
+  | ARROW | REV_ARROW | EQEQ
+  | LPAREN | RPAREN
   | LBRACK | RBRACK | COMMA
   | CARET | STAR | PLUS | MINUS | DOT | SLASH
   | ASSIGN | COLON | D_COLON
+  | BANG
   ;
 
-/* ---- nested antiquotation as a parser construct ----
-   \<open> (content … possibly nested) \<close>
-*/
+/* ---- nested antiquotation as a parser construct ---- */
 antiquotBlock
   : ANTI_OPEN antiquotContent ANTI_CLOSE
   ;
@@ -223,22 +280,76 @@ antiquotUnit
   | ident
   | NUMBER
   | SUPERSCRIPT
-  | ARROW | LPAREN | RPAREN
+  | ARROW | REV_ARROW | EQEQ | LPAREN | RPAREN
   | LBRACK | RBRACK | COMMA
   | CARET | STAR | PLUS | MINUS | DOT | SLASH
   | ASSIGN | COLON | D_COLON
   | DATASPACE | CONSTANTS | ASSUMES | VARIABLES | ABBREVIATION | WHERE | AND
   | CONTEXT | BEGIN | END | DEFINITION
   | THEORY | IMPORTS | LEMMA | SHOWS | BY | APPLY | USING | UNFOLDING | FIND_LOCAL_FLOW | OOPS
-  | CONTROL_IDENT                                         // e.g. \<^command_keyword>
+  | CONTROL_IDENT
+  | BANG
   ;
 
-/* ---- ML blocks ----
-   ML \<open> ... arbitrary ML code ... \<close>
-   We treat the whole block as opaque (one token).
-*/
+/* ---- ML blocks ---- */
 mlBlock
   : ML_BLOCK
+  ;
+
+/* ---- syntax / translations / unbundle / declare / no_notation ---- */
+
+syntaxDecl
+  : SYNTAX syntaxEntry+
+  ;
+
+syntaxEntry
+  : QUOTED_TEXT D_COLON QUOTED_TEXT printSpec?
+  ;
+
+translationsDecl
+  : TRANSLATIONS translationRule+
+  ;
+
+translationRule
+  : QUOTED_TEXT (ARROW | REV_ARROW | EQEQ) QUOTED_TEXT
+  ;
+
+unbundleDecl
+  : UNBUNDLE ident+
+  ;
+
+/* declare lens_indep_impl_scene_indep_var [lens]
+   declare [[literal_variables, pretty_print_exprs, mark_state_variables=false]]
+*/
+declareDecl
+  : DECLARE (declItem+ | ATTR_CONFIG)
+  ;
+
+declItem
+  : ident attributes?
+  ;
+
+noNotationDecl
+  : NO_NOTATION noNotationTail
+  ;
+
+noNotationTail
+  : (noNotationToken)+
+  ;
+
+noNotationToken
+  : QUOTED_TEXT
+  | antiquotBlock
+  | ident
+  | NUMBER
+  | SUPERSCRIPT | SUBSCRIPT
+  | LPAREN | RPAREN
+  | LBRACK | RBRACK
+  | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | ASSIGN | COLON | D_COLON
+  | ARROW | REV_ARROW | EQEQ
+  | BANG
+  | AND
   ;
 
 /* ---- types ---- */
@@ -251,8 +362,9 @@ typeAtom
   : ident
   | NUMBER
   | SUPERSCRIPT
-  | ARROW | LPAREN | RPAREN | LBRACK | RBRACK
+  | ARROW | REV_ARROW | EQEQ | LPAREN | RPAREN | LBRACK | RBRACK
   | COMMA | CARET | STAR | PLUS | MINUS | DOT | SLASH
+  | BANG
   ;
 
 /* ---- identifiers ---- */
@@ -337,7 +449,22 @@ DONE         : 'done' ;
 QED          : 'qed' ;
 FIND_LOCAL_FLOW : 'find_local_flow' ;
 
+BUNDLE        : 'bundle' ;
+SYNTAX        : 'syntax' ;
+TRANSLATIONS  : 'translations' ;
+UNBUNDLE      : 'unbundle' ;
+DECLARE       : 'declare' ;
+NO_NOTATION   : 'no_notation' ;
+
+EQEQ       : '==';
 ARROW      : '=>' ;
+REV_ARROW  : '<=' ;
+
+/* Attribute config block: [[ ... ]] */
+ATTR_CONFIG
+  : '[[' ( . | '\r' | '\n' )*? ']]'
+  ;
+
 LPAREN     : '(' ;
 RPAREN     : ')' ;
 LBRACK     : '[' ;
@@ -349,6 +476,7 @@ PLUS       : '+' ;
 MINUS      : '-' ;
 DOT        : '.' ;
 SLASH      : '/' ;
+BANG       : '!' ;
 
 /* Subscript / superscript / control symbols:  \<^sub>, \<^sup>, \<^command_keyword>, etc. */
 SUBSCRIPT
