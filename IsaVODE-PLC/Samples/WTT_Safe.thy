@@ -45,8 +45,8 @@ definition "ctrl_safe \<equiv>
 expression Q is "t \<le> \<epsilon> \<and> 0 \<le> x1 \<and> 0 \<le> x2 \<and> 0 \<le> f1 \<and> 0 \<le> f2"
 
 definition "plant \<equiv> {
-  x1` = (if V1 then f1 else 0) - (if V2 \<and> P then f2 else 0),
-  x2` = (if V2 \<and> P then f2 else 0),
+  x1` = overall_f,
+  x2` = overall_f2,
   t`  = 1
 | 0 \<le> x1 \<and> 0 \<le> x2 \<and> 0 \<le> f1 \<and> 0 \<le> f2 \<and> t \<le> \<epsilon> }" (* Q *)
 
@@ -71,17 +71,14 @@ expression post_ctrl is
     \<and> (f1 > (HH - x1) / \<epsilon> \<longrightarrow> V1 = False) 
     \<and> (f1 \<le> (HH - x1) / \<epsilon> \<and> x1 \<le> L1 \<longrightarrow> V1 = True)
     \<and> (f2 \<le> FL \<longrightarrow> P = False \<and> V2 = False)
+    \<and> (x2 \<le> L2 \<and> V1 = True \<and> f1 - f2 \<ge> (LL - x1) / \<epsilon> \<and> f2 > FL \<and> f2 \<le> (HH - x2) / \<epsilon> \<longrightarrow>  P = True \<and> V2 = True)
+    \<and> (x2 \<le> L2 \<and> V1 = True \<and> f1 - f2 < (LL - x1) / \<epsilon> \<longrightarrow>  P = False \<and> V2 = False)
+    \<and> (x2 \<le> L2 \<and> V1 = False \<and> - f2 < (LL - x1) / \<epsilon> \<longrightarrow>  P = False \<and> V2 = False)
     \<and> (x2 \<le> L2 \<and> f2 > (HH - x2) / \<epsilon> \<longrightarrow>  P = False \<and> V2 = False)
-    \<and> (x2 \<le> L2 \<and> f1 > (HH - x1) / \<epsilon> \<and> - f2 < (LL - x1) / \<epsilon> \<longrightarrow>  P = False \<and> V2 = False)
-    \<and> (x2 \<le> L2 \<and> f1 \<le> (HH - x1) / \<epsilon> \<and> x1 \<le> L1 \<and> f1 - f2 < (LL - x1) / \<epsilon> \<longrightarrow>  P = False \<and> V2 = False)
+    \<and> (x2 > L2 \<and> V1 = True \<and> f1 - f2 < (LL - x1) / \<epsilon> \<longrightarrow>  P = False \<and> V2 = False)
+    \<and> (x2 > L2 \<and> V1 = False \<and> - f2 < (LL - x1) / \<epsilon> \<longrightarrow>  P = False \<and> V2 = False)
+    \<and> (x2 > L2 \<and> f2 > (HH - x2) / \<epsilon> \<longrightarrow>  P = False \<and> V2 = False)
 "
-
-(*
-
-
-
-*)
-
 
 lemma inflow_invariance:
   "H{loop_inv} inflow {loop_inv}"
@@ -103,21 +100,6 @@ lemma ctrl_post:
   apply (symbolic_exec; expr_simp; clarsimp?)
   done
 
-(*   apply normalise_prog
-  apply if_then_else
-  subgoal
-    apply forward_assign
-    apply if_then_else
-     apply forward_assign
-     apply (rename_tac old_P)
-     apply forward_assign
-     apply (rename_tac old_V2)
-     apply if_then_else
-      apply forward_assign
-    apply assign
-  sorry *)
-
-
 lemma tank_flow1 [local_flow]: 
   "local_flow_on [x1 \<leadsto> k1, x2 \<leadsto> k2, t \<leadsto> 1] (x1 +\<^sub>L x2 +\<^sub>L t) UNIV UNIV 
     (\<lambda>\<tau>. [x1 \<leadsto> k1 * \<tau> + x1, x2 \<leadsto> k2 * \<tau> + x2, t \<leadsto> \<tau> + t])"
@@ -126,45 +108,299 @@ lemma tank_flow1 [local_flow]:
 lemma tank_flow2 [local_flow]: 
   "local_flow_on [
     t \<leadsto> 1,
-    x1 \<leadsto> (if V1 then f1 else 0) - (if V2 \<and> P then f2 else 0), 
-    x2 \<leadsto> (if V2 \<and> P then f2 else 0)
+    x1 \<leadsto> overall_f, 
+    x2 \<leadsto> overall_f2
   ] (x1 +\<^sub>L x2 +\<^sub>L t) UNIV UNIV 
   (\<lambda>\<tau>. [
-    x1 \<leadsto> ((if V1 then f1 else 0) - (if V2 \<and> P then f2 else 0)) * \<tau> + x1, 
-    x2 \<leadsto> (if V2 \<and> P then f2 else 0) * \<tau> + x2, 
+    x1 \<leadsto> overall_f * \<tau> + x1, 
+    x2 \<leadsto> overall_f2 * \<tau> + x2, 
     t \<leadsto> \<tau> + t])"
-  apply ((clarsimp simp: local_flow_on_def)?, unfold_locales; clarsimp?)
-  subgoal for s
-    apply expr_simp
-    by (cases "V1<s>"; cases "V2<s>"; cases "P<s>"; clarsimp)
-      c1_lipschitz+
-  subgoal for s \<tau> x1' x2' t'
-    by vderiv
-  subgoal
-    by expr_simp
-  done
+  by local_flow_on_auto
 
 lemma plant_invariance:
-  "H{post_ctrl} plant {loop_inv}"
-  using HH_hyps LL_hyps
+  "H{post_ctrl \<and> t = 0} plant {loop_inv}"
   unfolding plant_def loop_inv_def
   apply (wlp_full local_flow: tank_flow2)
-  apply (intro conjI impI allI; (clarsimp simp: )?)
-  (* apply (safe; clarsimp?) *)
-
-  sorry
+proof(hol_intros; clarify?)
+  fix x :: "'st"
+    and ta :: "real"
+  assume "V2<x>"
+    and "V1<x>"
+    and "0 \<le> ta"
+    and obs: "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> 0 \<le> (f1<x> - f2<x>) * \<tau> + x1<x> 
+      \<and> 0 \<le> f2<x> * \<tau> + x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "P<x>"
+    and "\<not> (HH - x1<x>) / \<epsilon> < f1<x>"
+    and "\<not> f2<x> \<le> FL"
+    and "x2<x> \<le> L2 \<and> (LL - x1<x>) / \<epsilon> \<le> f1<x> - f2<x> 
+          \<and> FL < f2<x> \<and> f2<x> \<le> (HH - x2<x>) / \<epsilon> 
+        \<longrightarrow> P<x>"
+    and  "x2<x> \<le> L2 \<longrightarrow> \<not> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and  "L2 < x2<x> \<longrightarrow> \<not> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "L2 < x2<x> \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "t<x> = 0"
+  hence "f1<x> - f2<x> \<ge> (LL - x1<x>) / \<epsilon>"
+    by argo
+  hence key: "LL \<le> (f1<x> - f2<x>) * \<epsilon> + x1<x>"
+    using eps_ge0
+    by (smt (verit) \<open>LL \<le> x1<x>\<close> pos_less_divide_eq 
+        zero_le_mult_iff)
+  have "ta \<le> \<epsilon>"
+    using obs[rule_format, of ta, simplified, OF \<open>0 \<le> ta\<close>]
+    by simp
+  hence "f1<x> - f2<x> < 0 \<Longrightarrow> (f1<x> - f2<x>) * ta + x1<x> \<ge> (f1<x> - f2<x>) * \<epsilon> + x1<x>"
+    using mult_le_cancel_left_neg[of "f1<x> - f2<x>"]
+    by simp
+  hence goal1: "f1<x> - f2<x> < 0 \<Longrightarrow> LL \<le> (f1<x> - f2<x>) * ta + x1<x>"
+    using key 
+    by linarith
+  have "f1<x> - f2<x> \<ge> 0 \<Longrightarrow> x1<x> \<le> (f1<x> - f2<x>) * ta + x1<x>"
+    using \<open>0 \<le> ta\<close>
+    by auto
+  hence goal2: "f1<x> - f2<x> \<ge> 0 \<Longrightarrow> LL \<le> (f1<x> - f2<x>) * ta + x1<x>"
+    using \<open>LL \<le> x1<x>\<close>
+    by linarith
+  thus goal: "LL \<le> (f1<x> - f2<x>) * ta + x1<x>"
+    using goal1 goal2 
+    by linarith
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "V2<x>"
+    and "V1<x>"
+    and "0 \<le> ta"
+    and obs: "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> 0 \<le> (f1<x> - f2<x>) * \<tau> + x1<x> 
+      \<and> 0 \<le> f2<x> * \<tau> + x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "P<x>"
+    and "\<not> (HH - x1<x>) / \<epsilon> < f1<x>"
+    and "\<not> f2<x> \<le> FL"
+    and "x2<x> \<le> L2 \<and> (LL - x1<x>) / \<epsilon> \<le> f1<x> - f2<x> \<and> FL < f2<x> 
+      \<and> f2<x> \<le> (HH - x2<x>) / \<epsilon> \<longrightarrow> P<x>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "L2 < x2<x> \<longrightarrow> \<not> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "L2 < x2<x> \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "t<x> = 0"
+  thus goal1: "(f1<x> - f2<x>) * ta + x1<x> \<le> HH"
+    apply (clarsimp simp: field_simps)
+    by (smt (verit) mult.commute mult_eq_0_iff mult_le_cancel_left_pos pos_le_divide_eq)
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "V2<x>"
+    and "V1<x>"
+    and "0 \<le> ta"
+    and "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> 0 \<le> (f1<x> - f2<x>) * \<tau> + x1<x> 
+      \<and> 0 \<le> f2<x> * \<tau> + x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "P<x>"
+    and "\<not> (HH - x1<x>) / \<epsilon> < f1<x>"
+    and "\<not> f2<x> \<le> FL"
+    and "x2<x> \<le> L2 \<and> (LL - x1<x>) / \<epsilon> \<le> f1<x> - f2<x> \<and> FL < f2<x> 
+      \<and> f2<x> \<le> (HH - x2<x>) / \<epsilon> \<longrightarrow> P<x>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "L2 < x2<x> \<longrightarrow> \<not> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "L2 < x2<x> \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "t<x> = 0"
+  thus goal2: "LL \<le> f2<x> * ta + x2<x>"
+    apply (clarsimp simp: field_simps)
+    by (metis add_increasing2 order.refl zero_le_mult_iff)
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "V2<x>"
+    and "V1<x>"
+    and "0 \<le> ta"
+    and "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> 0 \<le> (f1<x> - f2<x>) * \<tau> + x1<x> 
+      \<and> 0 \<le> f2<x> * \<tau> + x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "P<x>"
+    and "\<not> (HH - x1<x>) / \<epsilon> < f1<x>"
+    and "\<not> f2<x> \<le> FL"
+    and "x2<x> \<le> L2 \<and> (LL - x1<x>) / \<epsilon> \<le> f1<x> - f2<x> \<and> FL < f2<x> 
+      \<and> f2<x> \<le> (HH - x2<x>) / \<epsilon> \<longrightarrow> P<x>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "L2 < x2<x> \<longrightarrow> \<not> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "L2 < x2<x> \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "t<x> = 0"
+  thus goal3: "f2<x> * ta + x2<x> \<le> HH"
+    apply (clarsimp simp: field_simps)
+    by (smt (z3) Groups.mult_ac(2) mult_le_0_iff pos_le_divide_eq)
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "V2<x>"
+    and "\<not> V1<x>"
+    and "0 \<le> ta"
+    and obs: "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> f2<x> * \<tau> \<le> x1<x> 
+      \<and> 0 \<le> f2<x> * \<tau> + x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "P<x>"
+    and "f1<x> \<le> (HH - x1<x>) / \<epsilon> \<longrightarrow> \<not> x1<x> \<le> L1"
+    and "\<not> f2<x> \<le> FL"
+    and hyp1: "x2<x> \<le> L2 \<longrightarrow> \<not> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and hyp2: "L2 < x2<x> \<longrightarrow> \<not> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "L2 < x2<x> \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "t<x> = 0"
+  hence "- f2<x> \<ge> (LL - x1<x>) / \<epsilon>"
+    by argo
+  hence "- f2<x> * \<epsilon> \<ge> (LL - x1<x>)"
+    using eps_ge0
+    by (metis \<open>LL \<le> x1<x>\<close> le_iff_diff_le_0 less_eq_real_def 
+        mult.commute mult_zero_left pos_divide_le_eq)
+  hence "LL \<le> x1<x> - f2<x> * \<epsilon>"
+    by linarith
+  moreover have "... \<le> x1<x> - f2<x> * ta"
+    using obs[rule_format, of ta, simplified, OF \<open>0 \<le> ta\<close>]
+    by (simp add: \<open>0 \<le> ta\<close> mult_mono)
+  ultimately show goal4: "LL \<le> x1<x> - f2<x> * ta"
+    by linarith
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "V2<x>"
+    and "\<not> V1<x>"
+    and "0 \<le> ta"
+    and "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> f2<x> * \<tau> \<le> x1<x> \<and> 0 \<le> f2<x> * \<tau> + x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "P<x>"
+    and "f1<x> \<le> (HH - x1<x>) / \<epsilon> \<longrightarrow> \<not> x1<x> \<le> L1"
+    and "\<not> f2<x> \<le> FL"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "L2 < x2<x> \<longrightarrow> \<not> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "L2 < x2<x> \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "t<x> = 0"
+  thus goal5: "x1<x> - f2<x> * ta \<le> HH"
+    apply (clarsimp simp: field_simps)
+    by (metis add_increasing2 mult_sign_intros(1) verit_comp_simplify(2))
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "V2<x>"
+    and "\<not> V1<x>"
+    and "0 \<le> ta"
+    and "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> f2<x> * \<tau> \<le> x1<x> \<and> 0 \<le> f2<x> * \<tau> + x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "P<x>"
+    and "f1<x> \<le> (HH - x1<x>) / \<epsilon> \<longrightarrow> \<not> x1<x> \<le> L1"
+    and "\<not> f2<x> \<le> FL"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "L2 < x2<x> \<longrightarrow> \<not> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "L2 < x2<x> \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "t<x> = 0"
+  thus goal6: "LL \<le> f2<x> * ta + x2<x>"
+    apply (clarsimp simp: field_simps)
+    by (metis add_increasing2 order.refl zero_le_mult_iff)
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "V2<x>"
+    and "\<not> V1<x>"
+    and "0 \<le> ta"
+    and "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> f2<x> * \<tau> \<le> x1<x> \<and> 0 \<le> f2<x> * \<tau> + x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "P<x>"
+    and "f1<x> \<le> (HH - x1<x>) / \<epsilon> \<longrightarrow> \<not> x1<x> \<le> L1"
+    and "\<not> f2<x> \<le> FL"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "L2 < x2<x> \<longrightarrow> \<not> - f2<x> < (LL - x1<x>) / \<epsilon>"
+    and "L2 < x2<x> \<longrightarrow> \<not> (HH - x2<x>) / \<epsilon> < f2<x>"
+    and "t<x> = 0"
+  thus goal7: "f2<x> * ta + x2<x> \<le> HH"
+    apply (clarsimp simp: field_simps)
+    by (smt (verit, ccfv_SIG) mult.commute mult_eq_0_iff pos_le_divide_eq)
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "\<not> V2<x>"
+    and "V1<x>"
+    and "0 \<le> ta"
+    and "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> 0 \<le> f1<x> * \<tau> + x1<x> \<and> 0 \<le> x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "\<not> P<x>"
+    and "\<not> (HH - x1<x>) / \<epsilon> < f1<x>"
+    and "f2<x> \<le> FL \<longrightarrow> \<not> P<x>"
+    and "FL < f2<x> \<longrightarrow> (LL - x1<x>) / \<epsilon> \<le> f1<x> - f2<x> \<longrightarrow> x2<x> \<le> L2 \<longrightarrow> \<not> f2<x> \<le> (HH - x2<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<and> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon> \<longrightarrow> \<not> P<x>"
+    and "x2<x> \<le> L2 \<and> (HH - x2<x>) / \<epsilon> < f2<x> \<longrightarrow> \<not> P<x>"
+    and "L2 < x2<x> \<and> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon> \<longrightarrow> \<not> P<x>"
+    and "L2 < x2<x> \<and> (HH - x2<x>) / \<epsilon> < f2<x> \<longrightarrow> \<not> P<x>"
+    and "t<x> = 0"
+  thus goal8: "LL \<le> f1<x> * ta + x1<x>"
+    apply (clarsimp simp: field_simps)
+    by (metis add_increasing2 le_numeral_extra(3) zero_le_mult_iff)
+next
+  fix x :: "'st"
+    and ta :: "real"
+  assume "\<not> V2<x>"
+    and "V1<x>"
+    and "0 \<le> ta"
+    and "\<forall>\<tau>. 0 \<le> \<tau> \<and> \<tau> \<le> ta \<longrightarrow> 0 \<le> f1<x> * \<tau> + x1<x> \<and> 0 \<le> x2<x> \<and> 0 \<le> f1<x> \<and> 0 \<le> f2<x> \<and> \<tau> \<le> \<epsilon>"
+    and "LL \<le> x1<x>"
+    and "x1<x> \<le> HH"
+    and "LL \<le> x2<x>"
+    and "x2<x> \<le> HH"
+    and "\<not> P<x>"
+    and "\<not> (HH - x1<x>) / \<epsilon> < f1<x>"
+    and "f2<x> \<le> FL \<longrightarrow> \<not> P<x>"
+    and "FL < f2<x> \<longrightarrow> (LL - x1<x>) / \<epsilon> \<le> f1<x> - f2<x> \<longrightarrow> x2<x> \<le> L2 \<longrightarrow> \<not> f2<x> \<le> (HH - x2<x>) / \<epsilon>"
+    and "x2<x> \<le> L2 \<and> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon> \<longrightarrow> \<not> P<x>"
+    and "x2<x> \<le> L2 \<and> (HH - x2<x>) / \<epsilon> < f2<x> \<longrightarrow> \<not> P<x>"
+    and "L2 < x2<x> \<and> f1<x> - f2<x> < (LL - x1<x>) / \<epsilon> \<longrightarrow> \<not> P<x>"
+    and "L2 < x2<x> \<and> (HH - x2<x>) / \<epsilon> < f2<x> \<longrightarrow> \<not> P<x>"
+    and "t<x> = 0"
+  thus goal9: "f1<x> * ta + x1<x> \<le> HH"
+    apply (clarsimp simp: field_simps)
+    by (smt (verit) Groups.mult_ac(2) mult_eq_0_iff pos_le_divide_eq)
+qed
 
 
 lemma step_invariance:
   "H{loop_inv} inflow {loop_inv}
   \<Longrightarrow> H{loop_inv} ctrl_safe {post_ctrl}
-  \<Longrightarrow> H{post_ctrl} plant {loop_inv}
+  \<Longrightarrow> H{post_ctrl \<and> t = 0} plant {loop_inv}
   \<Longrightarrow> H{loop_inv} step_safe {loop_inv}"
   unfolding step_safe_def
   apply normalise_prog
   apply (sequence loop_inv, assumption)
   apply (sequence post_ctrl, assumption)
-  apply (sequence post_ctrl)
+  apply (sequence "post_ctrl \<and> t = 0")
   subgoal
     apply assign
     apply expr_simp
@@ -182,10 +418,7 @@ lemma "H{A} (LOOP step_safe INV loop_inv) {S}"
   apply expr_simp
   done
 
-
-(* property *)
-(* abbreviation "inv_wtt \<equiv> (LL \<le> $x1 \<and> $x1 \<le> HH \<and> LL \<le> $x2 \<and> $x2 \<le> HH)" *)
-(* abbreviation "program_safe \<equiv> LOOP step_safe INV inv_wtt" *)
-
 end
+
+
 end
