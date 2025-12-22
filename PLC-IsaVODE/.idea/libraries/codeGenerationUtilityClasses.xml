@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="codeGenerationUtilityClasses">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/utilities/codeGenerationUtilityClasses" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/utilities/codeGenerationUtilityClasses" />
+    </SOURCES>
+  </library>
+</component>
