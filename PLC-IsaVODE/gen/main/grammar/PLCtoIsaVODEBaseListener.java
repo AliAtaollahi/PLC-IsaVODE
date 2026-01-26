@@ -1,13 +1,6 @@
 // Generated from D:/10/New/Prague/Parsing/IsaVODEtoCPP/IsaVODEtoCPP/PLC-IsaVODE/src/main/grammar/PLCtoIsaVODE.g4 by ANTLR 4.13.1
 package main.grammar;
 
-    import main.ast.nodes.*;
-    import main.ast.nodes.declaration.*;
-    import main.ast.nodes.Stmt.*;
-    import main.ast.nodes.expr.*;
-    import main.ast.nodes.expr.value.*;
-
-
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -19,6 +12,42 @@ import org.antlr.v4.runtime.tree.TerminalNode;
  */
 @SuppressWarnings("CheckReturnValue")
 public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSource_unit(PLCtoIsaVODEParser.Source_unitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSource_unit(PLCtoIsaVODEParser.Source_unitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFunction(PLCtoIsaVODEParser.FunctionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFunction(PLCtoIsaVODEParser.FunctionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFunction_block(PLCtoIsaVODEParser.Function_blockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFunction_block(PLCtoIsaVODEParser.Function_blockContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -43,6 +72,18 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitConfiguration(PLCtoIsaVODEParser.ConfigurationContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterType_block(PLCtoIsaVODEParser.Type_blockContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitType_block(PLCtoIsaVODEParser.Type_blockContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -96,30 +137,6 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterInterval_time(PLCtoIsaVODEParser.Interval_timeContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitInterval_time(PLCtoIsaVODEParser.Interval_timeContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterTime_unit(PLCtoIsaVODEParser.Time_unitContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitTime_unit(PLCtoIsaVODEParser.Time_unitContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterProgram_configuration(PLCtoIsaVODEParser.Program_configurationContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -144,13 +161,49 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterType_rule(PLCtoIsaVODEParser.Type_ruleContext ctx) { }
+	@Override public void enterType(PLCtoIsaVODEParser.TypeContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitType_rule(PLCtoIsaVODEParser.Type_ruleContext ctx) { }
+	@Override public void exitType(PLCtoIsaVODEParser.TypeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterStruct(PLCtoIsaVODEParser.StructContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitStruct(PLCtoIsaVODEParser.StructContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterArray(PLCtoIsaVODEParser.ArrayContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitArray(PLCtoIsaVODEParser.ArrayContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterString(PLCtoIsaVODEParser.StringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitString(PLCtoIsaVODEParser.StringContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -168,25 +221,13 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterProgram_block_body(PLCtoIsaVODEParser.Program_block_bodyContext ctx) { }
+	@Override public void enterBlock(PLCtoIsaVODEParser.BlockContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitProgram_block_body(PLCtoIsaVODEParser.Program_block_bodyContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterStatement_list(PLCtoIsaVODEParser.Statement_listContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitStatement_list(PLCtoIsaVODEParser.Statement_listContext ctx) { }
+	@Override public void exitBlock(PLCtoIsaVODEParser.BlockContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -204,6 +245,66 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterRepeat_statement(PLCtoIsaVODEParser.Repeat_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRepeat_statement(PLCtoIsaVODEParser.Repeat_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterCase_statement(PLCtoIsaVODEParser.Case_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCase_statement(PLCtoIsaVODEParser.Case_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterExpression_statement(PLCtoIsaVODEParser.Expression_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitExpression_statement(PLCtoIsaVODEParser.Expression_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFor_statement(PLCtoIsaVODEParser.For_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFor_statement(PLCtoIsaVODEParser.For_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterWhile_statement(PLCtoIsaVODEParser.While_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitWhile_statement(PLCtoIsaVODEParser.While_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterAssignment_statement(PLCtoIsaVODEParser.Assignment_statementContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -211,6 +312,18 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitAssignment_statement(PLCtoIsaVODEParser.Assignment_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterReturn_statement(PLCtoIsaVODEParser.Return_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitReturn_statement(PLCtoIsaVODEParser.Return_statementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -228,18 +341,6 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterVariable(PLCtoIsaVODEParser.VariableContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitVariable(PLCtoIsaVODEParser.VariableContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterExpression(PLCtoIsaVODEParser.ExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -252,73 +353,13 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterEqu_operator(PLCtoIsaVODEParser.Equ_operatorContext ctx) { }
+	@Override public void enterArgument_expression_list(PLCtoIsaVODEParser.Argument_expression_listContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitEqu_operator(PLCtoIsaVODEParser.Equ_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterComparison_operator(PLCtoIsaVODEParser.Comparison_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitComparison_operator(PLCtoIsaVODEParser.Comparison_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterAdd_operator(PLCtoIsaVODEParser.Add_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitAdd_operator(PLCtoIsaVODEParser.Add_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterMultiply_operator(PLCtoIsaVODEParser.Multiply_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitMultiply_operator(PLCtoIsaVODEParser.Multiply_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterUnary_operator(PLCtoIsaVODEParser.Unary_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitUnary_operator(PLCtoIsaVODEParser.Unary_operatorContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterPrimary_expression(PLCtoIsaVODEParser.Primary_expressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitPrimary_expression(PLCtoIsaVODEParser.Primary_expressionContext ctx) { }
+	@Override public void exitArgument_expression_list(PLCtoIsaVODEParser.Argument_expression_listContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -331,42 +372,6 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitLiteral(PLCtoIsaVODEParser.LiteralContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterBoolean_literal(PLCtoIsaVODEParser.Boolean_literalContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitBoolean_literal(PLCtoIsaVODEParser.Boolean_literalContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterNumeric_literal(PLCtoIsaVODEParser.Numeric_literalContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitNumeric_literal(PLCtoIsaVODEParser.Numeric_literalContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterInteger_literal(PLCtoIsaVODEParser.Integer_literalContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitInteger_literal(PLCtoIsaVODEParser.Integer_literalContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

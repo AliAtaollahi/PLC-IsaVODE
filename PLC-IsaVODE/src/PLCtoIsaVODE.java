@@ -14,10 +14,10 @@ public class PLCtoIsaVODE {
         PLCtoIsaVODELexer PLCtoIsaVODELexer = new PLCtoIsaVODELexer(reader);
         CommonTokenStream tokens = new CommonTokenStream(PLCtoIsaVODELexer);
         PLCtoIsaVODEParser flParser = new PLCtoIsaVODEParser(tokens);
-        Program program = flParser.program().programRet;
+//        Program program = flParser.program().sourceUnit;
 
-        CodeGenerator codeGenerator = new CodeGenerator();
-        codeGenerator.visit(program);
+//        CodeGenerator codeGenerator = new CodeGenerator();
+//        codeGenerator.visit(program);
         System.out.println();
     }
 }

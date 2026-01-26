@@ -1,31 +1,32 @@
 grammar PLCtoIsaVODE;
 
-@header{
-    import main.ast.nodes.*;
-    import main.ast.nodes.declaration.*;
-    import main.ast.nodes.Stmt.*;
-    import main.ast.nodes.expr.*;
-    import main.ast.nodes.expr.value.*;
-}
-
-program returns [Program programRet]
-    : t = 'PROGRAM' { $programRet = new Program(); $programRet.setLine($t.line); }
-    name=ID { $programRet.setName($name.text); }
-    (v = var_block { $programRet.addVarBlock($v.varBlockRet); })*
-    p = program_block_body { $programRet.setProgramBlockBody($p.programBlockBodyRet); }
-    'END_PROGRAM'
+source_unit
+    : (program | function_block | function | configuration | type_block)*
     ;
+
+function
+    : 'FUNCTION' ID ':' type var_block* block 'END_FUNCTION'
+    ;
+
+function_block
+    : 'FUNCTION_BLOCK' ID var_block* block 'END_FUNCTION_BLOCK';
+
+program
+    : 'PROGRAM' ID var_block* block 'END_PROGRAM';
 
 configuration
     : 'CONFIGURATION' name=ID
-      ( single_resource_declaration
-      | resource_declaration (resource_declaration)* )
+      ( var_block | single_resource_declaration | resource_declaration (resource_declaration)* )*
       'END_CONFIGURATION'
+    ;
+
+type_block
+    : 'TYPE' variable_declaration+ 'END_TYPE'
     ;
 
 resource_declaration
     : 'RESOURCE' name=ID 'ON' resource_type_name=ID
-      single_resource_declaration
+      single_resource_declaration+
       'END_RESOURCE'
     ;
 
@@ -40,20 +41,10 @@ task_configuration
 
 task_initialization
     : '('
-        ( 'SINGLE' ':=' Decimal_literal ',' )?
-        'INTERVAL' ':=' interval_time ','
-        'PRIORITY' ':=' Decimal_literal
+        ( 'SINGLE' ':=' Numeric_literal ',' )?
+        'INTERVAL' ':=' Interval_time ','
+        'PRIORITY' ':=' Numeric_literal
       ')'
-    ;
-
-interval_time
-    : 'T' '#' Decimal_literal time_unit
-    ;
-
-time_unit
-    : 's'
-    | 'ms'
-    | 'us'
     ;
 
 program_configuration
@@ -61,59 +52,100 @@ program_configuration
       'WITH' task_name=ID ':' prog_name=ID
     ;
 
-var_block returns [VarBlock varBlockRet]
-    : t = ( 'VAR' | 'VAR_INPUT' | 'VAR_OUTPUT' )
-      {
-          $varBlockRet = new VarBlock();
-          $varBlockRet.setLine($t.line);
-          $varBlockRet.setVarType($t.text);
-      }
-      ( v = variable_declaration { $varBlockRet.addVariableDeclaration($v.variableDeclarationRet); })*
-      ';' 'END_VAR'
+var_block
+    : ( 'VAR' |
+        'VAR_INPUT' |
+        'VAR_OUTPUT' |
+        'VAR_IN_OUT' |
+        'VAR_GLOBAL' |
+        'VAR_EXTERNAL'
+      ) ('RETAIN')?
+      ( variable_declaration )* 'END_VAR'
     ;
 
-type_rule returns [TypeRule typeRuleRet]
-    : name=ID { $typeRuleRet = new TypeRule(); $typeRuleRet.setName($name.text); $typeRuleRet.setLine($name.line); }
+type
+    :
+    struct |
+    array |
+    string |
+    'REAL' |
+    'BOOL' |
+    'INT' |
+    'WORD' |
+    'DWORD' |
+    'UDINT' |
+    'TIME' |
+    'DINT' |
+    'BYTE' |
+    ID
     ;
 
-variable_declaration returns [VariableDeclaration variableDeclarationRet]
-    : { $variableDeclarationRet = new VariableDeclaration(); }
-      i1=ID { $variableDeclarationRet.addName($i1.text); } ( ',' i2=ID { $variableDeclarationRet.addName($i2.text); } )*
-      ':' t=type_rule { $variableDeclarationRet.setTypeRule($t.typeRuleRet); }
+struct
+    : 'STRUCT' ( variable_declaration )* 'END_STRUCT'
     ;
 
-program_block_body returns [ProgramBlockBody programBlockBodyRet]
-    : s = statement_list
-    { $programBlockBodyRet = new ProgramBlockBody(); $programBlockBodyRet.setStatementList($s.statementListRet); $programBlockBodyRet.setLine($s.statementListRet.getLine()); }
+array
+    : 'ARRAY' '[' literal ']' 'OF' type
     ;
 
-statement_list returns [StatementList statementListRet]
-    : { $statementListRet = new StatementList(); }
-    s1 = statement { $statementListRet.addStatement($s1.statementRet); $statementListRet.setLine($s1.statementRet.getLine()); }
-    ( ';' s2 = statement { $statementListRet.addStatement($s2.statementRet); } )* ';'
+string
+    :
+    'STRING' ('(' literal ')')?
     ;
 
-statement returns [Stmt statementRet]
-    : a = assignment_statement { $statementRet = $a.assignmentStatementRet; }
-    | i = if_then_else_statement { $statementRet = $i.ifThenElseStatementRet; }
+variable_declaration
+    : ID ( ',' ID )* ':' type (':=' expression)? ';'
     ;
 
-assignment_statement returns [AssignmentStatement assignmentStatementRet]
-    : { $assignmentStatementRet = new AssignmentStatement(); }
-    v = variable { $assignmentStatementRet.setVariable($v.variableRet); $assignmentStatementRet.setLine($v.variableRet.getLine()); }
-    ':=' e = expression { $assignmentStatementRet.setExpr($e.expressionRet); }
+block
+    : statement*
     ;
 
-if_then_else_statement returns [IfThenElseStatement ifThenElseStatementRet]
-    : { $ifThenElseStatementRet = new IfThenElseStatement(); } i = 'IF' { $ifThenElseStatementRet.setLine($i.line); }
-      e1 = expression 'THEN' s1 = statement_list { $ifThenElseStatementRet.addIfThenElse($e1.expressionRet, $s1.statementListRet); }
-      ( 'ELSIF' e2 = expression 'THEN' s2 = statement_list { $ifThenElseStatementRet.addIfThenElse($e2.expressionRet, $s2.statementListRet); } )*
-      ( 'ELSE' s3 = statement_list { $ifThenElseStatementRet.setElseStatementList($s3.statementListRet); } )?
-      'END_IF'
+statement
+    : assignment_statement
+    | if_then_else_statement
+    | for_statement
+    | while_statement
+    | return_statement
+    | expression_statement
+    | case_statement
+    | repeat_statement
     ;
 
-variable returns [Variable variableRet]
-    : { $variableRet = new Variable(); } name=ID { $variableRet.setName($name.text); $variableRet.setLine($name.line); }
+repeat_statement
+    :
+    'REPEAT' block 'UNTIL' expression 'END_REPEAT' ';'
+    ;
+
+case_statement
+    :
+    'CASE' expression 'OF' (expression ':' block)*
+    ( 'ELSE' block )? 'END_CASE' ';'
+    ;
+
+expression_statement
+    : expression? ';'
+    ;
+
+for_statement
+    : 'FOR' expression ':=' expression 'TO' expression 'DO' block 'END_FOR' ';';
+
+while_statement
+    : 'WHILE' expression 'DO' block 'END_WHILE' ';';
+
+assignment_statement
+    : expression ':=' expression ';'
+    ;
+
+return_statement
+    : 'RETURN' expression? ';';
+
+if_then_else_statement
+    : 'IF' expression
+      ('THEN' | 'then' ) block
+      ( 'ELSIF' expression 'THEN' block )*
+      ( 'ELSE'  block )?
+      'END_IF' ';'
     ;
 
 /* =====================
@@ -137,156 +169,72 @@ variable returns [Variable variableRet]
  * Expression (MiniC-like, with AST actions)
  * ===================== */
 
-expression returns [Expr expressionRet]
-    : v = variable
-      { $expressionRet = $v.variableRet; }
-
-    | b = boolean_literal { $expressionRet = $b.boolValueRet; }
-    | n = numeric_literal { $expressionRet = $n.numValueRet; }
-    | '(' e = expression ')'
-      { $expressionRet = $e.expressionRet; }
-
-    | op = ('NOT' | '-') e = expression
-      {
-          UnaryExpr u = new UnaryExpr();
-          u.setOperator($op.text);
-          u.setOperand($e.expressionRet);
-          u.setLine($op.line);
-          $expressionRet = u;
-      }
-
-    | <assoc=right> e1 = expression op = '**' e2 = expression                  // Power
-      {
-          // Replace BinaryExpr with your binary Expr node
-          BinaryExpr b = new BinaryExpr();
-          b.setLeft($e1.expressionRet);
-          b.setRight($e2.expressionRet);
-          b.setOperator($op.text);
-          b.setLine($op.line);
-          $expressionRet = b;
-      }
-
-    | e1 = expression op = ('*' | '/') e2 = expression                         // Multiplicative
-      {
-          BinaryExpr b = new BinaryExpr();
-          b.setLeft($e1.expressionRet);
-          b.setRight($e2.expressionRet);
-          b.setOperator($op.text);
-          b.setLine($op.line);
-          $expressionRet = b;
-      }
-
-    | e1 = expression op = ('+' | '-') e2 = expression                         // Additive
-      {
-          BinaryExpr b = new BinaryExpr();
-          b.setLeft($e1.expressionRet);
-          b.setRight($e2.expressionRet);
-          b.setOperator($op.text);
-          b.setLine($op.line);
-          $expressionRet = b;
-      }
-
-    | e1 = expression op = ('<' | '>' | '<=' | '>=') e2 = expression            // Relational
-      {
-          BinaryExpr b = new BinaryExpr();
-          b.setLeft($e1.expressionRet);
-          b.setRight($e2.expressionRet);
-          b.setOperator($op.text);
-          b.setLine($op.line);
-          $expressionRet = b;
-      }
-
-    | e1 = expression op = ('=' | '<>') e2 = expression                         // Equality
-      {
-          BinaryExpr b = new BinaryExpr();
-          b.setLeft($e1.expressionRet);
-          b.setRight($e2.expressionRet);
-          b.setOperator($op.text);
-          b.setLine($op.line);
-          $expressionRet = b;
-      }
-
-    | e1 = expression op = ('&' | 'AND') e2 = expression                        // AND
-      {
-          BinaryExpr b = new BinaryExpr();
-          b.setLeft($e1.expressionRet);
-          b.setRight($e2.expressionRet);
-          b.setOperator($op.text);
-          b.setLine($op.line);
-          $expressionRet = b;
-      }
-
-    | e1 = expression op = 'XOR' e2 = expression                                // XOR
-      {
-          BinaryExpr b = new BinaryExpr();
-          b.setLeft($e1.expressionRet);
-          b.setRight($e2.expressionRet);
-          b.setOperator($op.text);
-          b.setLine($op.line);
-          $expressionRet = b;
-      }
-
-    | e1 = expression op = 'OR' e2 = expression                                 // OR
-      {
-          BinaryExpr b = new BinaryExpr();
-          b.setLeft($e1.expressionRet);
-          b.setRight($e2.expressionRet);
-          b.setOperator($op.text);
-          b.setLine($op.line);
-          $expressionRet = b;
-      }
-    ;
-
-equ_operator
-    : '=' | '<>'
-    ;
-
-comparison_operator
-    : '<' | '>' | '<=' | '>='
-    ;
-
-add_operator
-    : '+' | '-'
-    ;
-
-multiply_operator
-    : '*' | '/'
-    ;
-
-unary_operator
-    : '-'
-    | 'NOT'
-    ;
-
-primary_expression
+expression
     : literal
-    | variable
+    | ID
     | '(' expression ')'
+    | ('NOT' | 'not' | '-') expression
+    | <assoc=right> expression '**' expression
+    | expression ('*' | '/') expression
+    | expression ('+' | '-') expression
+    | expression ('<' | '>' | '<=' | '>=') expression
+    | expression ('=' | '<>') expression
+    | expression ('&' | 'AND') expression
+    | expression 'XOR' expression
+    | expression 'OR' expression
+    | expression 'MOD' expression
+    | ID '(' argument_expression_list? ')' // function call
+    | expression ',' expression
+    | expression '.' expression
+    | expression '[' expression ']'
+    | '[' expression ( ',' expression )* ']'
     ;
+
+argument_expression_list
+  : expression (':=' expression)? (',' expression (':=' expression)? )* ;
 
 literal
-    : numeric_literal
-    | boolean_literal
+    : Numeric_literal
+    | Boolean_literal
+    | Hashed_literal
+    | String_literal
+    | Interval_time
+    | Interval
     ;
 
-boolean_literal returns [BoolValue boolValueRet]
-    : b = ( 'TRUE' | 'FALSE' )
-    { $boolValueRet = new BoolValue(); $boolValueRet.setValue($b.text); $boolValueRet.setLine($b.line); }
-
+Interval
+    :
+    Integer_literal '..' Integer_literal
     ;
 
-numeric_literal returns [NumValue numValueRet]
-    : { $numValueRet = new NumValue(); } ('-' { $numValueRet.setMinus(true); } )? i = integer_literal { $numValueRet.setValue($i.text); }
-    | { $numValueRet = new NumValue(); } ('-' { $numValueRet.setMinus(true); } )? f = Floating_point_literal { $numValueRet.setValue($f.text); }
+Boolean_literal
+    : ( 'TRUE' | 'FALSE' )
     ;
 
-integer_literal
+Numeric_literal
+    : Integer_literal
+    | Floating_point_literal
+    ;
+
+Integer_literal
     : Binary_literal
     | Octal_literal
     | Decimal_literal
     | Pure_decimal_digits
     | Hexadecimal_literal
     ;
+
+Interval_time
+    : ('T' | 't') '#' Decimal_literal ('s' | 'ms' | 'us' | 'h' | 'd' | 'm')
+    ;
+
+Hashed_literal
+    : ID '#' ('-')? Numeric_literal
+    | ID '#' String_literal
+    ;
+
+fragment HexadecimalDigit
+    : [0-9a-fA-F] ;
 
 Binary_literal
     : '2#' Binary_digit Binary_literal_characters?
@@ -343,6 +291,33 @@ fragment Hexadecimal_literal_characters
     : Hexadecimal_literal_character+
     ;
 
+String_literal
+    : '\'' CChar* '\'' ;
+
+fragment CChar
+    : ~['\\\r\n] | EscapeSequence ;
+
+fragment EscapeSequence
+    : SimpleEscapeSequence | OctalEscapeSequence | HexadecimalEscapeSequence | UniversalCharacterName ;
+
+fragment UniversalCharacterName
+    : '\\u' HexQuad | '\\U' HexQuad HexQuad ;
+
+fragment HexQuad
+    : HexadecimalDigit HexadecimalDigit HexadecimalDigit HexadecimalDigit ;
+
+fragment SimpleEscapeSequence
+    : '\\' ['"?abfnrtv\\] ;
+
+fragment OctalEscapeSequence
+    : '\\' OctalDigit OctalDigit? OctalDigit? ;
+
+fragment OctalDigit
+    : [0-7] ;
+
+fragment HexadecimalEscapeSequence
+    : '\\x' HexadecimalDigit+ ;
+
 Floating_point_literal
     : Decimal_literal Decimal_fraction? Decimal_exponent?
     ;
@@ -361,8 +336,15 @@ fragment Sign
     ;
 
 ID
-    : [A-Za-z][A-Za-z_0-9]*
+    : Nondigit (Nondigit | Digit)*
     ;
+
+fragment Nondigit
+    : [a-zA-Z_]
+    ;
+
+fragment Digit
+    : [0-9] ;
 
 WS
     : [ \n\r\t]+ -> channel(HIDDEN)
