@@ -1,9 +1,7 @@
 package main.visitor;
 
-import main.ast.nodes.Program;
-import main.ast.nodes.Stmt.AssignmentStatement;
-import main.ast.nodes.Stmt.IfThenElseStatement;
-import main.ast.nodes.Stmt.Stmt;
+import main.ast.nodes.Stmt.*;
+import main.ast.nodes.declaration.Program;
 import main.ast.nodes.declaration.*;
 import main.ast.nodes.expr.BinaryExpr;
 import main.ast.nodes.expr.UnaryExpr;
@@ -38,4 +36,8 @@ public interface IVisitor<T> {
 
     T visit(NumValue numValue);
     T visit(Stmt stmt);
+    T visit(ForStatement forStatement);
+    T visit(WhileStatement whileStatement);
+
+    T visit(SourceUnit sourceUnit);
 }

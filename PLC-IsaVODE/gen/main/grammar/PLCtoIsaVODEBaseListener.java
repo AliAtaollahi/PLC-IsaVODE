@@ -1,6 +1,13 @@
 // Generated from D:/10/New/Prague/Parsing/IsaVODEtoCPP/IsaVODEtoCPP/PLC-IsaVODE/src/main/grammar/PLCtoIsaVODE.g4 by ANTLR 4.13.1
 package main.grammar;
 
+    import main.ast.nodes.*;
+    import main.ast.nodes.declaration.*;
+    import main.ast.nodes.Stmt.*;
+    import main.ast.nodes.expr.*;
+    import main.ast.nodes.expr.value.*;
+
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -221,13 +228,25 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterBlock(PLCtoIsaVODEParser.BlockContext ctx) { }
+	@Override public void enterProgram_block_body(PLCtoIsaVODEParser.Program_block_bodyContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitBlock(PLCtoIsaVODEParser.BlockContext ctx) { }
+	@Override public void exitProgram_block_body(PLCtoIsaVODEParser.Program_block_bodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterStatement_list(PLCtoIsaVODEParser.Statement_listContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitStatement_list(PLCtoIsaVODEParser.Statement_listContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -293,6 +312,30 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterExit_statement(PLCtoIsaVODEParser.Exit_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitExit_statement(PLCtoIsaVODEParser.Exit_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterContinue_statement(PLCtoIsaVODEParser.Continue_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitContinue_statement(PLCtoIsaVODEParser.Continue_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterWhile_statement(PLCtoIsaVODEParser.While_statementContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -341,6 +384,18 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterVariable(PLCtoIsaVODEParser.VariableContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitVariable(PLCtoIsaVODEParser.VariableContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterExpression(PLCtoIsaVODEParser.ExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -365,6 +420,30 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterBoolean_literal(PLCtoIsaVODEParser.Boolean_literalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBoolean_literal(PLCtoIsaVODEParser.Boolean_literalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNumeric_literal(PLCtoIsaVODEParser.Numeric_literalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNumeric_literal(PLCtoIsaVODEParser.Numeric_literalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterLiteral(PLCtoIsaVODEParser.LiteralContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -372,6 +451,18 @@ public class PLCtoIsaVODEBaseListener implements PLCtoIsaVODEListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitLiteral(PLCtoIsaVODEParser.LiteralContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterInteger_literal(PLCtoIsaVODEParser.Integer_literalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInteger_literal(PLCtoIsaVODEParser.Integer_literalContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

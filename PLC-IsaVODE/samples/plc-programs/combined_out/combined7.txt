@@ -1,0 +1,3063 @@
+
+
+===== 434-ARRAY_SDV.ST (cont.) =====
+g := pt[1];
+	FOR i := 2 TO stop DO
+		avg := avg + pt[i];
+	END_FOR;
+	avg := avg / INT_TO_REAL(stop);
+
+	array_var := EXPT(pt[1] - avg, 2.0);
+	FOR i := 2 TO stop DO
+		array_var := array_var + EXPT(pt[i] - avg, 2.0);
+	END_FOR;
+	array_var := array_var / INT_TO_REAL(stop-1);
+
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK ARRAY_SDV_Block
+	VAR_IN_OUT
+		PT :	oscat_pt_ARRAY;
+	END_VAR
+
+	VAR_INPUT
+		SIZE :	UINT;
+	END_VAR
+
+	VAR_OUTPUT
+		ARRAY_SDV :	REAL;
+	END_VAR
+
+	VAR
+		FB_array_var :	array_var_block;
+	END_VAR
+
+	FB_array_var.pt   := pt;
+	FB_array_var.size := size;
+	FB_array_var();
+	pt := FB_array_var.pt;
+
+	array_sdv := SQRT(FB_array_var.array_var);
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+    LocalVar0 : oscat_pt_ARRAY;
+    LocalVar1 : UINT;
+	LocalOUT  : REAL;
+	func_block : ARRAY_SDV_Block;
+  END_VAR
+	func_block.pt := LocalVar0;
+	func_block.size := LocalVar1;
+	func_block();
+	LocalOUT := func_block.ARRAY_SDV;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 435-FIFO_16.ST =====
+TYPE
+	oscat_ardw_0_15             : ARRAY [0..15]   OF DWORD;
+END_TYPE
+
+FUNCTION INC1:INT
+
+	VAR_INPUT
+		X :	INT;
+		N :	INT;
+	END_VAR
+
+	IF X >= N - 1 THEN
+		INC1 := 0;
+	ELSE
+		INC1 := X + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION_BLOCK FIFO_16
+	VAR_INPUT
+		DIN :	DWORD;
+		E :	BOOL := TRUE;
+		RD :	BOOL;
+		WD :	BOOL;
+		RST :	BOOL;
+	END_VAR
+
+	VAR_OUTPUT
+		DOUT :	DWORD;
+		EMPTY :	BOOL := TRUE;
+		FULL :	BOOL;
+	END_VAR
+
+	VAR
+		fifo :	oscat_ardw_0_15;
+		pr :	INT;
+		pw :	INT;
+	END_VAR
+
+	IF RST THEN
+		pw := pr;
+		FULL := FALSE;
+		EMPTY := TRUE;
+		Dout := DWORD#0;
+	ELSIF E THEN
+		IF NOT EMPTY AND RD THEN
+			Dout := fifo[pr];
+			pr := INC1(pr,16);
+			EMPTY := pr = pw;
+			FULL := FALSE;
+		END_IF;
+		IF NOT FULL AND WD THEN
+			fifo[pw] := Din;
+			pw := INC1(pw,16);
+			FULL := pw = pr;
+			EMPTY := FALSE;
+		END_IF;
+	END_IF;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	DIN :	DWORD;
+	E   :	BOOL;
+	RD  :	BOOL;
+	WD  :	BOOL;
+	RST :	BOOL;
+
+	DOUT  :	DWORD;
+	EMPTY :	BOOL;
+	FULL  :	BOOL;
+
+	func_block : FIFO_16;
+  END_VAR
+	func_block.DIN :=DIN;
+	func_block.E   :=E  ;
+	func_block.RD  :=RD ;
+	func_block.WD  :=WD ;
+	func_block.RST :=RST;
+	func_block();
+	DOUT := func_block.DOUT ;
+	EMPTY:= func_block.EMPTY;
+	FULL := func_block.FULL ;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 436-AOUT1.ST =====
+FUNCTION SIGN_R : BOOL
+  VAR_INPUT
+    IN : REAL;
+  END_VAR
+
+  SIGN_R := in < 0.0;
+END_FUNCTION
+
+FUNCTION _REAL_TO_DWORD: DWORD
+
+  VAR_INPUT
+    X :	REAL;
+  END_VAR
+
+  IF REAL_TO_DWORD(0.5) = DWORD#1 THEN
+    _REAL_TO_DWORD := REAL_TO_DWORD(x);
+  ELSIF X > 0.0 THEN
+    _REAL_TO_DWORD := REAL_TO_DWORD(x+0.5); 
+  ELSIF X < 0.0 THEN 
+    _REAL_TO_DWORD := REAL_TO_DWORD(x-0.5); 
+  ELSE 
+    _REAL_TO_DWORD := DWORD#0;
+  END_IF;
+END_FUNCTION
+
+FUNCTION AOUT1:DWORD
+
+	VAR_INPUT
+		IN :	REAL;
+		BIT_0 :	INT;
+		BIT_N :	INT;
+		SIGN :	INT;
+		LOW :	REAL;
+		HIGH :	REAL;
+	END_VAR
+
+
+	VAR
+		in2 :	REAL;
+		sx :	BOOL;
+	END_VAR
+
+
+	IF sign < 32 THEN
+		sx := sign_R(in);
+		in2 := ABS(in);
+	ELSE
+		sx := FALSE;
+		in2 := in;
+	END_IF;
+
+	in2 := LIMIT_REAL(low, in2, high);
+
+	AOUT1 :=  SHL(_REAL_TO_DWORD((in2 - low) / (high - low) * UDINT_TO_REAL(DWORD_TO_UDINT(SHL(DWORD#2#1,bit_n - Bit_0 + 1)) - UDINT#1)),Bit_0);
+
+	IF sx THEN AOUT1 := SHL(DWORD#2#1,sign) OR AOUT1; END_IF;
+
+END_FUNCTION
+
+PROGRAM program0
+  VAR
+    LocalVar0 : REAL;
+	LocalVar1 : INT;
+	LocalVar21 : INT;
+	LocalVar2 : INT;
+	LocalVar3 : REAL;
+	LocalVar4 : REAL;
+	LocalOUT  : DWORD;
+  END_VAR
+  	LocalOUT := AOUT1(LocalVar0, LocalVar1,LocalVar21, LocalVar2, LocalVar3,LocalVar4);
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+
+===== 437-CCOS.ST =====
+TYPE oscat_complex :
+  STRUCT
+	re : REAL;
+	im : REAL;
+  END_STRUCT;
+END_TYPE
+
+FUNCTION COSH:REAL
+	VAR_INPUT
+		X :	REAL;
+	END_VAR
+
+	VAR
+		t :	REAL;
+	END_VAR
+
+	T := EXP(X);
+	COSH := (1.0 / T + T) * 0.5;
+END_FUNCTION
+
+FUNCTION SINH:REAL
+	VAR_INPUT
+		X :	REAL;
+	END_VAR
+
+	IF ABS(x) < 2.0E-3 THEN
+		SINH := X;
+	ELSE
+		SINH := (EXP(x) - EXP(-x)) * 0.5;
+	END_IF;
+END_FUNCTION
+
+FUNCTION_BLOCK CCOSH_Block
+	VAR_INPUT
+		X :	oscat_complex;
+	END_VAR
+
+	VAR_OUTPUT
+		CCOSH :	oscat_complex;
+	END_VAR
+
+	CCOSH.re := cosH(x.re) * COS(x.im);
+	CCOSH.im := sinH(x.re) * SIN(x.im);
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK CSET_Block
+	VAR_INPUT
+		RE :	REAL;
+		IM :	REAL;
+	END_VAR
+
+	VAR_OUTPUT
+		CSET :	oscat_complex;
+	END_VAR
+
+	CSET.re := RE;
+	CSET.im := IM;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK CCOS_Block
+	VAR_INPUT
+		X :	oscat_complex;
+	END_VAR
+
+	VAR_OUTPUT
+		CCOS :	oscat_complex;
+	END_VAR
+
+	VAR
+		CSET :	CSET_Block;
+		CCOSH :	CCOSH_Block;
+	END_VAR
+
+	CSET(RE:= -X.im,IM:=X.re);
+	CCOSH(X:=CSET.CSET);
+	CCOS := CCOSH.CCOSH;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+    LocalVar0 : oscat_complex;
+	LocalOUT  : oscat_complex;
+	func_block : CCOS_Block;
+  END_VAR
+	func_block.X  := LocalVar0;
+	func_block();
+	LocalOUT := func_block.CCOS;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 438-FIFO_32.ST =====
+TYPE
+	oscat_ardw_0_31             : ARRAY [0..31]   OF DWORD;
+END_TYPE
+
+FUNCTION INC1:INT
+
+	VAR_INPUT
+		X :	INT;
+		N :	INT;
+	END_VAR
+
+	IF X >= N - 1 THEN
+		INC1 := 0;
+	ELSE
+		INC1 := X + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION_BLOCK FIFO_32
+
+	VAR_INPUT
+		DIN :	DWORD;
+		E :	BOOL := TRUE;
+		RD :	BOOL;
+		WD :	BOOL;
+		RST :	BOOL;
+	END_VAR
+
+	VAR_OUTPUT
+		DOUT :	DWORD;
+		EMPTY :	BOOL := TRUE;
+		FULL :	BOOL;
+	END_VAR
+
+	VAR
+		fifo :	oscat_ardw_0_31;
+		pr :	INT;
+		pw :	INT;
+	END_VAR
+
+	IF RST THEN
+		pw := pr;
+		FULL := FALSE;
+		EMPTY := TRUE;
+		Dout := DWORD#0;
+	ELSIF E THEN
+		IF NOT EMPTY AND RD THEN
+			Dout := fifo[pr];
+			pr := INC1(pr,32);
+			EMPTY := pr = pw;
+			FULL := FALSE;
+		END_IF;
+		IF NOT FULL AND WD THEN
+			fifo[pw] := Din;
+			pw := INC1(pw,32);
+			FULL := pw = pr;
+			EMPTY := FALSE;
+		END_IF;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	DIN :	DWORD;
+	E   :	BOOL;
+	RD  :	BOOL;
+	WD  :	BOOL;
+	RST :	BOOL;
+
+	DOUT  :	DWORD;
+	EMPTY :	BOOL;
+	FULL  :	BOOL;
+
+	func_block : FIFO_32;
+  END_VAR
+	func_block.DIN :=DIN;
+	func_block.E   :=E  ;
+	func_block.RD  :=RD ;
+	func_block.WD  :=WD ;
+	func_block.RST :=RST;
+	func_block();
+	DOUT := func_block.DOUT ;
+	EMPTY:= func_block.EMPTY;
+	FULL := func_block.FULL ;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+
+===== 439-ALARM_2.ST =====
+FUNCTION_BLOCK ALARM_2
+	VAR_INPUT
+		X :	REAL;
+		LO_1 :	REAL;
+		HI_1 :	REAL;
+		LO_2 :	REAL;
+		HI_2 :	REAL;
+		HYS :	REAL;
+	END_VAR
+
+	VAR_OUTPUT
+		Q1_LO :	BOOL;
+		Q1_HI :	BOOL;
+		Q2_LO :	BOOL;
+		Q2_HI :	BOOL;
+	END_VAR
+
+	VAR
+		tmp :	REAL;
+	END_VAR
+
+	tmp := X - Hys * 0.5;
+	IF tmp > LO_1 THEN Q1_LO := FALSE; END_IF;
+	IF tmp > LO_2 THEN Q2_LO := FALSE; END_IF;
+	IF tmp > HI_1 THEN Q1_HI := TRUE; END_IF;
+	IF tmp > HI_2 THEN Q2_HI := TRUE; END_IF;
+	tmp := tmp + hys;
+	IF tmp < LO_1 THEN Q1_LO := TRUE; END_IF;
+	IF tmp < LO_2 THEN Q2_LO := TRUE; END_IF;
+	IF tmp < HI_1 THEN Q1_HI := FALSE; END_IF;
+	IF tmp < HI_2 THEN Q2_HI := FALSE; END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+	    LocalVar0 : REAL;
+		LocalVar1 : REAL;
+		LocalVar2 : REAL;
+		LocalVar3 : REAL;
+		LocalVar4 : REAL;
+		LocalVar5 : REAL;
+		LocalOUT1  : BOOL;
+		LocalOUT2  : BOOL;
+		LocalOUT3  : BOOL;
+		LocalOUT4  : BOOL;
+		func_block : ALARM_2;
+  	END_VAR
+	func_block.X := LocalVar0;
+	func_block.LO_1 := LocalVar1;
+	func_block.HI_1 := LocalVar2;
+	func_block.LO_2 := LocalVar3;
+	func_block.HI_2 := LocalVar4;
+	func_block.HYS := LocalVar5;
+	func_block();
+	LocalOUT1 := func_block.Q1_LO;
+	LocalOUT2 := func_block.Q1_HI;
+	LocalOUT3 := func_block.Q2_LO;
+	LocalOUT4 := func_block.Q2_HI;
+END_PROGRAM
+
+CONFIGURATION Config0
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+END_CONFIGURATION
+
+===== 440-DRIVER_4C.ST =====
+TYPE
+  oscat_DRIVER_4C 			  : ARRAY [1..7] 	OF BYTE;
+END_TYPE
+FUNCTION_BLOCK DRIVER_4C
+
+	VAR_INPUT
+		IN :	BOOL;
+		RST :	BOOL;
+		TIMEOUT :	TIME;
+		SX :	oscat_DRIVER_4C;
+	END_VAR
+
+	VAR_OUTPUT
+		SN :	INT;
+		Q0 :	BOOL;
+		Q1 :	BOOL;
+		Q2 :	BOOL;
+		Q3 :	BOOL;
+	END_VAR
+
+	VAR
+		off :	TON;
+		edge :	BOOL;
+	END_VAR
+
+	IF RST OR off.Q THEN
+		SN := 0;
+	ELSIF IN AND NOT edge THEN
+		SN := SN + 1;
+		IF SN > 7 OR SX[SN] = BYTE#0 THEN SN := 0; END_IF;
+	END_IF;
+	edge := in;
+	IF SN > 0 THEN
+		Q0 := (SX[SN] AND BYTE#1) > BYTE#0;
+		Q1 := (SX[SN] AND BYTE#2) > BYTE#0;
+		Q2 := (SX[SN] AND BYTE#4) > BYTE#0;
+		Q3 := (SX[SN] AND BYTE#8) > BYTE#0;
+	ELSE
+		Q0 := FALSE;
+		Q1 := FALSE;
+		Q2 := FALSE;
+		Q3 := FALSE;
+	END_IF;
+
+	IF timeout > t#0s THEN off(in := SN > 0, PT := Timeout); END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	IN      :	BOOL;
+	RST     :	BOOL;
+	TIMEOUT :	TIME;
+	SX      :	oscat_DRIVER_4C;
+
+	SN :	INT;
+	Q0 :	BOOL;
+	Q1 :	BOOL;
+	Q2 :	BOOL;
+	Q3 :	BOOL;
+
+	func_block : DRIVER_4C;
+  END_VAR
+	func_block.IN       :=IN      ;
+	func_block.RST      :=RST     ;
+	func_block.TIMEOUT  :=TIMEOUT ;
+	func_block.SX       :=SX      ;
+	func_block();
+	SN := func_block.SN;
+	Q0 := func_block.Q0;
+	Q1 := func_block.Q1;
+	Q2 := func_block.Q2;
+	Q3 := func_block.Q3;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+
+===== 441-COUNT_DR.ST =====
+FUNCTION_BLOCK COUNT_DR
+	VAR_INPUT
+		SET :	BOOL;
+		IN :	DWORD;
+		UP :	BOOL;
+		DN :	BOOL;
+		STEPP :	DWORD := DWORD#1;
+		MX :	DWORD := DWORD#16#FFFF_FFFF;
+		RST :	BOOL;
+	END_VAR
+
+	VAR_OUTPUT
+		CNT :	DWORD;
+	END_VAR
+
+	VAR
+		CNT2 :	UDINT;
+		STEPP2 :	UDINT;
+		MX2 :	UDINT;
+		last_up :	BOOL;
+		last_dn :	BOOL;
+	END_VAR
+
+	STEPP2 := DWORD_TO_UDINT(STEPP);
+	MX2   := DWORD_TO_UDINT(MX);
+	CNT2  := DWORD_TO_UDINT(CNT);
+
+	IF rst THEN
+		CNT2 := UDINT#0;
+	ELSIF set THEN
+		CNT2 := LIMIT(UDINT#0,DWORD_TO_UDINT(in),mx2);
+	ELSIF up AND NOT last_up THEN
+		IF STEPP2 > MX2 - CNT2 THEN
+			CNT2 := CNT2 - MX2 + STEPP2 - UDINT#1;
+		ELSE
+			CNT2 := CNT2 + STEPP2;
+		END_IF;
+	ELSIF dn AND NOT last_dn THEN
+		IF STEPP2 > CNT2 THEN
+			CNT2 := CNT2 - STEPP2 + MX2 + UDINT#1;
+		ELSE
+			CNT2 := CNT2 - STEPP2;
+		END_IF;
+	END_IF;
+	last_up := up;
+	last_dn := dn;
+	CNT := UDINT_TO_DWORD(CNT2);
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	SET :	BOOL;
+	IN :	DWORD;
+	UP :	BOOL;
+	DN :	BOOL;
+	STEPP :	DWORD;
+	MX :	DWORD;
+	RST :	BOOL;
+
+	CNT :	DWORD;
+	func_block : COUNT_DR;
+  END_VAR
+	func_block.SET  :=SET  ;
+	func_block.IN   :=IN   ;
+	func_block.UP   :=UP   ;
+	func_block.DN   :=DN   ;
+	func_block.STEPP :=STEPP ;
+	func_block.MX   :=MX   ;
+	func_block.RST  :=RST  ;
+
+	func_block();
+	CNT := func_block.CNT;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 442-BUFFER_SEARCH.ST =====
+TYPE
+	oscat_arb_0_249 			  : ARRAY [0..249] 	OF BYTE;
+END_TYPE
+
+FUNCTION_BLOCK BUFFER_SEARCH_Block
+	VAR_INPUT
+		SIZE :	UINT;
+		STR :	STRING;
+		POS :	INT;
+		IGN :	BOOL;
+	END_VAR
+
+	VAR_IN_OUT
+		PT :	oscat_arb_0_249;
+	END_VAR
+
+	VAR_OUTPUT
+		BUFFER_SEARCH :	INT;
+	END_VAR
+
+	VAR
+		i :	INT;
+		end :	INT;
+		k :	INT;
+		k2 :	INT;
+		lx :	INT;
+		char :	BYTE;
+		chx :	BYTE;
+	END_VAR
+
+	lx := LEN(str);
+	IF pos >= 0 AND lx > 0 THEN 
+		end := UINT_TO_INT(size) - lx;
+		lx := lx - 1;
+		FOR i := pos TO end DO
+			FOR k := 0 TO lx DO
+				char := INT_TO_BYTE(GET_CHAR(str,k + 1));
+				k2 := i + k;
+				IF IGN THEN
+					chx := TO_UPPER(pt[k2]);
+				ELSE
+					chx := pt[k2];
+				END_IF;
+				IF char <> chx THEN EXIT; END_IF;
+			END_FOR;
+			IF k > lx THEN
+				BUFFER_SEARCH := i;
+				RETURN;
+			END_IF;
+		END_FOR;
+	END_IF;
+	BUFFER_SEARCH := -1;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+    LocalVar0 : UINT;
+    LocalVar1 : STRING;
+	LocalVar2 : INT;
+	LocalVar3 : BOOL;
+	LocalVar4 : oscat_arb_0_249;
+	LocalOUT  : INT;
+	func_block : BUFFER_COMP_Block;
+  END_VAR
+	func_block.SIZE  := LocalVar0;
+	func_block.STR  := LocalVar1;
+	func_block.POS   := LocalVar2;
+	func_block.IGN  := LocalVar3;
+	func_block.PT := LocalVar4;
+	func_block();
+	LocalOUT := func_block.BUFFER_COMP;
+	LocalVar4 := func_block.PT;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 443-SET_DT.ST =====
+
+FUNCTION _INT_TO_UDINT:UDINT
+	VAR_INPUT
+		IN :	INT;
+	END_VAR
+
+	_INT_TO_UDINT := DINT_TO_UDINT(INT_TO_DINT(IN));
+END_FUNCTION
+
+FUNCTION SET_DATE:UDINT
+
+	VAR_INPUT
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+	END_VAR
+
+
+	VAR
+		count :	INT;
+	END_VAR
+
+
+	IF month > 2 THEN
+		count := (month - 1) * 30;
+		IF month > 7 THEN
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(3)),1));
+		ELSE
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(4)),1));
+		END_IF;
+		IF SHL(INT_TO_WORD(year),14) = WORD#0 THEN
+			count := count + 1;
+		END_IF;
+	ELSE
+		count := (month - 1) * 31;
+	END_IF;
+	SET_DATE := (_INT_TO_UDINT(count + day - 1) + DWORD_TO_UDINT(SHR(UDINT_TO_DWORD(_INT_TO_UDINT(year) * UDINT#1461 - UDINT#2878169), 2))) * UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION SET_DT:UDINT
+	VAR_INPUT
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+		HOUR :	INT;
+		MINUTE :	INT;
+		SECOND :	INT;
+	END_VAR
+
+	SET_DT := SET_DATE(YEAR, MONTH, DAY) + _INT_TO_UDINT(SECOND) + _INT_TO_UDINT(MINUTE) * UDINT#60 + _INT_TO_UDINT(HOUR) * UDINT#3600;
+END_FUNCTION
+
+PROGRAM program0
+
+	VAR
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+		HOUR :	INT;
+		MINUTE :	INT;
+		SECOND :	INT;
+		CEIL5_OUT : UDINT;
+	END_VAR
+
+	CEIL5_OUT := SET_DT(YEAR, MONTH, DAY, HOUR, MINUTE, SECOND);
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+===== 444-MD5_CRAM_AUTH_DEMO.GE =====
+PROGRAM MD5_CRAM_AUTH_DEMO
+
+	VAR
+		run :	BOOL := TRUE;
+		timestamp :	oscat_STRING64 := 'PDQwMzYuMTA3NjMyNDM4MUBndWlsZGVuc3Rlcm4uemVpdGZvcm0uZGU+';
+		password :	oscat_STRING64 := 'geheimes_passwort';
+		username :	oscat_STRING64 := 'benutzer@zeitform.de';
+		auth_key :	oscat_STRING192;
+		MD5_CRAM_AUTH :	MD5_CRAM_AUTH;
+	END_VAR
+
+	(*
+	[GRA]
+	400 400 0 0 0 0 0 
+
+	[LIT]
+	0
+
+	[TET]
+	12
+	35 6 118 30 524288 6 4 0 222 0 0 0 0 0 0 Tahoma 
+	Beispiel:
+	Zeitstempel: BASE64  = PDQwMzYuMTA3NjMyNDM4MUBndWlsZGVuc3Rlcm4uemVpdGZvcm0uZGU+
+	Zeitstempel: Klartext = <4036.1076324381@guildenstern.zeitform.de>
+
+	Ergebnis: BASE64 = YmVudXR6ZXJAemVpdGZvcm0uZGUgMmQ5MzczZGZkOTFlMmU2NjMxYzhlMWFkN
+	jk4MzRmYWQ=
+	Ergebnis: Klartext = benutzer@zeitform.de 2d9373dfd91e2e6631c8e1ad69834fad
+
+	80 40 85 42 4 5 run
+	116 40 121 42 4 3 run
+	75 44 85 46 4 5 username
+	116 44 126 46 4 3 username
+	75 48 85 50 4 5 password
+	116 48 126 50 4 3 password
+	74 52 85 54 4 5 timestamp
+	116 52 127 54 4 3 timestamp
+	75 56 85 58 4 5 auth_key
+	116 56 126 58 4 3 auth_key
+	87 34 114 37 7 6 MD5_CRAM_AUTH
+
+	[FBS]
+	1
+	852055 852005 114 61 0 0 MD5_CRAM_AUTH MD5_CRAM_AUTH  
+
+	[FPT]
+	5
+	87 40 114 42 RUN 0 0 0 2 128 128 @ BOOL 
+	87 44 114 46 USERNAME 0 0 0 2 128 128 @ oscat_STRING64 
+	87 48 114 50 PASSWORD 0 0 0 2 128 128 @ oscat_STRING64 
+	87 52 114 54 B64_TS 0 0 0 2 128 128 @ oscat_STRING64 
+	87 56 114 58 AUTH_KEY 0 0 0 2 128 128 @ oscat_STRING192 
+
+	[AKT]
+	0
+
+	[STT]
+	0
+
+	[TRT]
+	0
+
+	[KOT]
+	0
+
+	[VER]
+	0
+
+	[IBX]
+	0
+	*)
+
+END_PROGRAM
+
+
+===== 445-COUNT_BR.ST =====
+FUNCTION _BYTE_TO_INT:INT
+	VAR_INPUT
+		IN :	BYTE;
+	END_VAR
+
+	_BYTE_TO_INT := USINT_TO_INT(BYTE_TO_USINT(IN));
+
+END_FUNCTION
+
+FUNCTION INC:INT
+	VAR_INPUT
+		X :	INT;
+		D :	INT;
+		M :	INT;
+	END_VAR
+
+	inc := (X + D + M + 1) MOD (M + 1);
+END_FUNCTION
+
+FUNCTION_BLOCK COUNT_BR
+	VAR_INPUT
+		SET :	BOOL;
+		IN :	BYTE;
+		UP :	BOOL;
+		DN :	BOOL;
+		STEPP :	BYTE := BYTE#1;
+		MX :	BYTE := BYTE#255;
+		RST :	BOOL;
+	END_VAR
+	VAR_OUTPUT
+		CNT :	BYTE;
+	END_VAR
+
+	VAR
+		last_up :	BOOL;
+		last_dn :	BOOL;
+	END_VAR
+
+	IF rst THEN
+		cnt := BYTE#0;
+	ELSIF set THEN
+		cnt := INT_TO_BYTE(LIMIT(0,_BYTE_TO_INT(in),_BYTE_TO_INT(mx)));
+	ELSIF up AND NOT last_up THEN
+		cnt := INT_TO_BYTE(inc(_BYTE_TO_INT(cnt),_BYTE_TO_INT(stepP),_BYTE_TO_INT(mx)));
+	ELSIF dn AND NOT last_dn THEN
+		cnt := INT_TO_BYTE(inc(_BYTE_TO_INT(cnt),_BYTE_TO_INT(stepP) * -1,_BYTE_TO_INT(mx)));
+	END_IF;
+	last_up := up;
+	last_dn := dn;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	SET :	BOOL;
+	IN :	BYTE;
+	UP :	BOOL;
+	DN :	BOOL;
+	STEPP:	BYTE;
+	MX :	BYTE;
+	RST :	BOOL;
+
+	CNT :	BYTE;
+	func_block : COUNT_BR;
+  END_VAR
+	func_block.SET  :=SET  ;
+	func_block.IN   :=IN   ;
+	func_block.UP   :=UP   ;
+	func_block.DN   :=DN   ;
+	func_block.STEPP :=STEPP ;
+	func_block.MX   :=MX   ;
+	func_block.RST  :=RST  ;
+
+	func_block();
+	CNT := func_block.CNT;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+
+===== 446-RC4_CRYPT_STREAM.ST =====
+FUNCTION_BLOCK RC4_CRYPT_STREAM
+
+	VAR_IN_OUT
+		MODE :	INT;
+		KEY :	oscat_STRING40;
+		BUF :	oscat_aB0_63;
+		SIZE :	UDINT;
+	END_VAR
+
+
+	VAR_OUTPUT
+		POS :	UDINT;
+	END_VAR
+
+
+	VAR
+		sbox :	oscat_aB0_255;
+		skey :	oscat_aB0_255;
+		a :	INT;
+		b :	INT;
+		c :	INT;
+		d :	USINT;
+		e :	USINT;
+		end :	UDINT;
+		v :	BYTE;
+		v_tmp :	INT;
+		CODE :	CODE;
+	END_VAR
+
+	CASE MODE OF
+
+	1:	
+		b := LEN(KEY) - 1;
+		IF b < 0 OR SIZE < UDINT#1 THEN
+			MODE := 3;
+			RETURN;
+		END_IF;
+
+		FOR a := 0 TO b DO
+			CODE(STR:=KEY,POS:=a + 1);
+			skey[a] := CODE.CODE;
+			sbox[a] := INT_TO_BYTE(a);
+		END_FOR;
+
+		c := 0;
+		FOR a := b + 1 TO 255 DO
+			skey[a] := skey[c];
+			sbox[a] := INT_TO_BYTE(a);
+			c := c + 1;
+			IF c > b THEN c := 0; END_IF;
+		END_FOR;
+
+		d := USINT#0;
+		FOR a := 0 TO 255 DO
+			d := d + BYTE_TO_USINT(sbox[a]) + BYTE_TO_USINT(skey[a]);
+			v := sbox[a];
+			sbox[a] := sbox[d];
+			sbox[d] := v;
+		END_FOR;
+
+		POS := UDINT#0;
+		end := SIZE;
+		SIZE := MIN(UDINT#64,end);
+		d := USINT#0;
+		e := USINT#0;
+		MODE := 2;
+
+	2:	
+
+		b := UDINT_TO_INT(SIZE) - 1;
+		FOR a := 0 TO b DO
+			d := d + USINT#1;
+			e := e + BYTE_TO_USINT(sbox[d]);
+			v := sbox[d];
+			sbox[d] := sbox[e];
+			sbox[e] := v;
+			v := USINT_TO_BYTE(BYTE_TO_USINT(sbox[d]) + BYTE_TO_USINT(sbox[e]));
+			v_tmp := _BYTE_TO_INT(v);
+			BUF[a] :=BUF[a] XOR sbox[v_tmp];
+		END_FOR;
+
+		POS := POS + SIZE;
+		SIZE := MIN(UDINT#64,end - POS);
+
+		IF SIZE = UDINT#0 THEN
+			MODE := 3;
+		END_IF;
+	END_CASE;
+
+END_FUNCTION_BLOCK
+
+
+===== 447-TRIANGLE_A.ST =====
+FUNCTION _REAL_TO_DINT:DINT
+  VAR_INPUT
+    X :	REAL;
+  END_VAR
+
+  IF REAL_TO_DINT(0.5) = DINT#1 THEN
+    _REAL_TO_DINT := REAL_TO_DINT(x);
+    RETURN;
+  END_IF;
+
+  IF X > 0.0 THEN
+    _REAL_TO_DINT := REAL_TO_DINT(x+0.5); 
+  ELSIF X < 0.0 THEN 
+    _REAL_TO_DINT := REAL_TO_DINT(x-0.5); 
+  ELSE 
+    _REAL_TO_DINT := DINT#0;
+  END_IF;
+END_FUNCTION
+
+FUNCTION FLOOR2:DINT
+
+
+
+	VAR_INPUT
+		X :	REAL;
+	END_VAR
+
+
+	FLOOR2 := _REAL_TO_DINT(X);
+	IF DINT_TO_REAL(FLOOR2) > X THEN
+		FLOOR2 := FLOOR2 - DINT#1;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION MODR:REAL
+
+
+
+	VAR_INPUT
+		IN :	REAL;
+		DIVI :	REAL;
+	END_VAR
+
+
+	IF divi = 0.0 THEN
+		MODR := 0.0;
+	ELSE
+		MODR := in - DINT_TO_REAL(FLOOR2(in / divi)) * divi;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION RAD:REAL
+
+
+	VAR_INPUT
+		DEG :	REAL;
+	END_VAR
+
+
+	Rad := modR(0.0174532925199433 * deg , 6.283185307179586476);
+
+END_FUNCTION
+
+FUNCTION TRIANGLE_A:REAL
+
+
+
+	VAR_INPUT
+		S1 :	REAL;
+		A :	REAL;
+		S2 :	REAL;
+		S3 :	REAL;
+	END_VAR
+
+
+	IF A = 0.0 THEN
+		TRIANGLE_A := SQRT((s1+s2+S3) * (s1+s2-S3) * (S2+S3-S1) * (S3+S1-S2)) * 0.25;
+	ELSE
+		TRIANGLE_A := S1 * S2 * SIN(RAD(A)) * 0.5;
+	END_IF;
+
+END_FUNCTION
+
+PROGRAM program0
+  VAR
+	S1 :	REAL;
+	A :	REAL;
+	S2 :	REAL;
+	S3 :	REAL;
+    CEIL5_OUT : REAL;
+  END_VAR
+
+  CEIL5_OUT := TRIANGLE_A(S1, A, S2, S3);
+END_PROGRAM
+
+CONFIGURATION Config0
+
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 448-T_PLC_US.ST =====
+FUNCTION_BLOCK T_PLC_US_Block
+	
+	VAR_OUTPUT
+		T_PLC_US :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;
+		N :	INT;
+		Offset :	UDINT;
+		temp :	DWORD := DWORD#1;
+		mode :	BOOL;
+		faktor :	UDINT;
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000000;
+	END_VAR
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1000;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_US := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_US := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_US := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_US),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+
+	VAR
+		T_PLC_US  : UDINT;
+		func_block : T_PLC_US_Block;
+	END_VAR
+		func_block();
+		T_PLC_US := func_block.T_PLC_US;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+	
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+===== 449-REAL_TO_STRF.ST =====
+FUNCTION EXP10 : REAL
+
+	VAR_INPUT
+		x : REAL;
+	END_VAR
+
+	exp10 := EXP(X * 2.30258509299405);
+	
+END_FUNCTION
+
+FUNCTION _REAL_TO_DINT:DINT
+	VAR_INPUT
+		X :	REAL;
+	END_VAR
+
+	IF REAL_TO_DINT(0.5) = DINT#1 THEN
+		_REAL_TO_DINT := REAL_TO_DINT(x);
+		RETURN;
+	END_IF;
+
+	IF X > 0.0 THEN
+		_REAL_TO_DINT := REAL_TO_DINT(x+0.5); 
+	ELSIF X < 0.0 THEN 
+		_REAL_TO_DINT := REAL_TO_DINT(x-0.5); 
+	ELSE 
+		_REAL_TO_DINT := DINT#0;
+	END_IF;
+END_FUNCTION
+
+FUNCTION_BLOCK REAL_TO_STRF_Block
+
+	VAR_INPUT
+		IN :	REAL;
+		N :	INT;
+		D :	STRING;
+	END_VAR
+
+	VAR_OUTPUT
+		REAL_TO_STRF :	STRING;
+	END_VAR
+
+	VAR
+		st_tmp : STRING;
+		i :	INT;
+	END_VAR
+
+
+	N := LIMIT(0,N,7);
+	REAL_TO_STRF := DINT_TO_STRING(_REAL_TO_DINT(ABS(in) * EXP10(INT_TO_REAL(N))));
+	FOR i := LEN(REAL_TO_STRF) TO N DO
+		st_tmp := REAL_TO_STRF;	
+		REAL_TO_STRF := CONCAT('0', st_tmp);
+	END_FOR;
+	IF n > 0 THEN REAL_TO_STRF := INSERT(REAL_TO_STRF, D, LEN(REAL_TO_STRF) - N); END_IF;
+	IF in < 0.0 THEN st_tmp := REAL_TO_STRF; REAL_TO_STRF := CONCAT('-', st_tmp); END_IF;
+
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+
+	VAR
+		IN :	REAL;
+		N :	INT;
+		D :	STRING;
+		
+        REAL_TO_STRF :	STRING;
+		func_block : REAL_TO_STRF_Block;
+	END_VAR
+		func_block.IN := IN;
+		func_block.N := N;
+		func_block.D := D;
+		func_block();
+		REAL_TO_STRF := func_block.REAL_TO_STRF;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+	
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+===== 450-PERIOD.ST =====
+FUNCTION LEAP_OF_DATE:BOOL
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	LEAP_OF_DATE := SHL(UDINT_TO_DWORD((idate + UDINT#43200) / UDINT#31557600), 30) = DWORD#16#80000000;
+END_FUNCTION
+
+FUNCTION DAY_OF_YEAR:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	DAY_OF_YEAR := UDINT_TO_INT(((idate) / UDINT#86400) MOD UDINT#1461);
+	IF DAY_OF_YEAR > 729 THEN
+		IF DAY_OF_YEAR > 1095 THEN DAY_OF_YEAR := DAY_OF_YEAR - 1095; ELSE DAY_OF_YEAR := DAY_OF_YEAR - 729; END_IF;
+	ELSIF DAY_OF_YEAR > 364 THEN
+		DAY_OF_YEAR := DAY_OF_YEAR - 364;
+	ELSE
+		DAY_OF_YEAR := DAY_OF_YEAR + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION PERIOD:BOOL
+
+	VAR
+		day1 :	INT;
+		day2 :	INT;
+		dayx :	INT;
+	END_VAR
+
+	VAR_INPUT
+		D1 :	UDINT;
+		Dx :	UDINT;
+		D2 :	UDINT;
+	END_VAR
+
+
+	day1 := day_of_year(d1);
+	day2 := day_of_year(d2);
+	dayx := day_of_year(dx);
+	IF NOT leap_of_Date(dx) AND dayx > 58 THEN dayx := dayx + 1; END_IF;
+	IF NOT leap_of_Date(d1) AND day1 > 58 THEN day1 := day1 + 1; END_IF;
+	IF NOT leap_of_Date(d2) AND day2 > 58 THEN day2 := day2 + 1; END_IF;
+
+	IF day2 < day1 THEN
+		(* the period spans over the new year *)
+		period := dayx <= day2 OR dayx >= day1;
+	ELSE
+		period := dayx >= day1 AND dayx <= day2;
+	END_IF;
+
+END_FUNCTION
+
+PROGRAM program0
+	VAR
+		D1 :	UDINT;
+		Dx :	UDINT;
+		D2 :	UDINT;
+
+		OUT : BOOL;
+	END_VAR
+
+	OUT := PERIOD(D1, Dx, D2);
+END_PROGRAM
+
+
+CONFIGURATION Config0
+
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+
+===== 451-SUN_MIDDAY.ST =====
+FUNCTION _REAL_TO_UDINT:UDINT
+	VAR_INPUT
+		X :	REAL;
+	END_VAR
+
+	IF REAL_TO_UDINT(0.5) = UDINT#1 THEN
+		_REAL_TO_UDINT := REAL_TO_UDINT(x);
+	ELSIF X > 0.0 THEN
+		_REAL_TO_UDINT := REAL_TO_UDINT(x+0.5); 
+	ELSIF X < 0.0 THEN 
+		_REAL_TO_UDINT := REAL_TO_UDINT(x-0.5); 
+	ELSE 
+		_REAL_TO_UDINT := UDINT#0;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION HOUR_TO_TOD:UDINT
+
+	VAR_INPUT
+		IN :	REAL;
+	END_VAR
+
+	hour_to_tod := _REAL_TO_UDINT(IN * 3600000.00);
+
+END_FUNCTION
+
+FUNCTION DAY_OF_YEAR:INT
+	VAR_INPUT
+		IDATE :	DATE;
+	END_VAR
+
+	DAY_OF_YEAR := UDINT_TO_INT((DATE_TO_UDINT(idate) / UDINT#86400) MOD UDINT#1461);
+	IF DAY_OF_YEAR > 729 THEN
+		IF DAY_OF_YEAR > 1095 THEN DAY_OF_YEAR := DAY_OF_YEAR - 1095; ELSE DAY_OF_YEAR := DAY_OF_YEAR - 729; END_IF;
+	ELSIF DAY_OF_YEAR > 364 THEN
+		DAY_OF_YEAR := DAY_OF_YEAR - 364;
+	ELSE
+		DAY_OF_YEAR := DAY_OF_YEAR + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION SUN_MIDDAY:UDINT
+
+	VAR_INPUT
+		LON :	REAL;
+		UTC :	DATE;
+	END_VAR
+
+	VAR
+		T :	REAL;
+		OFFSET :	REAL;
+	END_VAR
+
+	T := INT_TO_REAL(DAY_OF_YEAR(utc));
+	OFFSET := -0.1752 * SIN(0.033430 * T + 0.5474) - 0.1340 * SIN(0.018234 * T - 0.1939);
+	SUN_MIDDAY := HOUR_TO_TOD(12.0 - OFFSET - lon * 0.0666666666666);
+
+END_FUNCTION
+
+PROGRAM program0
+	
+	VAR
+		LON :	REAL;
+		UTC :	DATE;
+		CEIL5_OUT : UDINT;
+	END_VAR
+
+	CEIL5_OUT := SUN_MIDDAY(LON, UTC);
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+===== 452-MESSAGE_4R.ST =====
+FUNCTION INC1:INT
+
+	VAR_INPUT
+		X :	INT;
+		N :	INT;
+	END_VAR
+
+	IF X >= N - 1 THEN
+		INC1 := 0;
+	ELSE
+		INC1 := X + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION_BLOCK MESSAGE_4R_Block
+
+	VAR_INPUT
+		M0 :	STRING;
+		M1 :	STRING;
+		M2 :	STRING;
+		M3 :	STRING;
+		MM :	INT := 3;
+		ENQ :	BOOL := TRUE;
+		CLK :	BOOL := TRUE;
+		T1 :	TIME := T#3s;
+	END_VAR
+
+
+	VAR_OUTPUT
+		MX :	STRING;
+		MN :	INT;
+		TR :	BOOL;
+	END_VAR
+
+
+	VAR
+		timer :	TON;
+		edge :	BOOL;
+	END_VAR
+
+	TR := FALSE;
+	IF ENQ THEN
+		IF (NOT edge AND clk) OR timer.q THEN
+				MN := INC1(MN, MM);
+				TR := TRUE;
+				timer(in := FALSE);
+				CASE MN OF
+					0 : MX := M0;
+					1 : MX := M1;
+					2 : MX := M2;
+					3 : MX := M3;
+				END_CASE;
+		END_IF;
+		edge := clk;
+		timer( in := CLK, pt := T1);
+	ELSE
+		MX := '';
+		MN := 0;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+
+	VAR
+		M0 :	STRING;
+		M1 :	STRING;
+		M2 :	STRING;
+		M3 :	STRING;
+		MM :	INT;
+		ENQ :	BOOL;
+		CLK :	BOOL;
+		T1 :	TIME;
+
+		MX :	STRING;
+		MN :	INT;
+		TR :	BOOL;
+
+		func_block : MESSAGE_4R_Block;
+	END_VAR
+
+	func_block.M0 := M0;
+	func_block.M1 := M1;
+	func_block.M2 := M2;
+	func_block.M3 := M3;
+	func_block.MM := MM;
+	func_block.ENQ := ENQ;
+	func_block.CLK := CLK;
+	func_block.T1 := T1;
+
+	func_block();
+
+	MX := func_block.MX;
+	MN := func_block.MN;
+	TR := func_block.TR;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+	
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+
+===== 453-BASE64_DECODE_STREAM.ST =====
+TYPE
+  oscat_aB0_47	: ARRAY [0..47]	OF BYTE;
+  oscat_aB0_63	: ARRAY [0..63]	OF BYTE;
+END_TYPE
+
+FUNCTION_BLOCK BASE64_DECODE_STREAM
+	VAR_IN_OUT
+		BUF1 :	oscat_aB0_63;
+		BUF2 :	oscat_aB0_47;
+	END_VAR
+
+	VAR_INPUT
+		SIZE1 :	INT;
+	END_VAR
+
+	VAR_OUTPUT
+		SIZE2 :	INT;
+	END_VAR
+
+	VAR
+		a :	INT;
+		b :	WORD;
+		o :	INT;
+		off :	INT;
+		i1 :	INT;
+		i2 :	INT;
+		c :	INT;
+	END_VAR
+
+	IF SIZE1 <= 0 THEN SIZE2 := 0; RETURN; END_IF;
+	c := SIZE1 - 1;
+	i2 := 0;
+	a := 0;
+	b := WORD#0;
+	FOR i1 := 0 TO c DO
+		o := BYTE_TO_INT(BUF1[i1]);
+		IF o = 61  (* = *) THEN EXIT;
+		ELSIF o > 96 (* a-z *) THEN off := 71;
+		ELSIF o > 64 (* A-Z *) THEN off := 65;
+		ELSIF o > 47 (* 0-9 *) THEN off := -4;
+		ELSIF o = 43 (* + *) THEN off := -19;
+		ELSIF o = 47 (* / *) THEN off := -16;
+		END_IF;
+		b := SHL(b,6) OR INT_TO_WORD(o - off);
+		a := a + 6;
+		IF a >= 8 THEN
+			a := a - 8;
+			BUF2[i2] := WORD_TO_BYTE(SHR(b,a));
+			i2 := i2 + 1;
+			b := b AND NOT SHL(WORD#16#FFFF,a);
+		END_IF;
+	END_FOR;
+	SIZE2 := i2;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	BUF1  :	oscat_aB0_63;
+	BUF2  :	oscat_aB0_47;
+
+	SIZE1 :	INT;
+
+	SIZE2 :	INT;
+	func_block : BASE64_DECODE_STREAM;
+  END_VAR
+	func_block.BUF1 :=BUF1 ;
+	func_block.BUF2 :=BUF2 ;
+	func_block.SIZE1:=SIZE1;
+	func_block();
+	BUF1 := func_block.BUF1;
+	BUF2 := func_block.BUF2;
+	SIZE2 := func_block.SIZE2;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 454-EASTER.ST =====
+
+
+FUNCTION _INT_TO_UDINT:UDINT
+	VAR_INPUT
+		IN :	INT;
+	END_VAR
+
+	_INT_TO_UDINT := DINT_TO_UDINT(INT_TO_DINT(IN));
+END_FUNCTION
+
+FUNCTION SET_DATE:UDINT
+
+	VAR_INPUT
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+	END_VAR
+
+
+	VAR
+		count :	INT;
+	END_VAR
+
+
+	IF month > 2 THEN
+		count := (month - 1) * 30;
+		IF month > 7 THEN
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(3)),1));
+		ELSE
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(4)),1));
+		END_IF;
+		IF SHL(INT_TO_WORD(year),14) = WORD#0 THEN
+			count := count + 1;
+		END_IF;
+	ELSE
+		count := (month - 1) * 31;
+	END_IF;
+	SET_DATE := (_INT_TO_UDINT(count + day - 1) + DWORD_TO_UDINT(SHR(UDINT_TO_DWORD(_INT_TO_UDINT(year) * UDINT#1461 - UDINT#2878169), 2))) * UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION EASTER:UDINT
+	VAR_INPUT
+		YEAR :	INT;
+	END_VAR
+
+	VAR
+		b :	INT;
+		c :	INT;
+		oday :	INT;
+	END_VAR
+
+	b := (204 - 11 * (year MOD 19)) MOD 30;
+	IF b > 27 THEN b := b - 1; END_IF;
+	c := (year + WORD_TO_INT(SHR(INT_TO_WORD(year),2)) + b - 13) MOD 7;
+	oday := 28 + b - c;
+	IF oday > 33 THEN
+		easter := set_Date(year, 4, oday - 31);
+	ELSE
+		easter := set_Date(year, 3, oday);
+	END_IF;
+END_FUNCTION
+
+PROGRAM program0
+  VAR
+    LocalVar0 : INT;
+	LocalOUT  : UDINT;
+  END_VAR
+  	LocalOUT := EASTER(LocalVar0);
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+
+===== 455-DAYS_IN_MONTH.ST =====
+FUNCTION DAY_OF_YEAR:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	DAY_OF_YEAR := UDINT_TO_INT(((idate) / UDINT#86400) MOD UDINT#1461);
+	IF DAY_OF_YEAR > 729 THEN
+		IF DAY_OF_YEAR > 1095 THEN DAY_OF_YEAR := DAY_OF_YEAR - 1095; ELSE DAY_OF_YEAR := DAY_OF_YEAR - 729; END_IF;
+	ELSIF DAY_OF_YEAR > 364 THEN
+		DAY_OF_YEAR := DAY_OF_YEAR - 364;
+	ELSE
+		DAY_OF_YEAR := DAY_OF_YEAR + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION LEAP_OF_DATE:BOOL
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	LEAP_OF_DATE := SHL(UDINT_TO_DWORD((idate + UDINT#43200) / UDINT#31557600), 30) = DWORD#16#80000000;
+END_FUNCTION
+
+FUNCTION DAYS_IN_MONTH:INT
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	DAYS_IN_MONTH := DAY_OF_YEAR(IDATE);
+	IF LEAP_OF_DATE(IDATE) THEN
+		CASE DAYS_IN_MONTH OF
+			32..60	:	DAYS_IN_MONTH := 29;
+			92..121 :	DAYS_IN_MONTH := 30;
+			153..182:	DAYS_IN_MONTH := 30;
+			245..274:	DAYS_IN_MONTH := 30;
+			306..335:	DAYS_IN_MONTH := 30;
+		ELSE
+			DAYS_IN_MONTH := 31;
+		END_CASE;
+	ELSE
+		CASE DAYS_IN_MONTH OF
+			32..59	:	DAYS_IN_MONTH := 28;
+			91..120 :	DAYS_IN_MONTH := 30;
+			152..181:	DAYS_IN_MONTH := 30;
+			244..273:	DAYS_IN_MONTH := 30;
+			305..334:	DAYS_IN_MONTH := 30;
+		ELSE
+			DAYS_IN_MONTH := 31;
+		END_CASE;
+	END_IF;
+
+END_FUNCTION
+
+PROGRAM program0
+  VAR
+    LocalVar0 : UDINT;
+	LocalOUT  : INT;
+  END_VAR
+  	LocalOUT := DAYS_IN_MONTH(LocalVar0);
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 456-SHR_8UDE.ST =====
+FUNCTION_BLOCK SHR_8UDE_Block
+
+	VAR_INPUT
+		SET :	BOOL;
+		D0 :	BOOL;
+		D7 :	BOOL;
+		CLK :	BOOL;
+		DN :	BOOL;
+		RST :	BOOL;
+	END_VAR
+
+
+	VAR_OUTPUT
+		Q0 :	BOOL;
+		Q1 :	BOOL;
+		Q2 :	BOOL;
+		Q3 :	BOOL;
+		Q4 :	BOOL;
+		Q5 :	BOOL;
+		Q6 :	BOOL;
+		Q7 :	BOOL;
+	END_VAR
+
+	VAR
+		trig :	R_TRIG;
+	END_VAR
+
+	trig(clk := clk);
+
+	IF set OR rst THEN
+		Q0 := NOT RST;
+		Q1 := Q0;
+		Q2 := Q0;
+		Q3 := Q0;
+		Q4 := Q0;
+		Q5 := Q0;
+		Q6 := Q0;
+		Q7 := Q0;
+	ELSIF trig.Q THEN
+		IF dn THEN
+			Q0 := Q1;
+			Q1 := Q2;
+			Q2 := Q3;
+			Q3 := Q4;
+			Q4 := Q5;
+			Q5 := Q6;
+			Q6 := Q7;
+			Q7 := D7;
+		ELSE
+			Q7 := Q6;
+			Q6 := Q5;
+			Q5 := Q4;
+			Q4 := Q3;
+			Q3 := Q2;
+			Q2 := Q1;
+			Q1 := Q0;
+			Q0 := D0;
+		END_IF;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		SET :	BOOL;
+		D0 :	BOOL;
+		D7 :	BOOL;
+		CLK :	BOOL;
+		DN :	BOOL;
+		RST :	BOOL;
+		Q0 :	BOOL;
+		Q1 :	BOOL;
+		Q2 :	BOOL;
+		Q3 :	BOOL;
+		Q4 :	BOOL;
+		Q5 :	BOOL;
+		Q6 :	BOOL;
+		Q7 :	BOOL;
+		func_block : SHR_8UDE_Block;
+  	END_VAR
+	func_block.SET  :=SET;
+	func_block.D0  :=D0;
+	func_block.D7  :=D7;
+	func_block.CLK  :=CLK;
+	func_block.DN  :=DN;
+	func_block.RST  :=RST;
+	func_block();
+	Q0  := func_block.Q0;
+	Q1  := func_block.Q1;
+	Q2  := func_block.Q2;
+	Q3  := func_block.Q3;
+	Q4  := func_block.Q4;
+	Q5  := func_block.Q5;
+	Q6  := func_block.Q6;
+	Q7  := func_block.Q7;
+END_PROGRAM
+
+CONFIGURATION Config0
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+END_CONFIGURATION
+
+===== 457-TELNET_LOG.ST =====
+FUNCTION_BLOCK TELNET_LOG
+
+	VAR_INPUT
+		ENABLE :	BOOL;
+		OPTION :	BYTE := BYTE#2#1000_1100;
+		PORT :	WORD := WORD#23;
+	END_VAR
+
+
+	VAR_OUTPUT
+		READY :	BOOL;
+	END_VAR
+
+
+	VAR_IN_OUT
+		IP_C :	oscat_IP_C;
+		S_BUF :	oscat_NETWORK_BUFFER;
+		LOG_CL :	us_LOG_CONTROL;
+	END_VAR
+
+
+	VAR
+		TELNET_PRINT :	TELNET_PRINT;
+		done :	BOOL;
+		init :	BOOL;
+		watchdog :	TON;
+		ci :	INT;
+		pi :	INT;
+		pi_last :	INT;
+		send :	BOOL;
+	END_VAR
+
+	IF NOT init THEN
+		init := TRUE;
+		IF OPTION > BYTE#0 THEN
+			TELNET_PRINT.OPTION := OPTION;
+		END_IF;
+		IF PORT > WORD#0 THEN 
+			TELNET_PRINT.PORT := PORT;
+		END_IF;
+		WATCHDOG.PT := T#1ms;
+	END_IF;
+
+	WATCHDOG(IN:=FALSE);
+
+	ci := LOG_CL.IDX;
+
+	IF IP_C.C_STATE = BYTE#1 THEN
+		pi := 0;
+		init := FALSE;
+	END_IF;
+
+	REPEAT
+		IF pi <> ci AND IP_C.C_STATE > BYTE#127 THEN
+			IF pi = 0 AND LOG_CL.RING_MODE THEN pi := ci; END_IF;
+			pi_last := pi;
+			pi := pi + 1;
+			IF pi > LOG_CL.SIZE THEN pi := 1; END_IF;
+			SEND := TRUE;
+		ELSE
+			SEND := FALSE;
+		END_IF;
+
+		TELNET_PRINT(	IP_C := IP_C,
+						S_BUF := S_BUF,
+						ENABLE := ENABLE,
+						SEND := SEND,
+						TEXT := LOG_CL.MSG[pi],
+						BACK_COLOR := DWORD_TO_BYTE(SHL(LOG_CL.MSG_OPTION[pi],8)),
+						FRONT_COLOR := DWORD_TO_BYTE(LOG_CL.MSG_OPTION[pi] ));
+		READY := TELNET_PRINT.READY;
+		done  := TELNET_PRINT.DONE;
+		IP_C  := TELNET_PRINT.IP_C;
+		S_BUF := TELNET_PRINT.S_BUF;
+
+		IF SEND AND NOT done THEN
+			pi := pi_last;
+		END_IF;
+
+		WATCHDOG(IN:=TRUE);
+
+	UNTIL (WATCHDOG.Q OR NOT done )
+	END_REPEAT;
+
+END_FUNCTION_BLOCK
+
+
+===== 458-IRTRANS_RCV_4.ST =====
+FUNCTION_BLOCK IRTRANS_RCV_4_Block
+
+	VAR_INPUT
+		CMD :	BOOL;
+	END_VAR
+
+
+	VAR_IN_OUT
+		DEV :	STRING;
+		KEY :	STRING;
+	END_VAR
+
+
+	VAR_INPUT
+		DEV_CODE :	STRING;
+		KEY_CODE_0 :	STRING;
+		KEY_CODE_1 :	STRING;
+		KEY_CODE_2 :	STRING;
+		KEY_CODE_3 :	STRING;
+	END_VAR
+
+
+	VAR_OUTPUT
+		Q0 :	BOOL;
+		Q1 :	BOOL;
+		Q2 :	BOOL;
+		Q3 :	BOOL;
+	END_VAR
+
+
+	VAR
+		decode :	BOOL;
+	END_VAR
+
+	decode := cmd AND EQ_STRING(dev_code,dev);
+
+	Q0 := EQ_STRING(key,key_code_0) AND decode;
+	Q1 := EQ_STRING(key,key_code_1) AND decode;
+	Q2 := EQ_STRING(key,key_code_2) AND decode;
+	Q3 := EQ_STRING(key,key_code_3) AND decode;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		CMD :	BOOL;
+		DEV :	STRING;
+		KEY :	STRING;
+		DEV_CODE :	STRING;
+		KEY_CODE_0 :	STRING;
+		KEY_CODE_1 :	STRING;
+		KEY_CODE_2 :	STRING;
+		KEY_CODE_3 :	STRING;
+		Q0 :	BOOL;
+		Q1 :	BOOL;
+		Q2 :	BOOL;
+		Q3 :	BOOL;
+
+		func_block : IRTRANS_RCV_4_Block;
+	END_VAR
+	func_block.CMD := CMD;
+	func_block.DEV := DEV;
+	func_block.KEY := KEY;
+	func_block.DEV_CODE := DEV_CODE;
+	func_block.KEY_CODE_0 := KEY_CODE_0;
+	func_block.KEY_CODE_1 := KEY_CODE_1;
+	func_block.KEY_CODE_2 := KEY_CODE_2;
+	func_block.KEY_CODE_3 := KEY_CODE_3;
+
+	func_block();
+	DEV  := func_block.DEV;
+	KEY  := func_block.KEY;
+	Q0  := func_block.Q0;
+	Q1  := func_block.Q1;
+	Q2  := func_block.Q2;
+	Q3  := func_block.Q3;
+
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+
+END_CONFIGURATION
+
+===== 459-LENGTH.ST =====
+FUNCTION_BLOCK LENGTH_Block
+
+	VAR_INPUT
+		M :	REAL;
+		P :	REAL;
+		IN :	REAL;
+		FT :	REAL;
+		YD :	REAL;
+		MILE :	REAL;
+		SM :	REAL;
+		FM :	REAL;
+	END_VAR
+
+
+	VAR_OUTPUT
+		YM :	REAL;
+		YP :	REAL;
+		YIN :	REAL;
+		YFT :	REAL;
+		YYD :	REAL;
+		YMILE :	REAL;
+		YSM :	REAL;
+		YFM :	REAL;
+	END_VAR
+
+	Ym :=	m
+			+ p * 0.000376065
+			+ in * 0.0254
+			+ ft * 0.3048
+			+ yd * 0.9144
+			+ mile * 1609.344
+			+ sm * 1852.0
+			+ fm * 1.829;
+	Yp := Ym * 2659.11478068951;
+	Yin := Ym * 39.37007874016;
+	Yft := Ym * 3.28083989501;
+	Yyd := Ym * 1.09361329834;
+	Ymile := Ym * 0.00062137119;
+	Ysm := Ym * 0.00053995680;
+	Yfm := Ym * 0.54674685621;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+
+	VAR
+		M :	REAL;
+		P :	REAL;
+		IN :	REAL;
+		FT :	REAL;
+		YD :	REAL;
+		MILE :	REAL;
+		SM :	REAL;
+		FM :	REAL;
+
+		YM :	REAL;
+		YP :	REAL;
+		YIN :	REAL;
+		YFT :	REAL;
+		YYD :	REAL;
+		YMILE :	REAL;
+		YSM :	REAL;
+		YFM :	REAL;
+		
+		func_block : LENGTH_Block;
+	END_VAR
+	func_block.M := M;
+	func_block.P := P;
+	func_block.IN := IN;
+	func_block.FT := FT;
+	func_block.YD := YD;
+	func_block.MILE := MILE;
+	func_block.SM := SM;
+	func_block.FM := FM;
+
+	func_block();
+
+	YM := func_block.YM;
+	YP := func_block.YP;
+	YIN := func_block.YIN;
+	YFT := func_block.YFT;
+	YYD := func_block.YYD;
+	YMILE := func_block.YMILE;
+	YSM := func_block.YSM;
+	YFM := func_block.YFM;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+
+===== 460-LOG_MSG_80.ST =====
+FUNCTION_BLOCK LOG_MSG_80
+  VAR_EXTERNAL
+    LOG_CL_80 :	us_LOG_CONTROL_80;
+  END_VAR
+
+  VAR
+    FB_PRINT_SF_80 :	PRINT_SF_80;
+  END_VAR
+
+  VAR
+    idx :	INT;
+  END_VAR
+
+  IF DWORD_TO_BYTE(SHL(LOG_CL_80.NEW_MSG_OPTION,16)) > LOG_CL_80.LEVEL THEN RETURN; END_IF; 
+  LOG_CL_80.SIZE := 400; 
+
+  FB_PRINT_SF_80.PRINTF_DATA := LOG_CL_80.PRINTF; 
+  FB_PRINT_SF_80.STR := LOG_CL_80.NEW_MSG;
+  FB_PRINT_SF_80();
+  LOG_CL_80.NEW_MSG := FB_PRINT_SF_80.STR; 
+  LOG_CL_80.PRINTF := FB_PRINT_SF_80.PRINTF_DATA;
+
+  IF LOG_CL_80.RESET THEN 
+    LOG_CL_80.RESET := FALSE;
+    LOG_CL_80.RING_MODE := FALSE;
+    LOG_CL_80.IDX := 0;
+    LOG_CL_80.UPDATE_COUNT := LOG_CL_80.UPDATE_COUNT + UINT#1;   
+  END_IF;
+
+  IF LEN(LOG_CL_80.NEW_MSG) > 0 THEN 
+    IF (LOG_CL_80.IDX >= LOG_CL_80.SIZE) THEN
+      LOG_CL_80.RING_MODE := TRUE; 
+      LOG_CL_80.IDX := 0;
+    END_IF;
+
+    LOG_CL_80.UPDATE_COUNT := LOG_CL_80.UPDATE_COUNT + UINT#1; 
+    LOG_CL_80.IDX := LOG_CL_80.IDX + INT#1; 
+    idx := LOG_CL_80.IDX; 
+    LOG_CL_80.MSG[idx] := LOG_CL_80.NEW_MSG; 
+    LOG_CL_80.MSG_OPTION[idx] := LOG_CL_80.NEW_MSG_OPTION; 
+    LOG_CL_80.NEW_MSG := ''; 
+  END_IF;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		STR :	oscat_STRING80;
+		LOG_MSG_80_R :	DWORD;
+		func_block : LOG_MSG_80;
+	END_VAR
+	
+	func_block.STR := STR;
+	func_block();
+	LOG_MSG_80_R  := func_block.LOG_MSG_80;
+END_PROGRAM
+
+CONFIGURATION Config0
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+END_CONFIGURATION
+
+
+===== 461-CONTROL_SET1.ST =====
+FUNCTION_BLOCK CONTROL_SET1_Block
+	VAR_INPUT
+		KT :	REAL;
+		TT :	REAL;
+		PI :	BOOL;
+		PIDD :	BOOL;
+		P_K :	REAL := 0.5;
+		PI_K :	REAL := 0.45;
+		PI_TN :	REAL := 0.83;
+		PIDD_K :	REAL := 0.6;
+		PIDD_TN :	REAL := 0.5;
+		PIDD_TV :	REAL := 0.125;
+	END_VAR
+
+	VAR_OUTPUT
+		KP :	REAL;
+		TN :	REAL;
+		TV :	REAL;
+		KI :	REAL;
+		KD :	REAL;
+	END_VAR
+
+	IF pi AND PIDD THEN
+		KP := 0.0;
+		TN := 0.0;
+		TV := 0.0;
+	ELSIF PIDD THEN
+		KP := PIDD_K * Kt;
+		TN := PIDD_TN * Tt;
+		TV := PIDD_TV * Tt;
+	ELSIF PI THEN
+		KP := PI_K * Kt;
+		TN := PI_TN * Tt;
+	ELSE
+		KP := P_K * Kt;
+	END_IF;
+	IF tn > 0.0 THEN KI := KP / TN; ELSE KI := 0.0; END_IF;
+	KD := KP * TV;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	KT :REAL;
+	TT :REAL;
+	PI :BOOL;
+	PIDD :BOOL;
+	P_K :REAL ;
+	PI_K :REAL ;
+	PI_TN :REAL ;
+	PIDD_K :REAL ;
+	PIDD_TN :REAL ;
+	PIDD_TV :REAL ;
+	KP :REAL;
+	TN :REAL;
+	TV :REAL;
+	KI :REAL;
+	KD :REAL;
+	func_block : CONTROL_SET1_Block;
+  END_VAR
+	func_block.KT   :=KT  ;
+	func_block.TT   :=TT  ;
+	func_block.PI   :=PI  ;
+	func_block.PIDD   :=PIDD  ;
+	func_block.P_K   :=P_K  ;
+	func_block.PI_K   :=PI_K  ;
+	func_block.PI_TN   :=PI_TN  ;
+	func_block.PIDD_K   :=PIDD_K  ;
+	func_block.PIDD_TN   :=PIDD_TN  ;
+	func_block.PIDD_TV   :=PIDD_TV  ;
+	func_block();
+	KP := func_block.KP ;
+	TN := func_block.TN ;
+	TV := func_block.TV ;
+	KI := func_block.KI ;
+	KD := func_block.KD ;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 462-SDT_TO_DATE.ST =====
+TYPE oscat_SDT :
+	STRUCT
+		YEAR : INT;
+		MONTH : INT;
+		DAY : INT;
+		WEEKDAY : INT;
+		HOUR : INT;
+		MINUTE : INT;
+		SECOND : INT;
+		MS : INT;
+	END_STRUCT;
+END_TYPE
+
+FUNCTION _INT_TO_UDINT:UDINT
+	VAR_INPUT
+		IN :	INT;
+	END_VAR
+
+	_INT_TO_UDINT := DINT_TO_UDINT(INT_TO_DINT(IN));
+END_FUNCTION
+
+FUNCTION SET_DATE:UDINT
+
+	VAR_INPUT
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+	END_VAR
+
+
+	VAR
+		count :	INT;
+	END_VAR
+
+
+	IF month > 2 THEN
+		count := (month - 1) * 30;
+		IF month > 7 THEN
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(3)),1));
+		ELSE
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(4)),1));
+		END_IF;
+		IF SHL(INT_TO_WORD(year),14) = WORD#0 THEN
+			count := count + 1;
+		END_IF;
+	ELSE
+		count := (month - 1) * 31;
+	END_IF;
+	SET_DATE := (_INT_TO_UDINT(count + day - 1) + DWORD_TO_UDINT(SHR(UDINT_TO_DWORD(_INT_TO_UDINT(year) * UDINT#1461 - UDINT#2878169), 2))) * UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION_BLOCK SDT_TO_DATE_Block
+
+	VAR_INPUT
+		DTI :	oscat_SDT;
+	END_VAR
+
+
+	VAR_OUTPUT
+		SDT_TO_DATE :	UDINT;
+	END_VAR
+
+	SDT_TO_DATE := SET_DATE(DTI.YEAR, DTI.MONTH, DTI.DAY);
+	
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+
+	VAR
+		DTI :	oscat_SDT;
+		SDT_TO_DATE :	UDINT;
+		func_block : SDT_TO_DATE_Block;
+  	END_VAR
+	func_block.DTI  :=	DTI;
+	func_block();
+	SDT_TO_DATE := func_block.SDT_TO_DATE;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+	
+END_CONFIGURATION
+
+===== 463-BUFFER_COMP_NW.ST =====
+TYPE
+  oscat_NW_BUF_LONG  : ARRAY [0..4095] OF BYTE;
+END_TYPE
+
+FUNCTION_BLOCK BUFFER_COMP_NW
+	VAR_IN_OUT
+		PT1 :	oscat_NW_BUF_LONG;
+	END_VAR
+
+	VAR_INPUT
+		SIZE1 :	INT;
+	END_VAR
+
+	VAR_IN_OUT
+		PT2 :	oscat_NW_BUF_LONG;
+	END_VAR
+
+	VAR_INPUT
+		SIZE2 :	INT;
+		START :	INT;
+	END_VAR
+
+	VAR_OUTPUT
+		BUFFER_COMP :	INT;
+	END_VAR
+
+	VAR
+		i :	INT;
+		j :	INT;
+		end :	INT;
+		j2 :	INT;
+	END_VAR
+
+	IF SIZE2 <= SIZE1 AND SIZE1 > 0 AND SIZE2 > 0 AND START >= 0 THEN
+		end := SIZE1 - SIZE2;
+		FOR i := START TO end DO
+			IF PT1[i] = PT2[0] THEN
+				(* first character matches, now compare rest of array *)
+				j := 1;
+				j2 := j + i;
+				WHILE j < SIZE2 DO
+					IF PT2[j] <> PT1[j2] THEN EXIT; END_IF;
+					j := j + 1;
+					j2 := j2 + 1;
+				END_WHILE;
+				(* when J > size2 a match was found return the position i in buffer1 *)
+				IF j = SIZE2 THEN
+					BUFFER_COMP := i;
+					RETURN;
+				END_IF;
+			END_IF;
+		END_FOR;
+	END_IF;
+	BUFFER_COMP := -1;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	PT1   :	oscat_NW_BUF_LONG;
+
+	SIZE1 :	INT;
+
+	PT2   : 	oscat_NW_BUF_LONG;
+
+
+	SIZE2 :	INT;
+	START :	INT;
+
+	BUFFER_COMP :	INT;
+
+	func_block : BUFFER_COMP_NW;
+  END_VAR
+	func_block.PT1  :=PT1  ;
+	func_block.SIZE1:=SIZE1;
+	func_block.PT2  :=PT2  ;
+	func_block.SIZE2:=SIZE2;
+	func_block.START:=START;
+	func_block();
+	BUFFER_COMP := func_block.BUFFER_COMP;
+	PT1 := func_block.PT1;
+	PT2 := func_block.PT2;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 464-LAMBERT_W.ST =====
+FUNCTION _REAL_TO_DWORD: DWORD
+
+  VAR_INPUT
+    X :	REAL;
+  END_VAR
+
+  IF REAL_TO_DWORD(0.5) = DWORD#1 THEN
+    _REAL_TO_DWORD := REAL_TO_DWORD(x);
+  ELSIF X > 0.0 THEN
+    _REAL_TO_DWORD := REAL_TO_DWORD(x+0.5); 
+  ELSIF X < 0.0 THEN 
+    _REAL_TO_DWORD := REAL_TO_DWORD(x-0.5); 
+  ELSE 
+    _REAL_TO_DWORD := DWORD#0;
+  END_IF;
+END_FUNCTION
+
+FUNCTION_BLOCK LAMBERT_W_Block
+
+	VAR_INPUT
+		X :	REAL;
+	END_VAR
+
+
+	VAR_OUTPUT
+		LAMBERT_W :	REAL;
+	END_VAR
+
+
+	VAR
+		w :	REAL;
+		i :	INT;
+		we :	REAL;
+		w1e :	REAL;
+		last :	DWORD;
+		ewx :	REAL;
+	END_VAR
+
+	IF x < -0.367879441171442 THEN
+		LAMBERT_W := -1000.0;
+		RETURN;
+	(* return 0 if x = 0 *)
+	ELSIF x = 0.0 THEN
+		RETURN;
+	(* first an estimate is calculated *)
+	ELSIF x <= 500.0 THEN
+		w := LN(x + 1.0);
+		w := 0.665 * (1.0 + 0.0195 * w) * w + 0.04;
+	ELSE
+		w := LN(x - 4.0) - (1.0 - 1.0/LN(x)) * LN(LN(x));
+	END_IF;
+	(* use estimate to calculate exact result *)
+	FOR i := 0 TO 5 DO
+		ewx := EXP(w);
+		we := w * ewx - x;
+		w1e := (w+1.0) * ewx;
+		last := _REAL_TO_DWORD(w) AND DWORD#16#FFFF_FFFC;
+		w := w - (we / (w1e - (w+2.0) * we / (2.0 * w + 2.0)));
+		IF (_REAL_TO_DWORD(w) AND DWORD#16#FFFF_FFFC) = last THEN EXIT; END_IF;
+	END_FOR;
+	LAMBERT_W := w;
+
+END_FUNCTION_BLOCK
+
+
+PROGRAM program0
+
+	VAR
+		X :	REAL;
+		LAMBERT_W :	REAL;
+		func_block : LAMBERT_W_Block;
+	END_VAR
+	func_block.X := X;
+	func_block();
+	LAMBERT_W := func_block.LAMBERT_W;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+===== 465-BUFFER_TO_STRING.ST =====
+TYPE
+	oscat_arb_0_249 			  : ARRAY [0..249] 	OF BYTE;
+END_TYPE
+
+FUNCTION_BLOCK BUFFER_TO_STRING_Block
+	VAR_IN_OUT
+		PT  :	oscat_arb_0_249;
+	END_VAR
+
+	VAR_INPUT
+		SIZE :	UINT;
+		START :	UINT;
+		STOP :	UINT;
+	END_VAR
+
+	VAR_OUTPUT
+		BUFFER_TO_STRING :	STRING;
+	END_VAR
+
+	VAR
+		sta :	UINT;
+		stp :	UINT;
+		size2 :	UINT;
+		i :	INT;
+		BUF_TO_STRING :	BUF_TO_STRING;
+	END_VAR
+
+	sta := MIN(START, SIZE - UINT#1);
+	stp := STOP;
+	IF stp - sta + UINT#1 > UINT#250 THEN
+		stp := sta + UINT#250 - UINT#1;
+	END_IF;
+	stp := MIN(stp, SIZE - UINT#1);
+	size2 := stp - sta + UINT#1; 
+	IF size2 > UINT#0 THEN
+		FOR i := 0 TO 1 DO
+			BUF_TO_STRING.REQ := i > 0;
+			BUF_TO_STRING.BUF_FORMAT := TRUE;
+			BUF_TO_STRING.BUF_OFFS := UINT_TO_DINT(START);
+			BUF_TO_STRING.BUF_CNT := UINT_TO_DINT(size2);
+			BUF_TO_STRING.BUFFER := pt;
+			BUF_TO_STRING.DST := BUFFER_TO_STRING;
+			BUF_TO_STRING();
+			pt := BUF_TO_STRING.BUFFER;
+			BUFFER_TO_STRING := BUF_TO_STRING.DST;
+		END_FOR;
+	ELSE
+		BUFFER_TO_STRING :='';
+	END_IF;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+    LocalVar0 : oscat_arb_0_249;
+    LocalVar1 : UINT;
+	LocalVar2 : UINT;
+	LocalVar3 : UINT;
+	LocalOUT  : INT;
+	func_block : BUFFER_TO_STRING_Block;
+  END_VAR
+	func_block.PT  := LocalVar0;
+	func_block.SIZE := LocalVar1;
+	func_block.START := LocalVar2;
+	func_block.STOP := LocalVar3;
+	func_block();
+	LocalOUT := func_block.BUFFER_TO_STRING;
+	LocalVar0 := func_block.PT;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 466-MESSAGE_8.ST =====
+FUNCTION_BLOCK MESSAGE_8_Block
+
+	VAR_INPUT
+		IN1 :	BOOL;
+		IN2 :	BOOL;
+		IN3 :	BOOL;
+		IN4 :	BOOL;
+		IN5 :	BOOL;
+		IN6 :	BOOL;
+		IN7 :	BOOL;
+		IN8 :	BOOL;
+		S1 :	STRING;
+		S2 :	STRING;
+		S3 :	STRING;
+		S4 :	STRING;
+		S5 :	STRING;
+		S6 :	STRING;
+		S7 :	STRING;
+		S8 :	STRING;
+	END_VAR
+
+
+	VAR_OUTPUT
+		M :	STRING;
+	END_VAR
+
+	IF in1 THEN
+		M := S1;
+	ELSIF in2 THEN
+		M := S2;
+	ELSIF in3 THEN
+		M := S3;
+	ELSIF in4 THEN
+		M := S4;
+	ELSIF in5 THEN
+		M := S5;
+	ELSIF in6 THEN
+		M := S6;
+	ELSIF in7 THEN
+		M := S7;
+	ELSIF in8 THEN
+		M := S8;
+	ELSE
+		M := '';
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+
+PROGRAM program0
+
+	VAR
+		IN1 :	BOOL;
+		IN2 :	BOOL;
+		IN3 :	BOOL;
+		IN4 :	BOOL;
+		IN5 :	BOOL;
+		IN6 :	BOOL;
+		IN7 :	BOOL;
+		IN8 :	BOOL;
+		S1 :	STRING;
+		S2 :	STRING;
+		S3 :	STRING;
+		S4 :	STRING;
+		S5 :	STRING;
+		S6 :	STRING;
+		S7 :	STRING;
+		S8 :	STRING;
+
+		M :	STRING;
+
+		func_block : MESSAGE_8_Block;
+	END_VAR
+
+	func_block.IN1 := IN1;
+	func_block.IN2 := IN2;
+	func_block.IN3 := IN3;
+	func_block.IN4 := IN4;
+	func_block.IN5 := IN5;
+	func_block.IN6 := IN6;
+	func_block.IN7 := IN7;
+	func_block.IN8 := IN8;
+	func_block.S1 := S1;
+	func_block.S2 := S2;
+	func_block.S3 := S3;
+	func_block.S4 := S4;
+	func_block.S5 := S5;
+	func_block.S6 := S6;
+	func_block.S7 := S7;
+	func_block.S8 := S8;
+
+	func_block();
+
+	M  := func_block.M;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+	
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+
+END_CONFIGURATION
+
+===== 467-T_PLC_MS.ST =====
+FUNCTION_BLOCK T_PLC_MS_block
+	
+	VAR_OUTPUT
+		T_PLC_MS :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;(*Debug-Mode ON / OFF*)
+		N :	INT;(*Debug-Faktor*)
+		Offset :	UDINT;(*Debug-Offset*)
+		temp :	DWORD := DWORD#1;(*Debug-Offset*)
+		mode :	BOOL;(*modus*)
+		faktor :	UDINT;(*Systemtakt-Faktor*)
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000;
+	END_VAR
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_MS := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_MS),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+
+	VAR
+		LocalOUT  : UDINT;
+		func_block : T_PLC_MS_block;
+  	END_VAR
+
+	func_block();
+	LocalOUT := func_block.T_PLC_MS;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+	
+END_CONFIGURATION
+
+
+===== 468-AOUT.ST =====
+FUNCTION _DWORD_TO_REAL:REAL
+	VAR_INPUT
+		IN :	DWORD;
+	END_VAR
+
+	_DWORD_TO_REAL := UDINT_TO_REAL(DWORD_TO_UDINT(IN));
+END_FUNCTION
+
+FUNCTION SIGN_R : BOOL
+  VAR_INPUT
+    IN : REAL;
+  END_VAR
+  SIGN_R := in < 0.0;
+END_FUNCTION
+
+FUNCTION _REAL_TO_DWORD: DWORD
+
+  VAR_INPUT
+    X :	REAL;
+  END_VAR
+
+  IF REAL_TO_DWORD(0.5) = DWORD#1 THEN
+    _REAL_TO_DWORD := REAL_TO_DWORD(x);
+  ELSIF X > 0.0 THEN
+    _REAL_TO_DWORD := REAL_TO_DWORD(x+0.5); 
+  ELSIF X < 0.0 THEN 
+    _REAL_TO_DWORD := REAL_TO_DWORD(x-0.5); 
+  ELSE 
+    _REAL_TO_DWORD := DWORD#0;
+  END_IF;
+END_FUNCTION
+
+FUNCTION _BYTE_TO_INT:INT
+	VAR_INPUT
+		IN :	BYTE;
+	END_VAR
+
+	_BYTE_TO_INT := USINT_TO_INT(BYTE_TO_USINT(IN));
+END_FUNCTION
+
+FUNCTION AOUT:DWORD
+	VAR_INPUT
+		IN :	REAL;
+		BITS :	BYTE;
+		SIGN :	BYTE;
+		LOW :	REAL;
+		HIGH :	REAL;
+	END_VAR
+
+	VAR
+		in2 :	REAL;
+		sx :	BOOL;
+	END_VAR
+
+	IF sign < BYTE#32 THEN
+		sx := sign_R(in);
+		in2 := ABS(in);
+	ELSE
+		in2 := in;
+	END_IF;
+
+	in2 := LIMIT(low, in2, high);
+
+	Aout := _REAL_TO_DWORD((in2 - low) / (high - low) * (_DWORD_TO_REAL(SHL(DWORD#2#1,_BYTE_TO_INT(bits))) - 1.0)   );
+	IF sx THEN Aout := SHL(DWORD#2#1,_BYTE_TO_INT(sign)) OR Aout; END_IF;
+
+END_FUNCTION
+
+PROGRAM program0
+  VAR
+    LocalVar0 : REAL;
+	LocalVar1 : BYTE;
+	LocalVar2 : BYTE;
+	LocalVar3 : REAL;
+	LocalVar4 : REAL;
+	LocalOUT  : DWORD;
+  END_VAR
+  	LocalOUT := AOUT(LocalVar0, LocalVar1, LocalVar2, LocalVar3,LocalVar4);
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+
+
+===== 469-FT_AVG.ST =====
+TYPE
+	oscat_delay_buf             : ARRAY [0..31]   OF REAL;
+END_TYPE
+
+FUNCTION INC1:INT
+
+	VAR_INPUT
+		X :	INT;
+		N :	INT;
+	END_VAR
+
+	IF X >= N - 1 THEN
+		INC1 := 0;
+	ELSE
+		INC1 := X + 1;
+	END_IF;
+END_FUNCTION
+
+
+FUNCTION_BLOCK DELAY
+
+	VAR_INPUT
+		IN :	REAL;
+		N :	INT;
+		RST :	BOOL;
+	END_VAR
+
+
+	VAR_OUTPUT
+		OUT :	REAL;
+	END_VAR
+
+
+	VAR
+		buf :	oscat_delay_buf;
+		i :	INT;
+		init :	BOOL;
+		stop :	INT;
+	

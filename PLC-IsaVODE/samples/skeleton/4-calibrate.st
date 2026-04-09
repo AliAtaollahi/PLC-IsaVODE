@@ -1,0 +1,26 @@
+PROGRAM CALIBRATE
+	VAR_INPUT
+		X        : REAL;
+		CO       : BOOL;
+		CS       : BOOL;
+		Y_OFFSET : REAL;
+		Y_SCALE  : REAL;
+	END_VAR
+
+	VAR_OUTPUT
+		Y 		 : REAL;
+	END_VAR
+
+	VAR RETAIN 
+		OFFSET   : REAL;
+		SCALE    : REAL := 1.0;
+	END_VAR
+
+	IF CO THEN
+		OFFSET := Y_OFFSET - X;
+	ELSIF CS THEN
+		SCALE := Y_SCALE / (X + OFFSET);
+	END_IF;
+	Y := (X + OFFSET) * SCALE;
+
+END_PROGRAM

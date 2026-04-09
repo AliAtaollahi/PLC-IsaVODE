@@ -1,0 +1,214 @@
+
+
+===== 745-NETWORK.IEC (cont.) =====
+_OPTION           : LOG_OPTION;     	   (*I Array Message Option                 *) 
+	UPDATE_COUNT         : UINT;               (*R Updatez�hler                         *)
+    IDX                  : INT;                (*R aktueller Nachrichten-Index          *)
+	RING_MODE            : BOOL;               (*I Buffer�berlauf erkannt               *)
+  END_STRUCT;
+
+  LINE_ARRAY 			: ARRAY [1..40] OF INT;
+
+  us_LOG_VIEWPORT :
+    STRUCT
+     LINE_ARRAY          : LINE_ARRAY;
+     COUNT               : INT;                (* Anzahl der sichtbaren Nachtrichten   *)
+	 UPDATE_COUNT        : UINT;               (* Updatez�hler                         *)
+     MOVE_TO_X           : INT;                (* Steuerung der Nachrichtenanzeige     *) 
+     UPDATE              : BOOL;               (* Daten wurden ge�ndert -> neuzeichnen *)
+  END_STRUCT;
+
+  oscat_FILE_SERVER_DATA : STRUCT
+	FILE_OPEN	: BOOL;
+    FILENAME 	: STRING;
+    MODE	 	: BYTE;
+    OFFSET   	: UDINT;
+    FILE_SIZE   : UDINT;
+    AUTO_CLOSE	: TIME;
+    ERROR	 	: BYTE;
+  END_STRUCT;
+
+  oscat_FILE_PATH_DATA : STRUCT
+	DRIVE : oscat_string3;
+	DIRECTORY : oscat_string250;
+	FILENAME : STRING;
+  END_STRUCT;
+
+  oscat_UNI_CIRCULAR_BUFFER_DATA : STRUCT
+	D_MODE : INT;
+	D_HEAD : WORD;
+	D_STRING : oscat_string250;
+	D_REAL : REAL;
+	D_DWORD : DWORD;
+	BUF_SIZE : INT;
+	BUF_COUNT : INT;
+	BUF_USED : USINT;
+	BUF : oscat_NW_BUF_LONG;
+	_GetStart : INT;
+	_GetEnd : INT;
+	_Last : INT;
+	_First : INT;
+  END_STRUCT;
+
+  oscat_DLOG_DATA : STRUCT
+	STORE_TYPE : BYTE;
+	ADD_HEADER : BOOL;
+	ADD_DATA : BOOL;
+	ADD_DATA_REQ : BOOL;
+	CLOCK_TRIG : BOOL;
+	ID_MAX : USINT;
+	DTI : UDINT;
+	UCB : oscat_UNI_CIRCULAR_BUFFER_DATA;
+	NEW_FILE : STRING;
+	NEW_FILE_RTRIG : BOOL;
+  END_STRUCT;
+
+END_TYPE
+(* --------------------------- NET_VAR ---------------------------- *)
+TYPE oscat_NET_VAR_DATA :
+STRUCT
+	CYCLE : UDINT;
+	STATE : BYTE;
+	INDEX : INT;
+	ID_MAX : USINT;
+	ERROR_ID : BYTE;
+	BUF_SIZE : UINT;
+	S_BUF : oscat_NETWORK_BUFFER;
+	R_BUF : oscat_NETWORK_BUFFER;
+END_STRUCT;
+END_TYPE
+
+TYPE
+    oscat_aB1_64 : ARRAY[1..64] OF BYTE;
+	oscat_nv_ra : ARRAY[1..8] OF REAL;
+	oscat_nv_dw : ARRAY[1..8] OF DWORD;
+END_TYPE
+
+(* --------------------------- TELNET ----------------------------- *)
+
+TYPE
+
+(*----------------------------------------------------------------------------------*)
+(* Menue-System                                                                     *)
+(*----------------------------------------------------------------------------------*)
+
+  us_TN_MENU_POPUP :
+  STRUCT
+    st_Menu_Text:         oscat_STRING250;   (* X Menue Texte                               *)   
+    in_Menu_E_Count:      INT;               (*   Menue Elemente Anzahl                     *)
+    in_X:                 INT;               (* X Menue X-Position                          *)
+    in_Y:                 INT;               (* X Menue Y-Position                          *)
+    in_Cols:              INT;               (*   Menue Spaltenanzahl                       *)
+    in_Rows:              INT;               (*   Menue Zeilenanzahl                        *)
+    in_Cur_Item:          INT;               (* X aktuelles Sub-Menue                       *)
+    by_Attr_mF:           BYTE;              (* X Text Attribute mit Fokus                  *)
+    by_Attr_oF:           BYTE;              (* X Text Attribute ohne Fokus                 *)
+    by_Input_Exten_Code:  BYTE;              (* X Tastencode: Sondertasten                  *)
+    bo_Create:            BOOL;              (* X Popup-Menu erzeugen                       *)
+    bo_Destroy:           BOOL;              (* X Popup-Menu entfernen                      *)
+    bo_Update:            BOOL;              (* X Popup-Menu updaten                        *)
+    bo_Activ:             BOOL;              (*   Popup-Menu ist aktiv                      *)
+  END_STRUCT;
+
+  us_TN_MENU :
+  STRUCT
+    st_Menu_Text:         oscat_STRING250;   (* X Menue Texte                               *)
+    in_Menu_E_Count:      INT;               (* Menue Elemente Anzahl                       *)
+    in_Y:                 INT;               (* Menue Zeilennummer  Y-Position              *)
+    in_X:                 INT;               (* Menue Spaltennummer X-Position              *)
+    by_Attr_mF:           BYTE;              (* Text Attribute mit Fokus                    *)
+    by_Attr_oF:           BYTE;              (* Text Attribute ohne Fokus                   *)
+    in_X_SM_new:          INT;               (* neue Sub-Menu X-Position                    *)
+    in_Y_SM_new:          INT;               (* neue Sub-Menu Y-Position                    *)
+    in_X_SM_old:          INT;               (* alte Sub-Menu X-Position                    *)
+    in_Y_SM_old:          INT;               (* alte Sub-Menu Y-Position                    *)
+    in_Cur_Menu_Item:     INT;               (* aktuelles Haupt-Menue                       *)
+    in_Cur_Sub_Item:      INT;               (* aktuelles Sub-Menue                         *)
+    in_State:             INT;               (*   Menu status                               *)
+    in_Menu_Selected:     INT;               (* X Menu-Item mit Enter angew�hlt             *)
+    bo_Create:            BOOL;              (* X Menu erzeugen                             *)
+    bo_Destroy:           BOOL;              (* X Menu entfernen                            *)
+    bo_Update:            BOOL;              (* X Menu updaten                              *)
+
+  END_STRUCT;
+
+(*----------------------------------------------------------------------------------*)
+
+  bya_TN_CHAR:       	ARRAY [0..1919] OF BYTE;
+  bya_TN_BACKUP:     	ARRAY [0..1919] OF BYTE;
+  bya_TN_COLOR:      	ARRAY [0..1919] OF BYTE;
+  bya_TN_Line_Update:	ARRAY [0..23]   OF BOOL;
+
+  us_TN_SCREEN :
+  STRUCT
+    bya_CHAR:			bya_TN_CHAR;
+    bya_COLOR:			bya_TN_COLOR;
+    bya_BACKUP:			bya_TN_BACKUP;
+    bya_Line_Update:	bya_TN_Line_Update;
+
+    by_Input_Exten_Code:    BYTE;
+    by_Input_ASCII_Code:    BYTE;
+    bo_Input_ASCII_IsNum:   BOOL;
+    in_Page_Number:        	INT;                (* aktive Seiten-Nr.              *)
+    in_Cursor_X:           	INT;                (* Cursor X-Position              *)
+    in_Cursor_Y:           	INT;                (* Cursor Y-Position              *)    
+    in_EOS_Offset:         	INT;                (* End of String Offset           *)
+    by_Clear_Screen_Attr:  	BYTE;               (* Clear-Screen Attr              *)
+    bo_Clear_Screen:       	BOOL;               (* Clear-Screen ausl�sen          *)
+    bo_Modal_Dialog:       	BOOL;               (* Modaler Dialog ist aktiv       *)
+    bo_Menue_Bar_Dialog:   	BOOL;               (* Menue Dialog ist aktiv         *)
+
+  END_STRUCT;
+
+(*----------------------------------------------------------------------------------*)
+
+  us_TN_INPUT_CONTROL_DATA :
+  STRUCT
+    by_Input_Exten_Code:    BYTE;			
+    by_Input_ASCII_Code:    BYTE;
+    bo_Input_ASCII_IsNum:   BOOL;
+    in_Title_X_Offset:  	INT;         	(* Title Text X-Offset                       *)
+    in_Title_Y_Offset:   	INT;         	(* Title Text Y-Offset                       *)
+    by_Title_Attr:			BYTE;        	(* Title Text Attribute                      *)
+    st_Title_String:    	STRING;      	(* Title Text String                         *)
+    in_Cursor_X:          	INT;			(* aktuelle Cursor X-Position                *) 
+    in_Cursor_Y:          	INT;			(* aktuelle Cursor Y-Position                *)
+    in_Type:              	INT;            (* Type des Elements                         *)
+    in_X:                 	INT;            (* Element X-Position                        *)
+    in_Y:                 	INT;            (* Element Y-Position                        *)
+    in_Cursor_Pos:        	INT;            (* aktuelle Cursorposition                   *)
+    by_Attr_mF:           	BYTE;           (* Text Attribute mit Fokus                  *)
+    by_Attr_oF:           	BYTE;           (* Text Attribute ohne Fokus                 *)
+	in_selected:          	INT;            (* Text Item wurde ausgew�hlt                *)
+    st_Input_Mask:        	STRING;         (* Text Eingabemaske                         *)
+    st_Input_Data:        	oscat_STRING250;(* Text aktuelle Eingabedaten                *)
+    st_Input_String:      	STRING;         (* Text Kopie nach Return-Taste              *)
+    st_Input_ToolTip:     	STRING;         (* Text ToolTip (Eingabeinformation)         *)
+	in_Input_Option:      	INT;            (* Text Ausgabe-Optionen                     *)
+	bo_Input_Entered:     	BOOL;           (* RETURN-Taste wurde bet�tigt               *)
+    bo_Input_Hidden:      	BOOL;           (* Text versteckete Eingabe mit '*'          *)
+	bo_Input_Only_Num:    	BOOL;           (* Text nur Nummerneingabe zulassen          *)
+	bo_Focus:             	BOOL;           (* Element besitzt den Fokus                 *)
+	bo_Update_Input:      	BOOL;           (* Element wegen Benutzereingabe neuzeichnen *)
+	bo_Update_All:        	BOOL;           (* Element komplett neuzeichnen              *)
+
+  END_STRUCT;
+
+  usa_TN_INPUT_CONTROL_DATA:   ARRAY [1..20] OF us_TN_INPUT_CONTROL_DATA;
+
+  us_TN_INPUT_CONTROL :
+  STRUCT
+    bo_Enable:          BOOL;           (* Bearbeitung freigeben/sperren           *)
+    bo_Update_all:      BOOL;           (* All Elemente neu zeichnen               *)
+    bo_Reset_Fokus:     BOOL;           (* Fokus auf 1. Element setzen             *)
+    in_Focus_at:        INT;            (* Controlelement mit aktivem Fokus        *) 
+    in_Count:           INT;            (* Anzahl der benutzen Control-Elemente    *)
+    in_ToolTip_X:       INT;            (* Tooltip Text X-Offset                   *)
+    in_ToolTip_Y:		INT;            (* Tooltip Text Y-Offset                   *)
+    by_ToolTip_Attr:	BYTE;           (* Tooltip Text Attribute                  *)
+    in_ToolTip_Size:	INT;            (* Tooltip Text l�nge                      *)
+    usa_TN_INPUT_CONTROL_DATA: usa_TN_INPUT_CONTROL_DATA;
+  END_STRUCT;
+
+END_TYPE
+

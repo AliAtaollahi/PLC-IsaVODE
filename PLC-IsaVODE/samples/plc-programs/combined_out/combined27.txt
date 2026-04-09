@@ -1,0 +1,2057 @@
+
+
+===== 738-OSCAT.IEC (cont.) =====
+ oscat_ARRAY_X;
+
+  oscat_parset_X              : ARRAY [1..4]    OF REAL;
+  oscat_parset                : ARRAY [0..3]    OF oscat_parset_X;
+
+  oscat_Polynom_ARRAY_X       : ARRAY [0..1]    OF REAL;
+  oscat_Polynom_XY            : ARRAY [1..5]    OF oscat_Polynom_ARRAY_X;
+
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+TYPE oscat_FRACTION :
+STRUCT
+	NUMERATOR : INT;
+	DENOMINATOR : INT;
+END_STRUCT;
+END_TYPE
+(*----------------------------------------------------------------------------------*)
+TYPE oscat_CALENDAR :
+	STRUCT
+		UTC : UDINT;				(* world time UTC *)
+		LDT : UDINT;				(* local time *)
+		LDATE : UDINT;				(* local date *)
+		LTOD : UDINT;				(* local time of day *)
+		YEAR : INT;					(* year of LDATE *)
+		MONTH : INT;				(* month of LDATE *)
+		DAY : INT;					(* day of LDATE *)
+		WEEKDAY : INT;				(* weekday of LDATE *)
+		OFFSET : INT;				(* Time Zone Offset for Local time in minutes *)
+		DST_EN : BOOL;				(* daylight savings time enable *)
+		DST_ON : BOOL;				(* true when daylight savings time os on *)
+		NAME : oscat_string5;		(* name of time zone *)
+		LANGUAGE : INT;			    (* language number pls see language setup *)
+		LONGITUDE : REAL;			(* longitude of current location *)
+		LATITUDE : REAL;			(* latitude of current location *)
+		SUN_RISE : UDINT;			(* sun_rise for current location *)
+		SUN_SET : UDINT;			(* sun_set for current location *)
+		SUN_MIDDAY : UDINT;			(* worldtime when sun stands at south position *)
+		SUN_HEIGTH : REAL;			(* suns heigth at midday, south position *)
+		SUN_HOR : REAL;				(* sun angle horizontal 0 = north in degrees *)
+		SUN_VER : REAL;				(* sun angle vertical above horizon in degrees *)
+		NIGHT : BOOL;				(* true between sun_set and sun_rise *)
+		HOLIDAY : BOOL;				(* true when holiday *)
+		HOLY_NAME : oscat_string30;	(* name of holiday *)
+		WORK_WEEK : INT;			(* current work week *)
+	END_STRUCT;
+END_TYPE
+
+TYPE oscat_SDT :
+STRUCT
+	YEAR : INT;
+	MONTH : INT;
+	DAY : INT;
+	WEEKDAY : INT;
+	HOUR : INT;
+	MINUTE : INT;
+	SECOND : INT;
+	MS : INT;
+END_STRUCT;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+
+TYPE oscat_LANGUAGE:
+  STRUCT
+    DEFAULT 	: INT;
+	LMAX    	: INT;    
+  END_STRUCT;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+TYPE
+	oscat_LOCATION_ELEMENTS	: ARRAY [1..5] OF INT;
+END_TYPE
+
+TYPE oscat_LOCATION:
+  STRUCT
+    DEFAULT 	: INT;
+	LMAX    	: INT;    
+	LANGUAGE	: oscat_LOCATION_ELEMENTS;
+  END_STRUCT;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+
+TYPE
+  oscat_ELEMENT_DIRS 		: ARRAY [0..15] OF oscat_STRING3;
+  oscat_DIRS				: ARRAY [1..3]  OF oscat_ELEMENT_DIRS;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+TYPE
+  oscat_CHARNAMES	: ARRAY [1..11] OF STRING;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+
+TYPE
+  oscat_ELEMENT_MONTHS 	: ARRAY [1..12] OF oscat_STRING10;
+  oscat_MONTHS			: ARRAY [1..3]  OF oscat_ELEMENT_MONTHS;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+
+TYPE
+  oscat_ELEMENT_MONTHS3	: ARRAY [1..12] OF oscat_STRING3;
+  oscat_MONTHS3			: ARRAY [1..3]  OF oscat_ELEMENT_MONTHS3;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+
+TYPE
+  oscat_ELEMENT_WEEKDAYS	: ARRAY [1..7] OF oscat_STRING10;
+  oscat_WEEKDAYS			: ARRAY [1..3]  OF oscat_ELEMENT_WEEKDAYS;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+
+TYPE
+  oscat_ELEMENT_WEEKDAYS2	: ARRAY [1..7] OF oscat_STRING2;
+  oscat_WEEKDAYS2			: ARRAY [1..3]  OF oscat_ELEMENT_WEEKDAYS2;
+END_TYPE
+
+TYPE oscat_esr_data :
+  STRUCT
+	typ    : BYTE;
+	adress : oscat_string10;
+	DS     : UDINT;
+	TS     : TIME;
+	data   : oscat_esr_collect_data;
+  END_STRUCT;
+END_TYPE
+
+TYPE
+  oscat_ESR_3                : ARRAY [0..3] OF oscat_esr_data;
+  oscat_ESR_31               : ARRAY [0..31] OF oscat_esr_data;
+END_TYPE
+
+TYPE oscat_vector_3 :
+  STRUCT
+	X : REAL;
+	Y : REAL;
+	Z : REAL;
+  END_STRUCT;
+END_TYPE
+
+TYPE oscat_complex :
+  STRUCT
+	re : REAL;
+	im : REAL;
+  END_STRUCT;
+END_TYPE
+
+TYPE REAL2 :
+  STRUCT
+	R1 : REAL;
+	RX : REAL;
+  END_STRUCT;
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+
+TYPE oscat_HOLIDAY_DATA :
+  STRUCT
+	NAME : oscat_string30;
+	DAY : SINT;
+	MONTH : SINT;
+	USE : SINT;
+	PAD_BYTE : BYTE;
+  END_STRUCT;
+END_TYPE
+
+TYPE
+  oscat_HOLIDAY_DATA_0_29 	: ARRAY [0..29] OF oscat_HOLIDAY_DATA;
+  oscat_HOLIDAY_DATA_0_49 	: ARRAY [0..49] OF oscat_HOLIDAY_DATA;
+END_TYPE
+
+(* revision history
+hm	18. oct. 2008
+	original version
+
+*)
+
+(*	if month = 0 then F_day is the offset in days from easter
+	used :0 = NOT used, 1 = used, -1..-7 menas the weekday before the specified DATE example -3 means wednesday before 23.11
+*)
+
+(* samples for Holiday data
+
+	HOLIDAY_DE : ARRAY[0..29] OF HOLIDAY_DATA := (name := 'Neujahr', day := 1, month := 1, use := 1),
+		(name := 'Heilig Drei Könige', day := 6, month := 1, use := 1),
+		(name := 'Karfreitag', day := -2, month := 0, use := 1),
+		(name := 'Ostersonntag', day := 0, month := 0, use := 1),
+		(name := 'Ostermontag', day := 1, month := 0, use := 1),
+		(name := 'Tag der Arbeit', day := 1, month := 5, use := 1),
+		(name := 'Christi Himmelfahrt', day := 39, month := 0, use := 1),
+		(name := 'Pfingstsonntag', day := 49, month := 0, use := 1),
+		(name := 'Pfingstmontag', day := 50, month := 0, use := 1),
+		(name := 'Fronleichnam', day := 60, month := 0, use := 1),
+		(name := 'Augsburger Friedensfest', day := 8, month := 8, use := 0),
+		(name := 'Maria Himmelfahrt', day := 15, month := 8, use := 1),
+		(name := 'Tag der Deutschen Einheit', day := 3, month := 10, use := 1),
+		(name := 'Reformationstag', day := 31, month := 10, use := 0),
+		(name := 'Allerheiligen', day := 1, month := 11, use := 1),
+		(name := 'Buss und Bettag', day := 23, month := 11, use := 0),
+		(name := '1. Weihnachtstag', day := 25, month := 12, use := 1),
+		(name := '2. Weihnachtstag', day := 26, month := 12, use := 1);
+
+
+	HOLIDAY_AT : ARRAY[0..29] OF HOLIDAY_DATA := (name := 'Neujahr', day := 1, month := 1, use := 1),
+		(name := 'Heilig Drei Könige', day := 6, month := 1, use := 1),
+		(name := 'Karfreitag', day := -2, month := 0, use := 1),
+		(name := 'Ostersonntag', day := 0, month := 0, use := 1),
+		(name := 'Ostermontag', day := 1, month := 0, use := 1),
+		(name := '', day := 1, month := 5, use := 0),
+		(name := 'Christi Himmelfahrt', day := 39, month := 0, use := 1),
+		(name := 'Pfingstsonntag', day := 49, month := 0, use := 1),
+		(name := 'Pfingstmontag', day := 50, month := 0, use := 1),
+		(name := 'Fronleichnam', day := 60, month := 0, use := 1),
+		(name := '', day := 8, month := 8, use := 0),
+		(name := 'Maria Himmelfahrt', day := 15, month := 8, use := 1),
+		(name := '', day := 3, month := 10, use := 0),
+		(name := '', day := 31, month := 10, use := 0),
+		(name := 'Allerheiligen', day := 1, month := 11, use := 1),
+		(name := 'Maria Empfängnis', day := 8, month := 12, use := 1),
+		(name := '1. Weihnachtstag', day := 25, month := 12, use := 1),
+		(name := '2. Weihnachtstag', day := 26, month := 12, use := 1);
+
+	HOLIDAY_FR : ARRAY[0..29] OF HOLIDAY_DATA := (name := 'Nouvel an', day := 1, month := 1, use := 1),
+		(name := 'St Valentin', day := 14, month := 2, use := 0),
+		(name := 'Vendredi Saint (alsace)', day := -2, month := 0, use := 0),
+		(name := 'Dimanche de pâques', day := 0, month := 0, use := 1),
+		(name := 'Lundi de pâques', day := 1, month := 0, use := 1),
+		(name := 'Jeudi de Ascension', day := 39, month := 0, use := 1),
+		(name := 'dimanche de Pentecôte ', day := 49, month := 0, use := 1),
+		(name := 'jeudi de la Trinité', day := 60, month := 0, use := 0),
+		(name := 'Fête du travail', day := 1, month := 5, use := 1),
+		(name := 'Victoire 1945 ', day := 8, month := 5, use := 1),
+		(name := 'Prise de La bastille', day := 14, month := 7, use := 1),
+		(name := '15 Août 1944', day := 15, month := 8, use := 1),
+		(name := 'Halloween', day := 31, month := 10, use := 0),
+		(name := 'Armistice 1918', day := 11, month := 11, use := 1),
+		(name := 'Noël', day := 25, month := 12, use := 1),
+		(name := 'Saint Étienne (alsace)', day := 26, month := 12, use := 0),
+		(name := 'Fête de la musique', day := 21, month := 6, use := 0);
+
+
+	HOLIDAY_BED : ARRAY[0..29] OF HOLIDAY_DATA :=	(name := 'Neujahr', day := 1, month := 1, use := 1),
+		(name := 'Ostersonntag', day := 0, month := 0, use := 1),
+		(name := 'Ostermontag', day := 1, month := 0, use := 1),
+		(name := 'Tag der Arbeit', day := 1, month := 5, use := 1),
+		(name := 'Christi Himmelfahrt', day := 39, month := 0, use := 1),
+		(name := 'Pfingsten', day := 49, month := 0, use := 1),
+		(name := 'Pfingstmontag', day := 50, month := 0, use := 1),
+		(name := 'Nationalfeiertag', day := 21, month := 7, use := 1),
+		(name := 'Mariä Himmelfahrt', day := 15, month := 8, use := 1),
+		(name := 'Allerheiligen', day := 1, month := 11, use := 1),
+		(name := 'Feiertag DG', day := 15, month := 11, use := 1),
+		(name := 'Heiligabend', day := 24, month := 12, use := 1),
+		(name := '1. Weihnachtstag', day := 25, month := 12, use := 1),
+		(name := '2. Weihnachtstag', day := 26, month := 12, use := 1),
+		(name := 'Silvester', day := 31, month := 12, use := 1);
+
+
+	HOLIDAY_ITD : ARRAY[0..29] OF HOLIDAY_DATA := (name := 'Neujahr', day := 1, month := 1, use := 1),
+		(name := 'Heilig Drei Könige', day := 6, month := 1, use := 1),
+		(name := 'Ostersonntag', day := 0, month := 0, use := 1),
+		(name := 'Ostermontag', day := 1, month := 0, use := 1),
+		(name := 'Tag der Befeiung Italiens', day := 25, month := 4, use := 1),
+		(name := 'Tag der Arbeit', day := 1, month := 5, use := 1),
+		(name := 'Pfingsten', day := 49, month := 0, use := 1),
+		(name := 'Pfingstmontag', day := 50, month := 0, use := 1),
+		(name := 'Tag der Republik Italien', day := 2, month := 6, use := 1),
+		(name := 'Mariä Himmelfahrt', day := 15, month := 8, use := 1),
+		(name := 'Allerheiligen', day := 1, month := 11, use := 1),
+		(name := 'Mariä Empfängnis', day := 8, month := 12, use := 1),
+		(name := 'Heiligabend', day := 24, month := 12, use := 0),
+		(name := '1. Weihnachtstag', day := 25, month := 12, use := 1),
+		(name := '2. Stephanstag', day := 26, month := 12, use := 1);
+
+*)
+
+
+
+===== 739-TELNET_PRINT.ST =====
+TYPE
+  oscat_STRING250             : STRING;
+END_TYPE
+
+TYPE
+  oscat_IP_FIFO128_DATA  : ARRAY [1..128] OF BYTE;
+  oscat_Mailbox  : ARRAY [1..16] OF BYTE;
+
+  oscat_IP_FIFO_DATA :
+  STRUCT
+	X       : oscat_IP_FIFO128_DATA; (* IP_ID FIFO Speicher          *)
+	Y       : oscat_IP_FIFO128_DATA; (* IP_ID Zï¿½hler                 *)
+	ID      : BYTE;                  (* hï¿½chste vergabene id         *)
+	MAX_ID  : BYTE;                  (* maximal Anmeldungen pro ID   *)
+    INIT    : BOOL;                  (* Initialisierung durchgefï¿½hrt *)
+	EMPTY   : BOOL;                  (* FIFO leer                    *)
+	FULL    : BOOL;                  (* FIFO voll                    *)
+	TOP     : INT;                   (* maximale anzahl in FIFO      *)
+	NW      : INT;                   (* Schreibzeiger                *)
+	NR      : INT;                   (* Lesezeiger                   *)
+  END_STRUCT;
+
+  oscat_IP_C:
+  STRUCT
+  	C_MODE:			BYTE;          		(*W Mode: TCP/UCP AKTIV/PASSIV                               *)
+	C_PORT:         WORD;          		(*W Portnummer                                               *)
+	C_IP:           DWORD;         		(*W IP-Adresse gepackt wwxxyyzz = www.xxx.yyy.zzz            *)
+    C_STATE:        BYTE;          		(*R Verbindungsstatus ON/OFF + Flanke ON/OFF                 *)
+	C_ENABLE:       BOOL;          		(*W Freigabe fï¿½r Connect                                     *)
+    R_OBSERVE:      BOOL;          		(*W Empfang ueberwachen                                      *)
+    TIME_RESET:     BOOL;          		(*W Alle Timer ruecksetzen                                   *)
+	ERROR:          DWORD;         		(*R vvwwxxyy (vv = CON_ERROR, ww = SEN_ERROR, xx = REC_ERROR *)
+    FIFO:           oscat_IP_FIFO_DATA; (*I IP FIFO Struktur                                         *) 
+	MAILBOX:		oscat_Mailbox;		(*I Mailbox: Datenbereich fï¿½r Bausteindatenaustausch         *) 
+  END_STRUCT;
+END_TYPE
+
+FUNCTION _BYTE_TO_INT:INT
+	VAR_INPUT
+		IN :	BYTE;
+	END_VAR
+
+	_BYTE_TO_INT := USINT_TO_INT(BYTE_TO_USINT(IN));
+END_FUNCTION
+
+FUNCTION_BLOCK IP_FIFO_Block
+
+  VAR_IN_OUT
+    FIFO :	oscat_IP_FIFO_DATA;
+    ID :	BYTE;
+    STATE :	BYTE;
+  END_VAR
+
+
+  VAR
+    tmp :	INT;
+  END_VAR
+
+  IF NOT FIFO.INIT THEN
+    FIFO.INIT		:= TRUE;
+    FIFO.NW		:= 1;
+    FIFO.NR		:= 1;
+    FIFO.EMPTY	:= TRUE;
+    FIFO.FULL		:= FALSE;
+    FIFO.TOP		:= 128;    
+    FIFO.MAX_ID	:= BYTE#1;
+  END_IF;
+
+  IF ID = BYTE#00 THEN
+    IF FIFO.ID < INT_TO_BYTE(FIFO.TOP) THEN
+      ID := USINT_TO_BYTE(BYTE_TO_USINT(FIFO.ID) + USINT#1); 
+      FIFO.ID := ID ;  
+
+    ELSIF STATE < BYTE#200 THEN
+      STATE := BYTE#255;
+    RETURN;
+    END_IF;
+  END_IF;
+
+  IF STATE = BYTE#1 AND NOT FIFO.FULL THEN 
+    tmp := _BYTE_TO_INT(ID);
+    IF FIFO.Y[tmp] < FIFO.MAX_ID THEN
+      FIFO.Y[tmp] := USINT_TO_BYTE(BYTE_TO_USINT(FIFO.Y[tmp]) + USINT#1);
+      tmp := FIFO.NW;
+      FIFO.X[tmp] := ID;
+      IF FIFO.NW = FIFO.TOP THEN FIFO.NW := 1; ELSE FIFO.NW := FIFO.NW + 1; END_IF;
+      FIFO.FULL := FIFO.NW = FIFO.NR;
+    FIFO.EMPTY := FALSE;
+      STATE := BYTE#2; 
+    END_IF;
+  END_IF;
+
+  IF STATE = BYTE#2 AND NOT FIFO.EMPTY THEN 
+    tmp := FIFO.NR; 
+    IF ID = FIFO.X[tmp] THEN
+      STATE := BYTE#3; 
+    END_IF;
+  END_IF;
+
+  IF STATE = BYTE#4 AND NOT FIFO.EMPTY THEN 
+
+    tmp := FIFO.NR; 
+    IF ID = FIFO.X[tmp] THEN
+      tmp := _BYTE_TO_INT(ID);
+      FIFO.Y[tmp] := USINT_TO_BYTE(BYTE_TO_USINT(FIFO.Y[tmp]) - USINT#1); 
+
+      IF FIFO.NR = FIFO.TOP THEN FIFO.NR := 1; ELSE FIFO.NR := FIFO.NR + 1; END_IF;
+      FIFO.EMPTY := FIFO.NR = FIFO.NW;
+    FIFO.FULL := FALSE;
+    END_IF;
+    STATE := BYTE#5; 
+  END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK TELNET_PRINT_Block
+
+	VAR_INPUT
+		TEXT :	oscat_STRING250;
+		ENABLE :	BOOL;
+		SEND :	BOOL;
+		OPTION :	BYTE;
+		BACK_COLOR :	BYTE;
+		FRONT_COLOR :	BYTE;
+		X_POS :	BYTE;
+		Y_POS :	BYTE;
+		PORT :	WORD := WORD#23;
+	END_VAR
+
+
+	VAR_OUTPUT
+		READY :	BOOL;
+		DONE :	BOOL;
+	END_VAR
+
+
+	VAR_IN_OUT
+		IP_C :	oscat_IP_C;
+		S_BUF :	oscat_NETWORK_BUFFER;
+	END_VAR
+
+
+	VAR
+		_STRING_TO_BUFFER :	_STRING_TO_BUFFER_NW;
+		last_fc :	BYTE;
+		state :	INT;
+		x :	INT := -1;
+		ip_state :	BYTE;
+		ip_id :	BYTE;
+		IP_FIFO :	IP_FIFO_Block;
+		s_buf_size :	UINT := uint#4096;
+		init :	BOOL;
+		b0_screen_clear :	BOOL;
+		b1_autowrap :	BOOL;
+		b2_color :	BOOL;
+		b3_cr_lr :	BOOL;
+		b7_no_flush :	BOOL;
+	END_VAR
+
+	READY := IP_C.C_STATE > BYTE#127;
+	DONE := FALSE;
+
+	CASE state OF
+
+	00: 
+		IF ENABLE THEN
+			state := 10;
+			ip_state := BYTE#1;
+		END_IF;
+
+	10:
+		IF ip_state = BYTE#3 THEN
+
+			IP_C.C_PORT := PORT; 
+			IP_C.C_IP := DWORD#00; 
+			IP_C.C_MODE := BYTE#4; 
+			IP_C.TIME_RESET := TRUE; 
+			IP_C.C_ENABLE := TRUE; 
+			IP_C.R_OBSERVE := FALSE;
+			state := 20;
+		END_IF;
+
+	20:	IF IP_C.ERROR > DWORD#0 THEN
+			IP_C.TIME_RESET := TRUE; 
+		END_IF;
+		IF S_BUF.SIZE = UINT#0 THEN
+			IF NOT ENABLE THEN
+				ip_state := BYTE#4;
+				IP_C.C_ENABLE := FALSE; 
+				state := 0;
+			END_IF;
+			IF IP_C.C_STATE = BYTE#1 THEN 
+				init := FALSE;
+			ELSIF READY THEN 
+				IF IP_C.C_STATE = BYTE#254 AND NOT INIT THEN 
+					init := TRUE;
+					b0_screen_clear := (OPTION AND BYTE#2#0000_0001) > BYTE#0;
+					b1_autowrap := (OPTION AND BYTE#2#0000_0010) > BYTE#0;
+					b2_color := (OPTION AND BYTE#2#0000_0100) > BYTE#0;
+					b3_cr_lr := (OPTION AND BYTE#2#0000_1000) > BYTE#0;
+					b7_no_flush := (OPTION AND BYTE#2#1000_0000) > BYTE#0;
+
+					last_fc := NOT FRONT_COLOR; 
+					x := 0;
+
+					S_BUF.BUFFER[x] := BYTE#16#1B; 
+					x := x +1;
+					S_BUF.BUFFER[x] := BYTE#16#5B;
+					x := x +1;
+					S_BUF.BUFFER[x] := BYTE#16#3F;
+					x := x +1;
+					S_BUF.BUFFER[x] := BYTE#16#37; (
+					x := x +1;
+					S_BUF.BUFFER[x] := SEL(b1_autowrap, BYTE#16#6C, BYTE#16#68 );
+
+					IF b0_screen_clear THEN
+						IF b2_color THEN
+							x := x +1;
+							S_BUF.BUFFER[x] := BYTE#16#1B; 
+							x := x +1;
+							S_BUF.BUFFER[x] := BYTE#16#5B; 
+							x := x +1;
+							S_BUF.BUFFER[x] := BYTE#16#30; 
+							x := x +1;
+							S_BUF.BUFFER[x] := BYTE#16#3B; 
+							x := x +1;
+							S_BUF.BUFFER[x] := BYTE#16#33;
+							x := x +1;
+							S_BUF.BUFFER[x] := (FRONT_COLOR AND BYTE#2#00000111) OR BYTE#16#30; 
+							x := x +1;
+							S_BUF.BUFFER[x] := BYTE#16#3B; 
+							x := x +1;
+							S_BUF.BUFFER[x] := BYTE#16#34; 
+							x := x +1;
+							S_BUF.BUFFER[x] := (BACK_COLOR AND BYTE#2#00000111) OR BYTE#16#30;
+							x := x +1;
+							S_BUF.BUFFER[x] := BYTE#16#6D; 
+						END_IF;
+						x := x +1;
+						S_BUF.BUFFER[x] := BYTE#16#1B; 
+						x := x +1;
+						S_BUF.BUFFER[x] := BYTE#16#5B; 
+						x := x +1;
+						S_BUF.BUFFER[x] := BYTE#16#32; 
+						x := x +1;
+						S_BUF.BUFFER[x] := BYTE#16#4A; 
+					ELSE
+						x := x +1;
+						S_BUF.BUFFER[x] := BYTE#16#0A;
+					END_IF;
+				END_IF;
+
+				IF (INT_TO_UINT(x + LEN(TEXT) + 21) > s_buf_size) OR (x >= 0 AND NOT SEND) THEN
+					S_BUF.SIZE := INT_TO_UINT(x + 1); 
+					x := -1;
+				ELSIF SEND THEN
+
+					IF b2_color AND FRONT_COLOR <> last_FC THEN
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#1B; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#5B; 
+						IF ((FRONT_COLOR AND BYTE#2#0001_1000) XOR (last_FC AND BYTE#2#0001_1000)) <> BYTE#00 OR TRUE THEN
+							x := x + 1;
+							S_BUF.BUFFER[x] := BYTE#16#30; 
+							x := x + 1;
+							S_BUF.BUFFER[x] := BYTE#16#3B; 
+							IF (FRONT_COLOR AND BYTE#2#00001000) = BYTE#0 THEN
+								x := x + 1;
+								S_BUF.BUFFER[x] := BYTE#16#31;
+								x := x + 1;
+								S_BUF.BUFFER[x] := BYTE#16#3B; 
+							END_IF;
+							IF (FRONT_COLOR AND BYTE#2#00010000) > BYTE#0 THEN
+								x := x + 1;
+								S_BUF.BUFFER[x] := BYTE#16#35;
+								x := x + 1;
+								S_BUF.BUFFER[x] := BYTE#16#3B; 
+							END_IF;
+						END_IF;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#33;
+						x := x + 1;
+						S_BUF.BUFFER[x] := (FRONT_COLOR AND BYTE#2#00000111) OR BYTE#16#30;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#6D;
+						last_FC := FRONT_COLOR;
+					END_IF;
+
+					IF X_POS > BYTE#0 AND Y_POS > BYTE#0 THEN
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#1B;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#5B; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := SHR(INT_TO_BCDC(BYTE_TO_INT(Y_POS)),4) OR BYTE#16#30;
+						x := x + 1;
+						S_BUF.BUFFER[x] := (INT_TO_BCDC(BYTE_TO_INT(Y_POS)) AND BYTE#16#0F) OR BYTE#16#30;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#3B; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := SHR(INT_TO_BCDC(BYTE_TO_INT(X_POS)),4) OR BYTE#16#30;
+						x := x + 1;
+						S_BUF.BUFFER[x] := (INT_TO_BCDC(BYTE_TO_INT(X_POS)) AND BYTE#16#0F) OR BYTE#16#30;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#48; 
+					END_IF;
+
+					IF LEN(TEXT) > 0 THEN
+						_STRING_TO_BUFFER(str:=TEXT,pos:=x + 1,size:=s_buf_size,pt:=S_BUF.BUFFER);
+						S_BUF.BUFFER:=_STRING_TO_BUFFER.pt;
+						x := x + LEN(TEXT);
+					END_IF;
+
+					IF b3_cr_lr THEN 
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#0D;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#0A;
+					END_IF;
+
+					DONE := TRUE; 
+
+					IF b7_no_flush THEN
+						S_BUF.SIZE := INT_TO_UINT(x + 1);
+						x := -1;
+					END_IF;
+				END_IF;
+			END_IF;
+		END_IF;
+	END_CASE;
+
+	IP_FIFO(FIFO:=IP_C.FIFO,STATE:=IP_STATE,ID:=IP_ID);
+	IP_C.FIFO:=IP_FIFO.FIFO;
+	IP_STATE := IP_FIFO.STATE;
+	IP_ID:=IP_FIFO.ID;
+
+	READY := IP_C.C_STATE > BYTE#127;
+	DONE := FALSE;
+
+	CASE state OF 
+
+	00:
+		IF ENABLE THEN
+			state := 10;
+			IP_STATE := BYTE#1;
+		END_IF;
+
+	10: 
+		IF IP_STATE = BYTE#3 THEN
+			
+			IP_C.C_PORT     := WORD#23;                  
+			IP_C.C_IP       := DWORD#00;               
+			IP_C.C_MODE     := BYTE#4;                  
+			IP_C.TIME_RESET := TRUE;                   
+			IP_C.C_ENABLE   := TRUE;                   
+			IP_C.R_OBSERVE  := FALSE;                  
+			state := 20;
+		END_IF;
+
+	20: IF IP_C.ERROR > DWORD#0 THEN
+			IP_C.TIME_RESET := TRUE;
+		END_IF;
+		IF S_BUF.SIZE = UINT#0 THEN	
+			IF NOT ENABLE THEN
+				IP_STATE := BYTE#4; 
+				IP_C.C_ENABLE := FALSE; 
+				state := 0;
+			END_IF;
+			IF IP_C.C_STATE = BYTE#1  THEN  
+				INIT := FALSE;
+			ELSIF READY THEN
+				IF IP_C.C_STATE = BYTE#254 AND NOT INIT THEN 
+					INIT := TRUE;
+					last_FC := NOT FRONT_COLOR;
+
+					_STRING_TO_BUFFER(str:='#[?7h#[0;3#;4#m#[2J',pos:=0,size:=S_BUF_SIZE,pt:=S_BUF.BUFFER);
+					S_BUF.BUFFER:=_STRING_TO_BUFFER.pt;
+
+					S_BUF.BUFFER[0] := BYTE#16#1B; 
+					IF (OPTION AND BYTE#2#0000_0010) > BYTE#0 THEN
+						S_BUF.BUFFER[4] := BYTE#16#6C;
+					END_IF;
+					x := 4; 
+					IF (OPTION AND BYTE#2#0000_0001) > BYTE#0 THEN 
+
+						S_BUF.BUFFER[05] := BYTE#16#1B; 
+						S_BUF.BUFFER[10] := (FRONT_COLOR AND BYTE#2#00000111) OR BYTE#16#30; 
+						S_BUF.BUFFER[13] := (BACK_COLOR AND BYTE#2#00000111) OR BYTE#16#30;
+						S_BUF.BUFFER[15] := BYTE#16#1B;
+						x := 18; 
+					ELSE
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#0A;
+					END_IF;
+				END_IF;
+
+				IF (INT_TO_UINT(x + LEN(TEXT) + 21) > S_BUF_SIZE) OR (x >= 0 AND NOT SEND) THEN 
+					S_BUF.SIZE := INT_TO_UINT(x + 1); 
+					x := -1;
+				ELSIF SEND THEN
+
+					IF (OPTION AND BYTE#2#0000_0100) > BYTE#0 AND FRONT_COLOR <> last_FC THEN
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#1B;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#5B; 
+						IF ((FRONT_COLOR AND BYTE#2#0001_1000) XOR (last_FC AND BYTE#2#0001_1000)) <> BYTE#00 OR TRUE THEN 
+							x := x + 1;
+							S_BUF.BUFFER[x] := BYTE#16#30;
+							x := x + 1;
+							S_BUF.BUFFER[x] := BYTE#16#3B;
+							IF (FRONT_COLOR AND BYTE#2#00001000) = BYTE#0 THEN 
+								x := x + 1;
+								S_BUF.BUFFER[x] := BYTE#16#31;
+								x := x + 1;
+								S_BUF.BUFFER[x] := BYTE#16#3B; 
+							END_IF;
+							IF (FRONT_COLOR AND BYTE#2#00010000) > BYTE#0 THEN 
+								x := x + 1;
+								S_BUF.BUFFER[x] := BYTE#16#35; 
+								x := x + 1;
+								S_BUF.BUFFER[x] := BYTE#16#3B; 
+							END_IF;
+						END_IF;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#33; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := (FRONT_COLOR AND BYTE#2#00000111) OR BYTE#16#30;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#6D;
+						last_FC := FRONT_COLOR;
+					END_IF;
+
+					IF X_POS > BYTE#0 AND Y_POS > BYTE#0 THEN
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#1B; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#5B; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := SHR_BYTE(INT_TO_BCDC(_BYTE_TO_INT(Y_POS)),4) OR BYTE#16#30; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := (INT_TO_BCDC(_BYTE_TO_INT(Y_POS)) AND BYTE#16#0F) OR BYTE#16#30; 
+						x := x + INT#1;
+						S_BUF.BUFFER[x] := BYTE#16#3B; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := SHR_BYTE(INT_TO_BCDC(_BYTE_TO_INT(X_POS)),4) OR BYTE#16#30; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := (INT_TO_BCDC(_BYTE_TO_INT(X_POS)) AND BYTE#16#0F) OR BYTE#16#30; 
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#48; 
+					END_IF;
+
+					IF LEN(TEXT) > 0 THEN
+			
+						_STRING_TO_BUFFER(str:=TEXT,pos:=x + 1,size:=S_BUF_SIZE,pt:=S_BUF.BUFFER);
+						S_BUF.BUFFER:=_STRING_TO_BUFFER.pt;
+						x := x + LEN(TEXT);
+					END_IF;
+
+					IF (OPTION AND BYTE#2#0000_1000) > BYTE#0 THEN	
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#0D;
+						x := x + 1;
+						S_BUF.BUFFER[x] := BYTE#16#0A;
+					END_IF;
+
+					DONE := TRUE;	
+
+					IF (OPTION AND BYTE#2#1000_0000) = BYTE#0 THEN
+						S_BUF.SIZE := INT_TO_UINT(x + 1);
+						x := -1;
+					END_IF;
+				END_IF;
+			END_IF;
+		END_IF;
+	END_CASE;
+
+	IP_FIFO(FIFO:=IP_C.FIFO,STATE:=IP_STATE,ID:=IP_ID);
+	IP_C.FIFO:=IP_FIFO.FIFO;
+	IP_STATE := IP_FIFO.STATE;
+	IP_ID:=IP_FIFO.ID;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		TEXT :	oscat_STRING250;
+		ENABLE :	BOOL;
+		SEND :	BOOL;
+		OPTION :	BYTE;
+		BACK_COLOR :	BYTE;
+		FRONT_COLOR :	BYTE;
+		X_POS :	BYTE;
+		Y_POS :	BYTE;
+		PORT :	WORD := WORD#23;
+		IP_C :	oscat_IP_C;
+		S_BUF :	oscat_NETWORK_BUFFER;
+		READY :	BOOL;
+		DONE :	BOOL;
+
+		func_block : TELNET_PRINT_Block;
+	END_VAR
+	func_block.TEXT := TEXT;
+	func_block.ENABLE := ENABLE;
+	func_block.SEND := SEND;
+	func_block.OPTION := OPTION;
+	func_block.BACK_COLOR := BACK_COLOR;
+	func_block.FRONT_COLOR := FRONT_COLOR;
+	func_block.X_POS := X_POS;
+	func_block.Y_POS := Y_POS;
+	func_block.PORT := PORT;
+	func_block.IP_C := IP_C;
+	func_block.S_BUF := S_BUF;
+
+	func_block();
+	IP_C  := func_block.IP_C;
+	S_BUF  := func_block.S_BUF;
+	READY  := func_block.READY;
+	DONE  := func_block.DONE;
+END_PROGRAM
+
+CONFIGURATION Config0
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+END_CONFIGURATION
+
+===== 740-TIMER_P4.ST =====
+TYPE oscat_TIMER_EVENT_DATA :
+  STRUCT
+	TYP          : BYTE;
+	CHANNEL      : BYTE;
+	DAY          : BYTE;
+	START        : UDINT;
+	DURATION     : TIME;
+	LAND         : BYTE;
+	LOR          : BYTE;
+	LAST         : UDINT;
+  END_STRUCT;
+END_TYPE
+
+TYPE
+  oscat_TIMER_EVENT           : ARRAY [0..63]    OF oscat_TIMER_EVENT_DATA;
+  oscat_TP4_qn                : ARRAY [0..3]    OF BOOL;
+END_TYPE
+
+TYPE
+  oscat_arb_0_3               : ARRAY [0..3]    OF BYTE;
+END_TYPE
+
+FUNCTION _BYTE_TO_INT:INT
+	VAR_INPUT
+		IN :	BYTE;
+	END_VAR
+
+	_BYTE_TO_INT := USINT_TO_INT(BYTE_TO_USINT(IN));
+END_FUNCTION
+
+FUNCTION DATE_TO_DT:UDINT
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+	DATE_TO_DT := IN;
+END_FUNCTION
+
+FUNCTION _DT_TO_DATE_B:UDINT
+
+	VAR_INPUT
+		_INN :	UDINT;
+	END_VAR
+
+	_DT_TO_DATE_B := (_INN / UDINT#86400) * UDINT#86400;
+END_FUNCTION
+
+FUNCTION TIME_TO_UDINT2:UDINT
+	VAR_INPUT
+		X :	TIME;
+	END_VAR
+
+	TIME_TO_UDINT2 := DINT_TO_UDINT(TIME_TO_DINT(X));
+END_FUNCTION
+
+FUNCTION DATE_TO_UDINT2:UDINT
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+	DATE_TO_UDINT2 := IN;
+END_FUNCTION
+
+FUNCTION DAY_OF_WEEK:INT
+  VAR_INPUT
+    IDATE :	UDINT;
+  END_VAR
+
+  DAY_OF_WEEK := UDINT_TO_INT((idate / UDINT#86400 + UDINT#3) MOD UDINT#7) + INT#01;
+END_FUNCTION
+
+FUNCTION _BYTE_TO_DINT:DINT
+	VAR_INPUT
+		IN :	BYTE;
+	END_VAR
+
+	_BYTE_TO_DINT := USINT_TO_DINT(BYTE_TO_USINT(IN));
+END_FUNCTION
+
+FUNCTION DAY_OF_YEAR_UDINT:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	DAY_OF_YEAR_UDINT := UDINT_TO_INT((idate / UDINT#86400) MOD UDINT#1461);
+	IF DAY_OF_YEAR_UDINT > 729 THEN
+		IF DAY_OF_YEAR_UDINT > 1095 THEN DAY_OF_YEAR_UDINT := DAY_OF_YEAR_UDINT - 1095; ELSE DAY_OF_YEAR_UDINT := DAY_OF_YEAR_UDINT - 729; END_IF;
+	ELSIF DAY_OF_YEAR_UDINT > 364 THEN
+		DAY_OF_YEAR_UDINT := DAY_OF_YEAR_UDINT - 364;
+	ELSE
+		DAY_OF_YEAR_UDINT := DAY_OF_YEAR_UDINT + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION MONTH_OF_DATE_UDINT:INT
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	MONTH_OF_DATE_UDINT := DAY_OF_YEAR_UDINT(idate);
+	IF MONTH_OF_DATE_UDINT < 32 THEN
+		MONTH_OF_DATE_UDINT := 1;
+	ELSIF LEAP_OF_DATE(IDATE) THEN
+		MONTH_OF_DATE_UDINT := (MONTH_OF_DATE_UDINT * 53 + 1668) / 1623;
+	ELSE
+		MONTH_OF_DATE_UDINT := (MONTH_OF_DATE_UDINT * 53 + 1700) / 1620;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION DAY_OF_MONTH:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	day_of_month := day_of_year_UDINT(idate);
+
+	IF leap_of_Date(idate) THEN
+		CASE day_of_month OF
+			32..60	:	day_of_month := day_of_month - 31;
+			61..91	:	day_of_month := day_of_month - 60;
+			92..121 :	day_of_month := day_of_month - 91;
+			122..152:	day_of_month := day_of_month - 121;
+			153..182:	day_of_month := day_of_month - 152;
+			183..213:	day_of_month := day_of_month - 182;
+			214..244:	day_of_month := day_of_month - 213;
+			245..274:	day_of_month := day_of_month - 244;
+			275..305:	day_of_month := day_of_month - 274;
+			306..335:	day_of_month := day_of_month - 305;
+			336..366:	day_of_month := day_of_month - 335;
+		END_CASE;
+	ELSE
+		CASE day_of_month OF
+			32..59	:	day_of_month := day_of_month - 31;
+			60..90	:	day_of_month := day_of_month - 59;
+			91..120 :	day_of_month := day_of_month - 90;
+			121..151:	day_of_month := day_of_month - 120;
+			152..181:	day_of_month := day_of_month - 151;
+			182..212:	day_of_month := day_of_month - 181;
+			213..243:	day_of_month := day_of_month - 212;
+			244..273:	day_of_month := day_of_month - 243;
+			274..304:	day_of_month := day_of_month - 273;
+			305..334:	day_of_month := day_of_month - 304;
+			335..365:	day_of_month := day_of_month - 334;
+		END_CASE;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION LEAP_OF_DATE:BOOL
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	LEAP_OF_DATE := SHL(UDINT_TO_DWORD((idate + UDINT#43200) / UDINT#31557600), 30) = DWORD#16#80000000;
+END_FUNCTION
+
+FUNCTION DAY_OF_YEAR:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	DAY_OF_YEAR := UDINT_TO_INT(((idate) / UDINT#86400) MOD UDINT#1461);
+	IF DAY_OF_YEAR > 729 THEN
+		IF DAY_OF_YEAR > 1095 THEN DAY_OF_YEAR := DAY_OF_YEAR - 1095; ELSE DAY_OF_YEAR := DAY_OF_YEAR - 729; END_IF;
+	ELSIF DAY_OF_YEAR > 364 THEN
+		DAY_OF_YEAR := DAY_OF_YEAR - 364;
+	ELSE
+		DAY_OF_YEAR := DAY_OF_YEAR + 1;
+	END_IF;
+END_FUNCTION
+
+
+
+FUNCTION MONTH_OF_DATE:INT
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	MONTH_OF_DATE := DAY_OF_YEAR(idate);
+	IF MONTH_OF_DATE < 32 THEN
+		MONTH_OF_DATE := 1;
+	ELSIF LEAP_OF_DATE((IDATE)) THEN
+		MONTH_OF_DATE := (MONTH_OF_DATE * 53 + 1668) / 1623;
+	ELSE
+		MONTH_OF_DATE := (MONTH_OF_DATE * 53 + 1700) / 1620;
+	END_IF;
+END_FUNCTION
+
+FUNCTION YEAR_OF_DATE:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	YEAR_OF_DATE := UDINT_TO_INT((idate+UDINT#43200) / UDINT#31557600 + UDINT#1970);
+END_FUNCTION
+
+FUNCTION _INT_TO_UDINT:UDINT
+	VAR_INPUT
+		IN :	INT;
+	END_VAR
+
+	_INT_TO_UDINT := DINT_TO_UDINT(INT_TO_DINT(IN));
+END_FUNCTION
+
+FUNCTION DT_TO_DATE:UDINT
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+	DT_TO_DATE := (IN / UDINT#86400) * UDINT#86400;
+END_FUNCTION
+
+FUNCTION SET_DT:UDINT
+
+	VAR_INPUT
+		YEAR : INT;
+		MONTH :	INT;
+		DAY : INT;
+		HOUR : INT;
+		MINUTE : INT;
+		SECOND : INT;
+	END_VAR
+
+	SET_DT := SET_DATE(YEAR, MONTH, DAY) + _INT_TO_UDINT(SECOND) + _INT_TO_UDINT(MINUTE) * UDINT#60 + _INT_TO_UDINT(HOUR) * UDINT#3600;
+
+END_FUNCTION
+
+FUNCTION SET_DATE:UDINT
+
+	VAR_INPUT
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+	END_VAR
+
+
+	VAR
+		count :	INT;
+	END_VAR
+
+
+	IF month > 2 THEN
+		count := (month - 1) * 30;
+		IF month > 7 THEN
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(3)),1));
+		ELSE
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(4)),1));
+		END_IF;
+		IF SHL(INT_TO_WORD(year),14) = WORD#0 THEN
+			count := count + 1;
+		END_IF;
+	ELSE
+		count := (month - 1) * 31;
+	END_IF;
+	SET_DATE := (_INT_TO_UDINT(count + day - 1) + DWORD_TO_UDINT(SHR(UDINT_TO_DWORD(_INT_TO_UDINT(year) * UDINT#1461 - UDINT#2878169), 2))) * UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION MONTH_END:UDINT
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+
+	MONTH_END := SET_DATE(YEAR_OF_DATE(idate),MONTH_OF_DATE(idate)+1,1) - UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION YEAR_END:UDINT
+
+
+	VAR_INPUT
+		Y :	INT;
+	END_VAR
+
+	YEAR_END := DWORD_TO_UDINT(SHR(UDINT_TO_DWORD(INT_TO_UDINT(y) * UDINT#1461 - UDINT#2876712), 2)) * UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION LEAP_DAY:BOOL
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	LEAP_DAY := IDATE MOD UDINT#126230400 = UDINT#68169600;
+
+
+END_FUNCTION
+
+FUNCTION BIT_LOAD_B:BYTE
+	VAR_INPUT
+		IN :	BYTE;
+		VAL :	BOOL;
+		POS :	INT;
+	END_VAR
+
+	IF VAL THEN
+		BIT_LOAD_B := in OR SHL(BYTE#1,pos);
+	ELSE
+		BIT_LOAD_B := in AND (NOT SHL(BYTE#1,pos));
+	END_IF;
+END_FUNCTION
+
+FUNCTION BIT_OF_DWORD : BOOL
+  VAR_INPUT
+    IN : DWORD;
+    N : INT;
+  END_VAR
+
+  BIT_OF_DWORD := (SHR(in,N) AND 16#00000001) > 0;
+END_FUNCTION
+
+FUNCTION_BLOCK TIMER_P4_Block
+
+	VAR_INPUT
+		DTIME :	UDINT;
+		TREF_0 :	UDINT;
+		TREF_1 :	UDINT;
+		HOLY :	BOOL;
+		L0 :	BOOL;
+		L1 :	BOOL;
+		L2 :	BOOL;
+		L3 :	BOOL;
+		OFS :	BYTE;
+		ENQ :	BOOL;
+		MAN :	BOOL;
+		MI :	BYTE;
+		RST :	BOOL;
+	END_VAR
+
+
+	VAR_IN_OUT
+		PROG :	oscat_TIMER_EVENT;
+	END_VAR
+
+
+	VAR_OUTPUT
+		Q0 :	BOOL;
+		Q1 :	BOOL;
+		Q2 :	BOOL;
+		Q3 :	BOOL;
+		STATUS :	BYTE;
+	END_VAR
+
+
+	VAR
+		day_start :	UDINT;
+		start :	UDINT;
+		event :	oscat_TIMER_EVENT_DATA;
+		pos :	INT;
+		last_execute :	UDINT;
+		current_day :	DINT;
+		mask :	BYTE;
+		ma :	oscat_arb_0_3;
+		mo :	oscat_arb_0_3;
+		qn :	oscat_TP4_qn;
+		qs :	oscat_TP4_qn;
+		channel :	INT;
+		tx :	UDINT;
+		array_max :	INT := 63;
+		channel_max :	INT := 3;
+	END_VAR
+
+	IF RST THEN
+		last_execute := UDINT#00; 
+		FOR pos := 0 TO ARRAY_MAX DO
+			IF (PROG[pos].CHANNEL >= OFS) AND (_BYTE_TO_INT(PROG[pos].CHANNEL) < (_BYTE_TO_INT(OFS) + 4)) THEN PROG[pos].LAST := last_execute; END_IF;
+		END_FOR;
+
+		FOR pos := 0 TO channel_max DO
+			qs[pos] := FALSE;
+		END_FOR;
+
+	ELSIF dtime <> last_execute THEN
+		last_execute := DTIME;
+
+		day_start := DATE_TO_DT(_DT_TO_DATE_B(DTIME));
+
+		FOR pos := 0 TO channel_max DO qn[pos] := FALSE; END_FOR;
+
+		FOR pos := 0 TO ARRAY_MAX DO
+			event := prog[pos];
+			channel := _BYTE_TO_INT(event.CHANNEL) - _BYTE_TO_INT(OFS);
+			IF (event.TYP > BYTE#0) AND (channel >= 0) AND (channel <= channel_max) THEN
+				ma[channel] := event.LAND;
+				mo[channel] := event.LOR;
+				CASE _BYTE_TO_INT(event.TYP) OF
+					1:	
+						start := day_start + event.start;
+						qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+
+					2: 	
+						IF (SHR(BYTE#128, DAY_OF_WEEK(_DT_TO_DATE_B(Dtime))) AND event.DAY) > BYTE#0 THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					3:	
+						IF current_day MOD _BYTE_TO_DINT(event.DAY) = DINT#0 THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					10:	
+						IF DAY_OF_WEEK(_DT_TO_DATE_B(DTIME)) = BYTE_TO_INT(event.DAY) THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					20:
+						IF DAY_OF_MONTH(_DT_TO_DATE_B(DTIME)) = BYTE_TO_INT(event.DAY) THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					21:	
+						IF _DT_TO_DATE_B(DTIME) = MONTH_END(_DT_TO_DATE_B(dtime)) THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					30:
+						IF DAY_OF_YEAR(_DT_TO_DATE_B(DTIME)) = BYTE_TO_INT(event.DAY) THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					31:
+						IF _DT_TO_DATE_B(DTIME) = YEAR_END(YEAR_OF_DATE(_DT_TO_DATE_B(dtime))) THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					40:	
+						IF LEAP_DAY(_DT_TO_DATE_B(dtime)) THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					41:
+						IF HOLY THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					42: 
+						IF (Holy OR (DAY_OF_WEEK(_DT_TO_DATE_B(dtime)) = 6) OR (DAY_OF_WEEK(_DT_TO_DATE_B(dtime)) = 7)) THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					43:
+						IF DAY_OF_WEEK(_DT_TO_DATE_B(dtime)) < 6 THEN
+							start := day_start + event.start;
+							qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+						END_IF;
+
+					50: 
+						CASE _BYTE_TO_INT(prog[pos].DAY) OF
+							0:	tx := tref_0;
+							1:	tx := tref_1;
+						ELSE
+							tx := UDINT#0 ;
+						END_CASE;
+						start := day_start + tx + event.start;
+						qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+
+					51:	
+						CASE _BYTE_TO_INT(prog[pos].DAY) OF
+							0:	tx := tref_0;
+							1:	tx := tref_1;
+						ELSE
+							tx := UDINT#0;
+						END_CASE;
+						start := day_start + tx - event.start;
+						qn[channel] := dtime >= start AND dtime <= start + TIME_TO_UDINT2(event.DURATION);
+
+					52 : 
+						CASE _BYTE_TO_INT(prog[pos].DAY) OF
+							0:	tx := tref_0;
+							1:	tx := tref_1;
+						ELSE
+							tx := UDINT#0 ;
+						END_CASE;
+						start := day_start + tx + event.start;
+						IF dtime >= start AND day_start > event.LAST THEN
+							qs[channel] := TRUE;
+							prog[pos].LAST := day_start;
+						END_IF;
+
+					53 : 
+						CASE _BYTE_TO_INT(prog[pos].DAY) OF
+							0:	tx := tref_0;
+							1:	tx := tref_1;
+						ELSE
+							tx := UDINT#0 ;
+						END_CASE;
+						start := day_start + tx + event.start;
+						IF dtime >= start AND day_start > event.LAST THEN
+							qs[channel] := FALSE;
+							prog[pos].LAST := day_start;
+						END_IF;
+
+					54 :
+						CASE _BYTE_TO_INT(prog[pos].DAY) OF
+							0:	tx := tref_0;
+							1:	tx := tref_1;
+						ELSE
+							tx := UDINT#0 ;
+						END_CASE;
+						start := day_start + tx - event.start;
+						IF dtime >= start AND day_start > event.LAST THEN
+							qs[channel] := TRUE;
+							prog[pos].LAST := day_start;
+						END_IF;
+
+					55 : 
+						CASE _BYTE_TO_INT(prog[pos].DAY) OF
+							0:	tx := tref_0;
+							1:	tx := tref_1;
+						ELSE
+							tx := UDINT#0 ;
+						END_CASE;
+						start := day_start + tx - event.start;
+						IF dtime >= start AND day_start > event.LAST THEN
+							qs[channel] := FALSE;
+							prog[pos].LAST := day_start;
+						END_IF;
+				END_CASE;
+			END_IF;
+		END_FOR;
+	END_IF;
+
+	mask := BYTE#255;
+	mask:=BIT_LOAD_B(mask,L0,0);
+	mask:=BIT_LOAD_B(mask,L1,1);
+	mask:=BIT_LOAD_B(mask,L2,2);
+	mask:=BIT_LOAD_B(mask,L3,3);
+
+	Q0 := ENQ AND ((qn[0] OR qs[0]) AND ((ma[0] AND mask) = ma[0]) OR ((mo[0] AND mask) > BYTE#0) OR (man AND BIT_OF_DWORD(BYTE_TO_DWORD(MI),0)));
+	Q1 := ENQ AND ((qn[1] OR qs[1]) AND ((ma[1] AND mask) = ma[1]) OR ((mo[1] AND mask) > BYTE#1) OR (man AND BIT_OF_DWORD(BYTE_TO_DWORD(MI),1)));
+	Q2 := ENQ AND ((qn[2] OR qs[2]) AND ((ma[2] AND mask) = ma[2]) OR ((mo[2] AND mask) > BYTE#2) OR (man AND BIT_OF_DWORD(BYTE_TO_DWORD(MI),2)));
+	Q3 := ENQ AND ((qn[3] OR qs[3]) AND ((ma[3] AND mask) = ma[3]) OR ((mo[3] AND mask) > BYTE#3) OR (man AND BIT_OF_DWORD(BYTE_TO_DWORD(MI),3)));
+
+	IF NOT enq THEN
+		status := BYTE#100;
+	ELSIF man THEN
+		status := BYTE#101;
+	ELSE
+		status := BYTE#102;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		DTIME :	UDINT;
+		TREF_0 :	UDINT;
+		TREF_1 :	UDINT;
+		HOLY :	BOOL;
+		L0 :	BOOL;
+		L1 :	BOOL;
+		L2 :	BOOL;
+		L3 :	BOOL;
+		OFS :	BYTE;
+		ENQ :	BOOL;
+		MAN :	BOOL;
+		MI :	BYTE;
+		RST :	BOOL;
+		PROG :	oscat_TIMER_EVENT;
+		Q0 :	BOOL;
+		Q1 :	BOOL;
+		Q2 :	BOOL;
+		Q3 :	BOOL;
+		STATUS :	BYTE;
+
+		func_block : TIMER_P4_Block;
+	END_VAR
+	func_block.DTIME := DTIME;
+	func_block.TREF_0 := TREF_0;
+	func_block.TREF_1 := TREF_1;
+	func_block.HOLY := HOLY;
+	func_block.L0 := L0;
+	func_block.L1 := L1;
+	func_block.L2 := L2;
+	func_block.L3 := L3;
+	func_block.OFS := OFS;
+	func_block.ENQ := ENQ;
+	func_block.MAN := MAN;
+	func_block.MI := MI;
+	func_block.RST := RST;
+	func_block.PROG := PROG;
+
+	func_block();
+	PROG  := func_block.PROG;
+	Q0  := func_block.Q0;
+	Q1  := func_block.Q1;
+	Q2  := func_block.Q2;
+	Q3  := func_block.Q3;
+	STATUS  := func_block.STATUS;
+END_PROGRAM
+
+CONFIGURATION Config0
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+END_CONFIGURATION
+
+===== 741-MB_SERVER.ST =====
+TYPE
+	oscat_IP_FIFO128_DATA  : ARRAY [1..128] OF BYTE;
+	oscat_Mailbox  : ARRAY [1..16] OF BYTE;
+	
+	oscat_NW_BUF_SHORT : ARRAY [0..1407] OF BYTE;
+	oscat_NW_BUF_LONG  : ARRAY [0..4095] OF BYTE;
+
+	oscat_IP_FIFO_DATA :
+	STRUCT
+		X       : oscat_IP_FIFO128_DATA; (* IP_ID FIFO Speicher          *)
+		Y       : oscat_IP_FIFO128_DATA; (* IP_ID Zï¿½hler                 *)
+		ID      : BYTE;                  (* hï¿½chste vergabene id         *)
+		MAX_ID  : BYTE;                  (* maximal Anmeldungen pro ID   *)
+		INIT    : BOOL;                  (* Initialisierung durchgefï¿½hrt *)
+		EMPTY   : BOOL;                  (* FIFO leer                    *)
+		FULL    : BOOL;                  (* FIFO voll                    *)
+		TOP     : INT;                   (* maximale anzahl in FIFO      *)
+		NW      : INT;                   (* Schreibzeiger                *)
+		NR      : INT;                   (* Lesezeiger                   *)
+	END_STRUCT;
+
+	oscat_IP_C:
+	STRUCT
+		C_MODE:			BYTE;          		(*W Mode: TCP/UCP AKTIV/PASSIV                               *)
+		C_PORT:         WORD;          		(*W Portnummer                                               *)
+		C_IP:           DWORD;         		(*W IP-Adresse gepackt wwxxyyzz = www.xxx.yyy.zzz            *)
+		C_STATE:        BYTE;          		(*R Verbindungsstatus ON/OFF + Flanke ON/OFF                 *)
+		C_ENABLE:       BOOL;          		(*W Freigabe fï¿½r Connect                                     *)
+		R_OBSERVE:      BOOL;          		(*W Empfang ueberwachen                                      *)
+		TIME_RESET:     BOOL;          		(*W Alle Timer ruecksetzen                                   *)
+		ERROR:          DWORD;         		(*R vvwwxxyy (vv = CON_ERROR, ww = SEN_ERROR, xx = REC_ERROR *)
+		FIFO:           oscat_IP_FIFO_DATA; (*I IP FIFO Struktur                                         *) 
+		MAILBOX:		oscat_Mailbox;		(*I Mailbox: Datenbereich fï¿½r Bausteindatenaustausch         *) 
+	END_STRUCT;
+
+	oscat_NETWORK_BUFFER :
+	STRUCT
+		SIZE   : UINT;	
+		BUFFER : oscat_NW_BUF_LONG;
+	END_STRUCT;
+
+	oscat_NETWORK_BUFFER_SHORT :
+	STRUCT
+	SIZE   : UINT;	
+	BUFFER : oscat_NW_BUF_SHORT;
+	END_STRUCT;
+
+	oscat_aW0_255	: ARRAY [0..255] OF WORD;
+	oscat_VMAP_DATA :
+	STRUCT
+		FC       : DWORD;
+		V_ADR    : INT;	
+		V_SIZE   : INT;
+		P_ADR    : INT;
+		TIME_OUT : TIME;
+	END_STRUCT;
+
+	oscat_MB_VMAP : ARRAY [1..10] OF oscat_VMAP_DATA;
+
+	csv_parser_demo_col : ARRAY [1..4] OF REAL;
+	csv_parser_demo     : ARRAY [1..2] OF csv_parser_demo_col;
+
+END_TYPE
+
+FUNCTION_BLOCK MB_VMAP_Block
+
+	VAR_IN_OUT
+		VMAP :	oscat_MB_VMAP;
+	END_VAR
+
+
+	VAR_INPUT
+		FC :	INT;
+		V_ADR :	INT;
+		V_CNT :	INT;
+		SIZE :	INT;
+	END_VAR
+
+
+	VAR_OUTPUT
+		P_ADR :	INT;
+		P_BIT :	INT;
+		ERROR :	BYTE;
+	END_VAR
+
+
+	VAR
+		i :	INT;
+		vopt :	DWORD;
+		vadr :	INT;
+		padr :	INT;
+		mask :	DWORD;
+		vsize :	INT;
+		w_tmp :	WORD;
+		i_tmp :	INT;
+		init :	BOOL;
+	END_VAR
+
+	IF init = FALSE THEN
+		init := TRUE;
+		IF VMAP[1].FC = DWORD#0 THEN
+			VMAP[1].FC := DWORD#16#FFFF_FFFF;
+			VMAP[1].V_ADR := 0;
+			VMAP[1].V_SIZE := 256;
+			VMAP[1].P_ADR := 0;
+		END_IF;
+	END_IF;
+
+	ERROR := BYTE#02; 
+	mask := SHL(DWORD#1,FC);
+
+	IF (mask AND DWORD#2#00000000_01000000_00000000_01100000) <> DWORD#0 THEN 
+		V_CNT := 1;
+	ELSIF V_CNT = 0 THEN
+		RETURN;
+	END_IF;
+
+	FOR i := 1 TO 10 DO
+		vopt := VMAP[i].FC; 
+		IF (vopt AND mask) <> DWORD#0 THEN
+			vadr := VMAP[i].V_ADR;
+			vsize := VMAP[i].V_SIZE;
+			padr := VMAP[i].P_ADR;
+
+			IF (mask AND DWORD#2#00000000_00000000_10000000_00100110) <> DWORD#0 THEN
+				i_tmp := WORD_TO_INT(SHR(INT_TO_WORD(V_ADR + V_CNT -1),4))+1;
+				IF i_tmp <= SIZE AND i_tmp <= vsize THEN
+					w_tmp := INT_TO_WORD(V_ADR);
+					P_ADR := WORD_TO_INT(SHR(w_tmp,4)) + padr; 
+					P_BIT := WORD_TO_INT(w_tmp AND WORD#16#000F);
+					ERROR := BYTE#0;
+					EXIT;
+				END_IF;
+			ELSIF (mask AND DWORD#2#00000000_11000001_00000000_01011000) <> DWORD#0 THEN 
+				IF V_ADR >= vadr AND V_ADR + V_CNT <= vadr + vsize THEN 
+					P_ADR := V_ADR - vadr + padr;
+					IF P_ADR + V_CNT <= SIZE THEN 
+						ERROR := BYTE#0;
+						EXIT;
+					END_IF;
+				END_IF;
+			ELSE
+				ERROR := BYTE#01;
+				RETURN;
+			END_IF;
+		END_IF;
+	END_FOR;
+
+	IF ERROR = BYTE#0 THEN
+		IF (mask AND DWORD#2#00000000_11000001_10000000_01100000) <> DWORD#0 THEN 
+			VMAP[i].TIME_OUT := T#1ms;
+		END_IF;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION _BYTE_TO_INT:INT
+	VAR_INPUT
+		IN :	BYTE;
+	END_VAR
+
+	_BYTE_TO_INT := USINT_TO_INT(BYTE_TO_USINT(IN));
+END_FUNCTION
+
+FUNCTION_BLOCK IP_FIFO_Block
+
+  VAR_IN_OUT
+    FIFO :	oscat_IP_FIFO_DATA;
+    ID :	BYTE;
+    STATE :	BYTE;
+  END_VAR
+
+
+  VAR
+    tmp :	INT;
+  END_VAR
+
+  IF NOT FIFO.INIT THEN
+    FIFO.INIT		:= TRUE;
+    FIFO.NW		:= 1;
+    FIFO.NR		:= 1;
+    FIFO.EMPTY	:= TRUE;
+    FIFO.FULL		:= FALSE;
+    FIFO.TOP		:= 128;    
+    FIFO.MAX_ID	:= BYTE#1;
+  END_IF;
+
+  IF ID = BYTE#00 THEN
+    IF FIFO.ID < INT_TO_BYTE(FIFO.TOP) THEN
+      ID := USINT_TO_BYTE(BYTE_TO_USINT(FIFO.ID) + USINT#1); 
+      FIFO.ID := ID ;  
+
+    ELSIF STATE < BYTE#200 THEN
+      STATE := BYTE#255;
+    RETURN;
+    END_IF;
+  END_IF;
+
+  IF STATE = BYTE#1 AND NOT FIFO.FULL THEN 
+    tmp := _BYTE_TO_INT(ID);
+    IF FIFO.Y[tmp] < FIFO.MAX_ID THEN
+      FIFO.Y[tmp] := USINT_TO_BYTE(BYTE_TO_USINT(FIFO.Y[tmp]) + USINT#1);
+      tmp := FIFO.NW;
+      FIFO.X[tmp] := ID;
+      IF FIFO.NW = FIFO.TOP THEN FIFO.NW := 1; ELSE FIFO.NW := FIFO.NW + 1; END_IF;
+      FIFO.FULL := FIFO.NW = FIFO.NR;
+    FIFO.EMPTY := FALSE;
+      STATE := BYTE#2; 
+    END_IF;
+  END_IF;
+
+  IF STATE = BYTE#2 AND NOT FIFO.EMPTY THEN 
+    tmp := FIFO.NR; 
+    IF ID = FIFO.X[tmp] THEN
+      STATE := BYTE#3; 
+    END_IF;
+  END_IF;
+
+  IF STATE = BYTE#4 AND NOT FIFO.EMPTY THEN 
+
+    tmp := FIFO.NR; 
+    IF ID = FIFO.X[tmp] THEN
+      tmp := _BYTE_TO_INT(ID);
+      FIFO.Y[tmp] := USINT_TO_BYTE(BYTE_TO_USINT(FIFO.Y[tmp]) - USINT#1); 
+
+      IF FIFO.NR = FIFO.TOP THEN FIFO.NR := 1; ELSE FIFO.NR := FIFO.NR + 1; END_IF;
+      FIFO.EMPTY := FIFO.NR = FIFO.NW;
+    FIFO.FULL := FALSE;
+    END_IF;
+    STATE := BYTE#5; 
+  END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION _UDINT_TO_TIME:TIME
+
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+
+	_UDINT_TO_TIME := DINT_TO_TIME(UDINT_TO_DINT(IN));
+
+END_FUNCTION
+
+FUNCTION_BLOCK T_PLC_MS_block
+	
+	VAR_OUTPUT
+		T_PLC_MS :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;(*Debug-Mode ON / OFF*)
+		N :	INT;(*Debug-Faktor*)
+		Offset :	UDINT;(*Debug-Offset*)
+		temp :	DWORD := DWORD#1;(*Debug-Offset*)
+		mode :	BOOL;(*modus*)
+		faktor :	UDINT;(*Systemtakt-Faktor*)
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000;
+	END_VAR
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_MS := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_MS),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION WORD_OF_BYTE:WORD
+	VAR_INPUT
+		B1 :	BYTE;
+		B0 :	BYTE;
+	END_VAR
+	WORD_OF_BYTE := SHL(BYTE_TO_WORD(B1),8) OR BYTE_TO_WORD(B0);
+END_FUNCTION
+
+FUNCTION BIT_LOAD_W:WORD
+	VAR_INPUT
+		IN :	WORD;
+		VAL :	BOOL;
+		POS :	INT;
+	END_VAR
+
+	IF VAL THEN
+		BIT_LOAD_W := in OR SHL(WORD#1,pos);
+	ELSE
+		BIT_LOAD_W := in AND (NOT SHL(WORD#1,pos));
+	END_IF;
+END_FUNCTION
+
+FUNCTION_BLOCK MB_SERVER_Block
+
+	VAR_IN_OUT
+		IP_C :	oscat_IP_C;
+		S_BUF :	oscat_NETWORK_BUFFER_SHORT;
+		R_BUF :	oscat_NETWORK_BUFFER_SHORT;
+		VMAP :	oscat_MB_VMAP;
+		DATA :	oscat_aW0_255;
+	END_VAR
+
+
+	VAR_INPUT
+		DATA_SIZE :	INT;
+		ENABLE :	BOOL;
+		UDP :	BOOL;
+	END_VAR
+
+
+	VAR_OUTPUT
+		ERROR :	DWORD;
+	END_VAR
+
+
+	VAR
+		MB_VMAP :	MB_VMAP_Block;
+		adr1 :	INT;
+		adr2 :	INT;
+		points :	INT;
+		points2 :	INT;
+		coils :	BYTE;
+		mask :	BYTE;
+		idx1 :	INT;
+		idx2 :	INT;
+		bit_pos :	INT;
+		count :	INT;
+		fc :	INT;
+		i :	INT;
+		state :	INT;
+		IP_STATE :	BYTE;
+		IP_ID :	BYTE;
+		IP_FIFO :	IP_FIFO_Block;
+		w_tmp :	WORD;
+		last_cycle :	TIME;
+		tx :	TIME;
+		T_PLC_MS :	T_PLC_MS_Block;
+		t :	TON;
+		ip_error :	BOOL;
+	END_VAR
+
+	T_PLC_MS();
+	tx := UDINT_TO_TIME(T_PLC_MS.T_PLC_MS);
+
+	FOR i := 1 TO 10 DO
+		IF VMAP[i].TIME_OUT > T#0s THEN
+			VMAP[i].TIME_OUT := VMAP[i].TIME_OUT + tx - last_cycle;
+		END_IF;
+	END_FOR;
+	last_cycle := tx;
+	ip_error := IP_C.ERROR > DWORD#0;
+
+	CASE state OF 
+
+	00: 
+		IF ENABLE THEN
+			state := 10;
+			IP_STATE := BYTE#1;
+		END_IF;
+
+	10: 
+		IF IP_STATE = BYTE#3 THEN
+
+			IP_C.C_PORT     := WORD#0;				
+			IP_C.C_IP       := DWORD#0;					
+			IP_C.C_MODE     := SEL(UDP,BYTE#4,BYTE#5);	
+			IP_C.TIME_RESET := TRUE;					
+			IP_C.C_ENABLE   := TRUE;				
+			IP_C.R_OBSERVE  := FALSE;				
+			state := 20;
+		END_IF;
+
+	20:	IF NOT ip_error THEN
+			IF S_BUF.SIZE = UINT#0 AND R_BUF.SIZE > UINT#6 THEN	
+				IF  R_BUF.SIZE = WORD_TO_UINT(WORD_OF_BYTE(R_BUF.BUFFER[4],R_BUF.BUFFER[5])) + UINT#6 THEN 
+					ERROR := DWORD#00;	
+
+					FOR i := 0 TO 13 DO
+						S_BUF.BUFFER[i] := R_BUF.BUFFER[i];
+					END_FOR;
+
+					fc := _BYTE_TO_INT(R_BUF.BUFFER[7]);
+
+					adr1 := WORD_TO_INT(WORD_OF_BYTE(R_BUF.BUFFER[8],R_BUF.BUFFER[9]));
+					points := WORD_TO_INT(WORD_OF_BYTE(R_BUF.BUFFER[10],R_BUF.BUFFER[11]));
+
+					MB_VMAP(VMAP:=VMAP,FC:=fc,V_ADR:=adr1,V_CNT:=points,SIZE:=DATA_SIZE);
+					VMAP:=MB_VMAP.VMAP;
+					adr1:=MB_VMAP.P_ADR;
+					bit_pos:=MB_VMAP.P_BIT;
+					ERROR:=BYTE_TO_DWORD(MB_VMAP.ERROR);
+
+					IF ERROR = DWORD#0 THEN 
+						CASE fc OF
+
+						1..2 :
+							count := 9; 
+							coils := BYTE#0;
+							mask := BYTE#1;
+							FOR i := 1 TO points DO
+								IF mask = BYTE#0 THEN 
+									mask := BYTE#1;
+									S_BUF.BUFFER[count] := coils;
+									coils := BYTE#0;
+									count := count + 1;
+								END_IF;
+								IF (DATA[adr1] AND SHL(WORD#1,bit_pos)) > WORD#0 THEN
+									coils := coils OR mask;
+								END_IF;
+
+								bit_Pos := bit_Pos + 1;
+								IF bit_pos > 15 THEN
+									adr1 := adr1 + 1;
+									bit_pos := 0;
+								END_IF;
+
+								mask := SHL(mask,1);
+							END_FOR;
+							S_BUF.BUFFER[Count] := coils;
+
+							S_BUF.BUFFER[8] := INT_TO_BYTE(count - 8);  
+							S_BUF.SIZE := INT_TO_UINT(count + 1);
+
+						3..4 :
+							idx1 := 07;
+							count := adr1 + points - 1;
+							FOR i := adr1 TO count DO
+								idx1 := idx1 + 2;
+								idx2 := idx1 + 1; 
+								w_tmp := DATA[i];
+								S_BUF.BUFFER[idx1] := WORD_TO_BYTE(SHR(w_tmp,8));
+								S_BUF.BUFFER[idx2] := WORD_TO_BYTE(w_tmp);
+							END_FOR;
+							S_BUF.BUFFER[8] := SHL(INT_TO_BYTE(points),1); 
+							S_BUF.SIZE := INT_TO_UINT(idx2 + 1);
+						5 : 
+							DATA[adr1]:=BIT_LOAD_W(DATA[adr1],R_BUF.BUFFER[10]>BYTE#0,bit_pos);
+							S_BUF.SIZE := UINT#12;
+						6 : 
+							DATA[adr1] := WORD_OF_BYTE(R_BUF.BUFFER[10],R_BUF.BUFFER[11]);
+							S_BUF.SIZE := UINT#12;
+						15 : 
+							mask := BYTE#1;
+							idx1 := 13;
+							FOR i := 1 TO points DO
+								DATA[adr1]:=BIT_LOAD_W(DATA[adr1],(R_BUF.BUFFER[idx1] AND mask)>BYTE#0,bit_pos);
+								bit_pos := bit_pos + 1;
+								IF bit_pos > 15 THEN
+									adr1 := adr1 + 1;
+									bit_pos := 0;
+								END_IF;
+								mask := ROL(mask,1);
+								IF mask = BYTE#1 THEN
+									idx1 := idx1 +1;
+								END_IF;
+							END_FOR;
+							S_BUF.SIZE := UINT#12;
+						16 :
+							idx1 := 11;
+							count := adr1 + points -1;
+							FOR i := adr1 TO Count DO
+								idx1 := idx1 + 2;
+								idx2 := idx1 + 1;
+								Data[i] := WORD_OF_BYTE(R_BUF.BUFFER[idx1],R_BUF.BUFFER[idx2]);
+							END_FOR;
+							S_BUF.SIZE := UINT#12;
+						22 :
+							w_tmp := WORD_OF_BYTE(R_BUF.BUFFER[11],R_BUF.BUFFER[11]); 
+							DATA[adr1] := (DATA[adr1] AND w_tmp) OR (WORD_OF_BYTE(R_BUF.BUFFER[12],R_BUF.BUFFER[13]) AND (NOT w_tmp));
+							S_BUF.SIZE := UINT#14;
+						23 :
+							adr2 := WORD_TO_INT(WORD_OF_BYTE(R_BUF.BUFFER[12],R_BUF.BUFFER[13]));
+							points2 := WORD_TO_INT(WORD_OF_BYTE(R_BUF.BUFFER[14],R_BUF.BUFFER[15]));
+
+							MB_VMAP(VMAP:=VMAP,FC:=16,V_ADR:=adr2,V_CNT:=points2,SIZE:=DATA_SIZE);
+							VMAP:=MB_VMAP.VMAP;
+							adr2:=MB_VMAP.P_ADR;
+							ERROR:=BYTE_TO_DWORD(MB_VMAP.ERROR);
+
+							IF ERROR = DWORD#0 THEN 
+								idx1 := 15;
+								count := adr2 + points2 -1;
+								FOR i := adr2 TO count DO
+									idx1 := idx1 + 2;
+									idx2 := idx1 + 1;
+									Data[i] := WORD_OF_BYTE(R_BUF.BUFFER[idx1],R_BUF.BUFFER[idx2]);
+								END_FOR;
+
+								idx1 := 07;
+								count := adr1 + points - 1;
+								FOR i := adr1 TO count DO
+									idx1 := idx1 + 2;
+									idx2 := idx1 + 1;
+									w_tmp := DATA[i];
+									S_BUF.BUFFER[idx1] := WORD_TO_BYTE(SHR(w_tmp,8));
+									S_BUF.BUFFER[idx2] := WORD_TO_BYTE(w_tmp);
+								END_FOR;
+								S_BUF.BUFFER[8] := SHL(INT_TO_BYTE(points),1); 
+								S_BUF.SIZE := INT_TO_UINT(idx2 + 1);
+
+							END_IF;
+
+						ELSE
+							ERROR := DWORD#01; 
+						END_CASE;
+					END_IF;
+				END_IF;
+
+				IF ERROR > DWORD#0 THEN
+					S_BUF.BUFFER[7] := S_BUF.BUFFER[7] OR BYTE#2#1000_0000; 
+					S_BUF.BUFFER[8] := DWORD_TO_BYTE(ERROR);
+					S_BUF.SIZE := UINT#9;
+				END_IF;
+
+				S_BUF.BUFFER[4] := BYTE#0;
+				S_BUF.BUFFER[5] := UINT_TO_BYTE(S_BUF.SIZE - UINT#6);
+
+			END_IF;
+		ELSE
+			ERROR := IP_C.ERROR;
+		END_IF;
+
+		t(IN:= ip_error, PT:=T#5s);
+		IF t.Q THEN
+			IP_C.TIME_RESET := TRUE;
+		END_IF;
+
+		R_BUF.SIZE := UINT#0; 
+
+		IF ENABLE = FALSE THEN
+			IP_STATE := BYTE#4;
+			state := 00;
+		END_IF;
+	END_CASE;
+
+	IP_FIFO(FIFO:=IP_C.FIFO,STATE:=IP_STATE,ID:=IP_ID);
+	IP_C.FIFO:=IP_FIFO.FIFO;
+	IP_STATE := IP_FIFO.STATE;
+	IP_ID:=IP_FIFO.ID;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		IP_C :	oscat_IP_C;
+		S_BUF :	oscat_NETWORK_BUFFER_SHORT;
+		R_BUF :	oscat_NETWORK_BUFFER_SHORT;
+		VMAP :	oscat_MB_VMAP;
+		DATA :	oscat_aW0_255;
+		DATA_SIZE :	INT;
+		ENABLE :	BOOL;
+		UDP :	BOOL;
+		ERROR :	DWORD;
+
+		func_block : MB_SERVER_Block;
+	END_VAR
+	func_block.IP_C := IP_C;
+	func_block.S_BUF := S_BUF;
+	func_block.R_BUF := R_BUF;
+	func_block.VMAP := VMAP;
+	func_block.DATA := DATA;
+	func_block.DATA_SIZE := DATA_SIZE;
+	func_block.ENABLE := ENABLE;
+	func_block.UDP := UDP;
+
+	func_block();
+  	IP_C  := func_block.IP_C;
+	S_BUF  := func_block.S_BUF;
+	R_BUF  := func_block.R_BUF;
+	VMAP  := func_block.VMAP;
+	DATA  := func_block.DATA;
+	ERROR  := func_block.ERROR;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+
+END_CONFIGURATION
+
+
+===== 742-TN_FRAMEWORK.ST =====
+TYPE
+  bya_TN_CHAR:       	ARRAY [0..1919] OF BYTE;
+  bya_TN_BACKUP:     	ARRAY [0..1919] OF BYTE;
+  bya_TN

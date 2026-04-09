@@ -1,6 +1,6 @@
 package main.visitor;
 
-import main.ast.nodes.Program;
+import main.ast.nodes.declaration.Program;
 import main.ast.nodes.Stmt.*;
 import main.ast.nodes.declaration.*;
 import main.ast.nodes.expr.BinaryExpr;
@@ -74,6 +74,18 @@ public abstract class Visitor<T> implements IVisitor<T> {
     }
     @Override
     public T visit(Stmt stmt) {
+        return null;
+    }
+    @Override
+    public T visit(ForStatement forStatement) {
+        return null;
+    }
+    @Override
+    public T visit(WhileStatement whileStatement) {
+        return null;
+    }
+    @Override
+    public T visit(SourceUnit sourceUnit) {
         return null;
     }
 }

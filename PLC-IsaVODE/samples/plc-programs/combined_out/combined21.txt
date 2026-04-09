@@ -1,0 +1,2348 @@
+
+
+===== 698-PARSET.ST (cont.) =====
+CTION _BYTE_TO_INT:INT
+	VAR_INPUT
+		IN :	BYTE;
+	END_VAR
+
+	_BYTE_TO_INT := USINT_TO_INT(BYTE_TO_USINT(IN));
+END_FUNCTION
+
+FUNCTION BIT_OF_DWORD : BOOL
+  VAR_INPUT
+    IN : DWORD;
+    N : INT;
+  END_VAR
+
+  BIT_OF_DWORD := (SHR(in,N) AND 16#00000001) > 0;
+  (* from OSCAT library; www.oscat.de  *)
+END_FUNCTION
+
+FUNCTION BIT_LOAD_B:BYTE
+	VAR_INPUT
+		IN :	BYTE;
+		VAL :	BOOL;
+		POS :	INT;
+	END_VAR
+
+	IF VAL THEN
+		BIT_LOAD_B := in OR SHL(BYTE#1,pos);
+	ELSE
+		BIT_LOAD_B := in AND (NOT SHL(BYTE#1,pos));
+	END_IF;
+END_FUNCTION
+
+FUNCTION_BLOCK T_PLC_MS_block
+	VAR_OUTPUT
+		T_PLC_MS :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;(*Debug-Mode ON / OFF*)
+		N :	INT;(*Debug-Faktor*)
+		Offset :	UDINT;(*Debug-Offset*)
+		temp :	DWORD := DWORD#1;(*Debug-Offset*)
+		mode :	BOOL;(*modus*)
+		faktor :	UDINT;(*Systemtakt-Faktor*)
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000;
+	END_VAR
+
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_MS := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_MS),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK PARSET_Block
+
+	VAR_INPUT
+		A0 :	BOOL;
+		A1 :	BOOL;
+		X01 :	REAL;
+		X02 :	REAL;
+		X03 :	REAL;
+		X04 :	REAL;
+		X11 :	REAL;
+		X12 :	REAL;
+		X13 :	REAL;
+		X14 :	REAL;
+		X21 :	REAL;
+		X22 :	REAL;
+		X23 :	REAL;
+		X24 :	REAL;
+		X31 :	REAL;
+		X32 :	REAL;
+		X33 :	REAL;
+		X34 :	REAL;
+		TC :	TIME;
+	END_VAR
+
+
+	VAR_OUTPUT
+		P1 :	REAL;
+		P2 :	REAL;
+		P3 :	REAL;
+		P4 :	REAL;
+	END_VAR
+
+
+	VAR
+		X :	oscat_parset;
+		S1 :	REAL;
+		S2 :	REAL;
+		S3 :	REAL;
+		S4 :	REAL;
+		tx :	UDINT;
+		last :	UDINT;
+		start :	BOOL;
+		set :	BYTE;
+		set2 :	INT;
+		init :	BOOL;
+		T_PLC_MS :	T_PLC_MS_Block;
+	END_VAR
+
+
+	(*@KEY@: WORKSHEET
+	NAME: PARSET
+	IEC_LANGUAGE: ST
+	*)
+	(* read system_time *)
+	T_PLC_MS();
+	tx:= T_PLC_MS.T_PLC_MS;
+
+	(* init sequence *)
+	IF NOT init THEN
+		set:=BIT_LOAD_B(set,NOT A0,0); (* set.X0 := NOT A0; *)
+		init := TRUE;
+		X[0][1] := X01;
+		X[0][2] := X02;
+		X[0][3] := X03;
+		X[0][4] := X04;
+		X[1][1] := X11;
+		X[1][2] := X12;
+		X[1][3] := X13;
+		X[1][4] := X14;
+		X[2][1] := X21;
+		X[2][2] := X22;
+		X[2][3] := X23;
+		X[2][4] := X24;
+		X[3][1] := X31;
+		X[3][2] := X32;
+		X[3][3] := X33;
+		X[3][4] := X34;
+		P1 := X01;
+		P2 := X02;
+		P3 := X03;
+		P4 := X04;
+	END_IF;
+
+	(* check for input change *)
+	IF (A0 XOR BIT_OF_DWORD(BYTE_TO_DWORD(set),0)) OR (A1 XOR BIT_OF_DWORD(BYTE_TO_DWORD(set),1)) THEN  (* set.X0  ,  set.X1 *) 
+		(* a new set is selected *)
+		set := BIT_LOAD_B(set,A0,0); (* set.X0 := A0; *)
+		set := BIT_LOAD_B(set,A1,1); (* set.X1 := A1; *)
+
+		IF tc > t#0s THEN
+			start := TRUE;
+			last := tx;
+			(* save the step speed for the output changes in S *)
+			set2 := _BYTE_TO_INT(set);
+			S1 := (X[set2][1] - P1)/TIME_TO_REAL(tc);
+			S2 := (X[set2][2] - P2)/TIME_TO_REAL(tc);
+			S3 := (X[set2][3] - P3)/TIME_TO_REAL(tc);
+			S4 := (X[set2][4] - P4)/TIME_TO_REAL(tc);
+		END_IF;
+	ELSIF start AND tx - last < TIME_TO_UDINT2(tc) THEN
+		(* ramp the outputs to the new value *)
+		set2 := _BYTE_TO_INT(set);
+		P1 := X[set2][1] - S1*(TIME_TO_REAL(Tc) - UDINT_TO_REAL(tx + last));
+		P2 := X[set2][2] - S2*(TIME_TO_REAL(Tc) - UDINT_TO_REAL(tx + last));
+		P3 := X[set2][3] - S3*(TIME_TO_REAL(Tc) - UDINT_TO_REAL(tx + last));
+		P4 := X[set2][4] - S4*(TIME_TO_REAL(Tc) - UDINT_TO_REAL(tx + last));
+	ELSE
+		(* make sure outputs match the correct set values *)
+		set2 := _BYTE_TO_INT(set);
+		start := FALSE;
+		P1 := X[set2][1];
+		P2 := X[set2][2];
+		P3 := X[set2][3];
+		P4 := X[set2][4];
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	
+	VAR
+		A0 :	BOOL;
+		A1 :	BOOL;
+		X01 :	REAL;
+		X02 :	REAL;
+		X03 :	REAL;
+		X04 :	REAL;
+		X11 :	REAL;
+		X12 :	REAL;
+		X13 :	REAL;
+		X14 :	REAL;
+		X21 :	REAL;
+		X22 :	REAL;
+		X23 :	REAL;
+		X24 :	REAL;
+		X31 :	REAL;
+		X32 :	REAL;
+		X33 :	REAL;
+		X34 :	REAL;
+		TC :	TIME;
+
+		P1 :	REAL;
+		P2 :	REAL;
+		P3 :	REAL;
+		P4 :	REAL;
+		func_block : PARSET_Block;
+  	END_VAR
+	func_block.A0 := A0;
+	func_block.A1 := A1;
+	func_block.X01 := X01;
+	func_block.X02 := X02;
+	func_block.X03 := X03;
+	func_block.X04 := X04;
+	func_block.X11 := X11;
+	func_block.X12 := X12;
+	func_block.X13 := X13;
+	func_block.X14 := X14;
+	func_block.X21 := X21;
+	func_block.X22 := X22;
+	func_block.X23 := X23;
+	func_block.X24 := X24;
+	func_block.X31 := X31;
+	func_block.X32 := X32;
+	func_block.X33 := X33;
+	func_block.X34 := X34;
+	func_block.TC := TC;
+	func_block();
+	P1 := func_block.P1;
+	P2 := func_block.P2;
+	P3 := func_block.P3;
+	P4 := func_block.P4;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+
+END_CONFIGURATION
+
+===== 699-ESR_MON_R4.ST =====
+TYPE
+	oscat_esr_collect_data      : ARRAY [0..7]    OF BYTE;
+END_TYPE
+
+TYPE oscat_esr_data :
+  STRUCT
+	typ    : BYTE;
+	adress : STRING;
+	DS     : UDINT;
+	TS     : TIME;
+	data   : oscat_esr_collect_data;
+  END_STRUCT;
+END_TYPE
+
+TYPE
+  oscat_ESR_3                : ARRAY [0..3] OF oscat_esr_data;
+  oscat_ESR_31               : ARRAY [0..31] OF oscat_esr_data;
+END_TYPE
+
+FUNCTION_BLOCK REAL_TO_DW_Block
+  VAR_INPUT
+    X :	REAL;
+  END_VAR
+
+  VAR_OUTPUT
+    REAL_TO_DW :	DWORD;
+  END_VAR
+
+  VAR
+    REAL_TO_BUF :	REAL_TO_BUF;
+    i :	INT;
+  END_VAR
+
+  FOR I := 0 TO 1 DO
+    REAL_TO_BUF.REQ        := I > 0;
+    REAL_TO_BUF.BUF_FORMAT := FALSE;
+    REAL_TO_BUF.BUF_OFFS   := DINT#0;
+    REAL_TO_BUF.BUF_CNT    := DINT#4;
+    REAL_TO_BUF.SRC        := X;
+    REAL_TO_BUF.BUFFER     := REAL_TO_DW;
+    REAL_TO_BUF();
+    X          := REAL_TO_BUF.SRC;
+    REAL_TO_DW := REAL_TO_BUF.BUFFER;
+  END_FOR;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK T_PLC_MS_block
+	
+	VAR_OUTPUT
+		T_PLC_MS :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;(*Debug-Mode ON / OFF*)
+		N :	INT;(*Debug-Faktor*)
+		Offset :	UDINT;(*Debug-Offset*)
+		temp :	DWORD := DWORD#1;(*Debug-Offset*)
+		mode :	BOOL;(*modus*)
+		faktor :	UDINT;(*Systemtakt-Faktor*)
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000;
+	END_VAR
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_MS := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_MS),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK ESR_MON_R4
+	VAR_INPUT
+		R0 :	REAL;
+		A0 :	STRING;
+		S0 :	REAL;
+		R1 :	REAL;
+		A1 :	STRING;
+		S1 :	REAL;
+		R2 :	REAL;
+		A2 :	STRING;
+		S2 :	REAL;
+		R3 :	REAL;
+		A3 :	STRING;
+		S3 :	REAL;
+		DT_IN :	UDINT;
+	END_VAR
+
+	VAR_IN_OUT
+		ESR_OUT :	oscat_ESR_3;
+	END_VAR
+
+	VAR_OUTPUT
+		ESR_FLAG :	BOOL;
+	END_VAR
+
+	VAR
+		x0 :	REAL;
+		x1 :	REAL;
+		x2 :	REAL;
+		x3 :	REAL;
+		tx :	TIME;
+		cnt :	INT;
+		T_PLC_MS :	T_PLC_MS_block;
+		REAL_TO_DW :	REAL_TO_DW_Block;
+		tmp :	DWORD;
+	END_VAR
+
+	T_PLC_MS();
+	tx:= UDINT_TO_TIME(T_PLC_MS.T_PLC_MS);
+
+	ESR_Flag := FALSE;
+	esr_out[3].typ := BYTE#0;
+	esr_out[2].typ := BYTE#0;
+	esr_out[1].typ := BYTE#0;
+	esr_out[0].typ := BYTE#0;
+	cnt := 0;
+
+	IF differ(R0, X0, S0) THEN
+		REAL_TO_DW(X:=R0);
+		tmp := REAL_TO_DW.REAL_TO_DW;
+
+		esr_out[cnt].typ := BYTE#20;
+		esr_out[cnt].adress := a0;
+		esr_out[cnt].DS := DT_in;
+		esr_out[cnt].TS := TX;
+		esr_out[cnt].data[0] := Byte_of_Dword(tmp,BYTE#0);
+		esr_out[cnt].data[1] := Byte_of_Dword(tmp,BYTE#1);
+		esr_out[cnt].data[2] := Byte_of_Dword(tmp,BYTE#2);
+		esr_out[cnt].data[3] := Byte_of_Dword(tmp,BYTE#3);
+		X0 := R0;
+		cnt := cnt + 1;
+		esr_flag := TRUE;
+	END_IF;
+	IF differ(R1, X1, S1) THEN
+		REAL_TO_DW(X:=R1);
+		tmp := REAL_TO_DW.REAL_TO_DW;
+
+		esr_out[cnt].typ := BYTE#20;
+		esr_out[cnt].adress := a1;
+		esr_out[cnt].DS := DT_in;
+		esr_out[cnt].TS := TX;
+		esr_out[cnt].data[0] := Byte_of_Dword(tmp,BYTE#0);
+		esr_out[cnt].data[1] := Byte_of_Dword(tmp,BYTE#1);
+		esr_out[cnt].data[2] := Byte_of_Dword(tmp,BYTE#2);
+		esr_out[cnt].data[3] := Byte_of_Dword(tmp,BYTE#3);
+		X1 := R1;
+		cnt := cnt + 1;
+		esr_flag := TRUE;
+	END_IF;
+	IF differ(R2, X2, S2) THEN
+		REAL_TO_DW(X:=R2);
+		tmp := REAL_TO_DW.REAL_TO_DW;
+
+		esr_out[cnt].typ := BYTE#20;
+		esr_out[cnt].adress := a2;
+		esr_out[cnt].DS := DT_in;
+		esr_out[cnt].TS := TX;
+		esr_out[cnt].data[0] := Byte_of_Dword(tmp,BYTE#0);
+		esr_out[cnt].data[1] := Byte_of_Dword(tmp,BYTE#1);
+		esr_out[cnt].data[2] := Byte_of_Dword(tmp,BYTE#2);
+		esr_out[cnt].data[3] := Byte_of_Dword(tmp,BYTE#3);
+		X2 := R2;
+		cnt := cnt + 1;
+		esr_flag := TRUE;
+	END_IF;
+	IF differ(R3, X3, S3) THEN
+		REAL_TO_DW(X:=R2);
+		tmp := REAL_TO_DW.REAL_TO_DW;
+
+		esr_out[cnt].typ := BYTE#20;
+		esr_out[cnt].adress := a3;
+		esr_out[cnt].DS := DT_in;
+		esr_out[cnt].TS := TX;
+		esr_out[cnt].data[0] := Byte_of_Dword(tmp,BYTE#0);
+		esr_out[cnt].data[1] := Byte_of_Dword(tmp,BYTE#1);
+		esr_out[cnt].data[2] := Byte_of_Dword(tmp,BYTE#2);
+		esr_out[cnt].data[3] := Byte_of_Dword(tmp,BYTE#3);
+		X3 := R3;
+		cnt := cnt + 1;
+		esr_flag := TRUE;
+	END_IF;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+
+	VAR
+	VAR_INPUT
+		R0 :	REAL;
+		A0 :	STRING;
+		S0 :	REAL;
+		R1 :	REAL;
+		A1 :	STRING;
+		S1 :	REAL;
+		R2 :	REAL;
+		A2 :	STRING;
+		S2 :	REAL;
+		R3 :	REAL;
+		A3 :	STRING;
+		S3 :	REAL;
+		DT_IN :	UDINT;
+
+		ESR_OUT :	oscat_ESR_3;
+
+		ESR_FLAG :	BOOL;
+
+		func_block : ESR_MON_R4;
+  	END_VAR
+	func_block.R0 := R0;
+	func_block.A0 := A0;
+	func_block.S0 := S0;
+	func_block.R1 := R1;
+	func_block.A1 := A1;
+	func_block.S1 := S1;
+	func_block.R2 := R2;
+	func_block.A2 := A2;
+	func_block.S2 := S2;
+	func_block.R3 := R3;
+	func_block.A3 := A3;
+	func_block.S3 := S3;
+	func_block.DT_IN := DT_IN;
+	func_block.ESR_Out := ESR_Out;
+	func_block();
+	ESR_Out := func_block.ESR_Out;
+	ESR_FLAG := func_block.ESR_FLAG;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+	
+END_CONFIGURATION
+
+
+===== 700-MD5_STREAM.ST =====
+FUNCTION_BLOCK MD5_STREAM
+
+	VAR_IN_OUT
+		MODE :	INT;
+		BUF :	oscat_aB0_63;
+		MD5 :	oscat_aB0_15;
+		SIZE :	UDINT;
+	END_VAR
+
+
+	VAR_OUTPUT
+		POS :	UDINT;
+	END_VAR
+
+
+	VAR
+		hash :	oscat_aDW0_3;
+		a :	DWORD;
+		b :	DWORD;
+		c :	DWORD;
+		d :	DWORD;
+		end :	UDINT;
+		block :	UDINT;
+		x :	oscat_aDW0_15;
+		pad_1 :	BOOL;
+		n :	INT;
+		n1 :	INT;
+		n2 :	INT;
+		n3 :	INT;
+		n4 :	INT;
+	END_VAR
+
+	CASE MODE OF
+
+	1:	
+		hash[0] := DWORD#16#67452301;
+		hash[1] := DWORD#16#EFCDAB89;
+		hash[2] := DWORD#16#98BADCFE;
+		hash[3] := DWORD#16#10325476;
+
+		block := DWORD_TO_UDINT(SHR_DWORD(UDINT_TO_DWORD(SIZE),6)) + BOOL_TO_UDINT((UDINT_TO_BYTE(SIZE) AND BYTE#16#3F) > BYTE#55);	
+		pad_1 := FALSE;
+		POS := UDINT#0;
+		End := SIZE;
+		SIZE := MIN(UDINT#64,end);
+		MODE := 2;
+
+	2:	
+		FOR n := UDINT_TO_INT(SIZE) TO 63 DO
+			BUF[n] := BYTE#0;
+		END_FOR;
+
+		IF SIZE < UDINT#64 AND NOT pad_1 THEN
+			BUF[SIZE] := BYTE#2#1000_0000;
+			pad_1 := TRUE;
+		END_IF;
+
+		POS := POS + SIZE;
+		SIZE := MIN(UDINT#64,End - POS);
+
+		n := 0;	
+		FOR n4 := 0 TO 15 DO
+			n1 := n + 1;
+			n2 := n + 2;
+			n3 := n + 3;
+			x[n4] := DWORD_OF_BYTE(BUF[n3],BUF[n2],BUF[n1],BUF[n]);
+			n := n + 4;
+		END_FOR;
+
+		IF block = UDINT#0 THEN 
+			x[14] := SHL_DWORD(UDINT_TO_DWORD(End),3); 
+			MODE := 3;
+		ELSE
+			block := block - UDINT#1;
+		END_IF;
+
+		a := hash[0];
+		b := hash[1];
+		c := hash[2];
+		d := hash[3];
+
+		a := MD5_AUX(1, a, b, c, d, X[00], 07, DWORD#16#D76AA478); 
+		d := MD5_AUX(1, d, a, b, c, X[01], 12, DWORD#16#E8C7B756); 
+		c := MD5_AUX(1, c, d, a, b, X[02], 17, DWORD#16#242070DB); 
+		b := MD5_AUX(1, b, c, d, a, X[03], 22, DWORD#16#C1BDCEEE);
+		a := MD5_AUX(1, a, b, c, d, X[04], 07, DWORD#16#F57C0FAF); 
+		d := MD5_AUX(1, d, a, b, c, X[05], 12, DWORD#16#4787C62A); 
+		c := MD5_AUX(1, c, d, a, b, X[06], 17, DWORD#16#A8304613); 
+		b := MD5_AUX(1, b, c, d, a, X[07], 22, DWORD#16#FD469501); 
+		a := MD5_AUX(1, a, b, c, d, X[08], 07, DWORD#16#698098D8); 
+		d := MD5_AUX(1, d, a, b, c, X[09], 12, DWORD#16#8B44F7AF);
+		c := MD5_AUX(1, c, d, a, b, X[10], 17, DWORD#16#FFFF5BB1); 
+		b := MD5_AUX(1, b, c, d, a, X[11], 22, DWORD#16#895CD7BE); 
+		a := MD5_AUX(1, a, b, c, d, X[12], 07, DWORD#16#6B901122); 
+		d := MD5_AUX(1, d, a, b, c, X[13], 12, DWORD#16#FD987193); 
+		c := MD5_AUX(1, c, d, a, b, X[14], 17, DWORD#16#A679438E); 
+		b := MD5_AUX(1, b, c, d, a, X[15], 22, DWORD#16#49B40821); 
+
+		a := MD5_AUX(2, a, b, c, d, X[01], 05, DWORD#16#F61E2562);
+		d := MD5_AUX(2, d, a, b, c, X[06], 09, DWORD#16#C040B340);
+		c := MD5_AUX(2, c, d, a, b, X[11], 14, DWORD#16#265E5A51); 
+		b := MD5_AUX(2, b, c, d, a, X[00], 20, DWORD#16#E9B6C7AA); 
+		a := MD5_AUX(2, a, b, c, d, X[05], 05, DWORD#16#D62F105D); 
+		d := MD5_AUX(2, d, a, b, c, X[10], 09, DWORD#16#02441453); 
+		c := MD5_AUX(2, c, d, a, b, X[15], 14, DWORD#16#D8A1E681); 
+		b := MD5_AUX(2, b, c, d, a, X[04], 20, DWORD#16#E7D3FBC8); 
+		a := MD5_AUX(2, a, b, c, d, X[09], 05, DWORD#16#21E1CDE6);
+		d := MD5_AUX(2, d, a, b, c, X[14], 09, DWORD#16#C33707D6); 
+		c := MD5_AUX(2, c, d, a, b, X[03], 14, DWORD#16#F4D50D87); 
+		b := MD5_AUX(2, b, c, d, a, X[08], 20, DWORD#16#455A14ED); 
+		a := MD5_AUX(2, a, b, c, d, X[13], 05, DWORD#16#A9E3E905); 
+		d := MD5_AUX(2, d, a, b, c, X[02], 09, DWORD#16#FCEFA3F8);
+		c := MD5_AUX(2, c, d, a, b, X[07], 14, DWORD#16#676F02D9); 
+		b := MD5_AUX(2, b, c, d, a, X[12], 20, DWORD#16#8D2A4C8A);
+
+		a := MD5_AUX(3, a, b, c, d, X[05], 04, DWORD#16#FFFA3942); 
+		d := MD5_AUX(3, d, a, b, c, X[08], 11, DWORD#16#8771F681); 
+		c := MD5_AUX(3, c, d, a, b, X[11], 16, DWORD#16#6D9D6122); 
+		b := MD5_AUX(3, b, c, d, a, X[14], 23, DWORD#16#FDE5380C);
+		a := MD5_AUX(3, a, b, c, d, X[01], 04, DWORD#16#A4BEEA44);
+		d := MD5_AUX(3, d, a, b, c, X[04], 11, DWORD#16#4BDECFA9); 
+		c := MD5_AUX(3, c, d, a, b, X[07], 16, DWORD#16#F6BB4B60); 
+		b := MD5_AUX(3, b, c, d, a, X[10], 23, DWORD#16#BEBFBC70);
+		a := MD5_AUX(3, a, b, c, d, X[13], 04, DWORD#16#289B7EC6); 
+		d := MD5_AUX(3, d, a, b, c, X[00], 11, DWORD#16#EAA127FA); 
+		c := MD5_AUX(3, c, d, a, b, X[03], 16, DWORD#16#D4EF3085);
+		b := MD5_AUX(3, b, c, d, a, X[06], 23, DWORD#16#04881D05);
+		a := MD5_AUX(3, a, b, c, d, X[09], 04, DWORD#16#D9D4D039);
+		d := MD5_AUX(3, d, a, b, c, X[12], 11, DWORD#16#E6DB99E5);
+		c := MD5_AUX(3, c, d, a, b, X[15], 16, DWORD#16#1FA27CF8); 
+		b := MD5_AUX(3, b, c, d, a, X[02], 23, DWORD#16#C4AC5665); 
+
+		a := MD5_AUX(4, a, b, c, d, X[00], 06, DWORD#16#F4292244); 
+		d := MD5_AUX(4, d, a, b, c, X[07], 10, DWORD#16#432AFF97); 
+		c := MD5_AUX(4, c, d, a, b, X[14], 15, DWORD#16#AB9423A7); 
+		b := MD5_AUX(4, b, c, d, a, X[05], 21, DWORD#16#FC93A039); 
+		a := MD5_AUX(4, a, b, c, d, X[12], 06, DWORD#16#655B59C3);
+		d := MD5_AUX(4, d, a, b, c, X[03], 10, DWORD#16#8F0CCC92); 
+		c := MD5_AUX(4, c, d, a, b, X[10], 15, DWORD#16#FFEFF47D); 
+		b := MD5_AUX(4, b, c, d, a, X[01], 21, DWORD#16#85845DD1); 
+		a := MD5_AUX(4, a, b, c, d, X[08], 06, DWORD#16#6FA87E4F); 
+		d := MD5_AUX(4, d, a, b, c, X[15], 10, DWORD#16#FE2CE6E0);
+		c := MD5_AUX(4, c, d, a, b, X[06], 15, DWORD#16#A3014314); 
+		b := MD5_AUX(4, b, c, d, a, X[13], 21, DWORD#16#4E0811A1); 
+		a := MD5_AUX(4, a, b, c, d, X[04], 06, DWORD#16#F7537E82); 
+		d := MD5_AUX(4, d, a, b, c, X[11], 10, DWORD#16#BD3AF235);
+		c := MD5_AUX(4, c, d, a, b, X[02], 15, DWORD#16#2AD7D2BB); 
+		b := MD5_AUX(4, b, c, d, a, X[09], 21, DWORD#16#EB86D391); 
+
+		hash[0] := UDINT_TO_DWORD(DWORD_TO_UDINT(hash[0]) + DWORD_TO_UDINT(a));
+		hash[1] := UDINT_TO_DWORD(DWORD_TO_UDINT(hash[1]) + DWORD_TO_UDINT(b));
+		hash[2] := UDINT_TO_DWORD(DWORD_TO_UDINT(hash[2]) + DWORD_TO_UDINT(c));
+		hash[3] := UDINT_TO_DWORD(DWORD_TO_UDINT(hash[3]) + DWORD_TO_UDINT(d));
+
+	END_CASE;
+
+	IF MODE = 3 THEN
+		n2 := 0;
+		FOR n := 0 TO 3 DO 
+			FOR n1 := 0 TO 3 DO
+				MD5[n2] := DWORD_TO_BYTE(hash[n]);
+				hash[n] := ROR_DWORD(hash[n],8);
+				n2 := n2 + 1;
+			END_FOR;
+		END_FOR;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+
+===== 701-TN_INPUT_CONTROL.ST =====
+FUNCTION_BLOCK TN_INPUT_CONTROL
+
+  VAR_IN_OUT
+    Xus_TN_SCREEN :	us_TN_SCREEN;
+    Xus_TN_INPUT_CONTROL :	us_TN_INPUT_CONTROL;
+  END_VAR
+
+
+  VAR
+    FB_TN_INPUT_SELECT_POPUP :	TN_INPUT_SELECT_POPUP;
+  END_VAR
+
+  VAR
+    FB_TN_INPUT_SELECT_TEXT :	TN_INPUT_SELECT_TEXT;
+    FB_TN_SC_WRITE_C :	TN_SC_WRITE_C;
+    FB_TN_INPUT_EDIT_LINE :	TN_INPUT_EDIT_LINE;
+  END_VAR
+
+  VAR
+    in_index :	INT;
+    in_Scroll_Offset :	INT;
+    in_Focus_new :	INT;
+    in_Focus_alt :	INT;
+    bo_Tool_Tip_Update :	BOOL;
+  END_VAR
+
+  IF (Xus_TN_INPUT_CONTROL.bo_Enable = FALSE) OR (Xus_TN_SCREEN.bo_Menue_Bar_Dialog = TRUE) THEN
+    RETURN;
+  END_IF;
+
+  IF (Xus_TN_INPUT_CONTROL.bo_Reset_Fokus = TRUE) THEN
+
+    Xus_TN_INPUT_CONTROL.bo_Reset_Fokus := FALSE;
+
+    FOR in_index := INT#01 TO Xus_TN_INPUT_CONTROL.in_Count DO
+      Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].bo_Focus := FALSE;
+    END_FOR;
+
+    IF (Xus_TN_INPUT_CONTROL.in_Count >= INT#01) THEN
+
+      Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[1].bo_Focus := TRUE;
+      Xus_TN_INPUT_CONTROL.in_Focus_at := INT#01;
+
+    END_IF;
+
+    Xus_TN_INPUT_CONTROL.bo_Update_all := TRUE;
+
+  END_IF;
+
+  IF (Xus_TN_SCREEN.bo_Modal_Dialog = FALSE) THEN
+
+    IF (Xus_TN_SCREEN.by_Input_Exten_Code = BYTE#09) THEN
+
+      in_Scroll_Offset := INT#01;
+
+    ELSIF (Xus_TN_SCREEN.by_Input_Exten_Code = BYTE#65) THEN
+
+      in_Scroll_Offset := INT#-01;
+
+    ELSIF (Xus_TN_SCREEN.by_Input_Exten_Code = BYTE#66) THEN
+
+      in_Scroll_Offset := INT#01;
+
+    END_IF;
+  END_IF;
+
+  IF (in_Scroll_Offset <> INT#00) THEN  
+
+    Xus_TN_INPUT_CONTROL.in_Focus_at:=LIMIT_INT(INT#01,Xus_TN_INPUT_CONTROL.in_Focus_at,Xus_TN_INPUT_CONTROL.in_Count);
+
+    in_Focus_new := Xus_TN_INPUT_CONTROL.in_Focus_at + in_Scroll_Offset;
+
+    IF (in_Focus_new > Xus_TN_INPUT_CONTROL.in_Count) THEN
+      in_Focus_new := INT#1;
+    END_IF;
+
+    IF (in_Focus_new < INT#01) THEN
+      in_Focus_new := Xus_TN_INPUT_CONTROL.in_Count;
+    END_IF;
+
+    in_Focus_alt := Xus_TN_INPUT_CONTROL.in_Focus_at;
+
+    Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_Focus_alt].bo_Focus := FALSE;
+    Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_Focus_alt].bo_Update_Input := TRUE;
+
+    Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_Focus_new].bo_Focus  := TRUE;
+    Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_Focus_new].bo_Update_Input := TRUE;
+
+
+    Xus_TN_INPUT_CONTROL.in_Focus_at := in_Focus_new;
+
+    bo_Tool_Tip_Update := TRUE;
+    in_Scroll_Offset := INT#00;
+
+  END_IF;
+
+  IF (Xus_TN_INPUT_CONTROL.bo_Update_all = TRUE) THEN
+    FOR in_index := 1 TO Xus_TN_INPUT_CONTROL.in_Count DO
+      Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].bo_Update_All := TRUE;
+    END_FOR;
+    Xus_TN_INPUT_CONTROL.bo_Update_all := FALSE;
+    bo_Tool_Tip_Update := TRUE;
+  END_IF;
+
+  FOR in_index := 1 TO Xus_TN_INPUT_CONTROL.in_Count DO
+
+    IF (Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].in_Type > INT#00) THEN
+  
+      IF (Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].bo_Focus = TRUE) THEN
+
+        Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].by_Input_ASCII_Code  := Xus_TN_SCREEN.by_Input_ASCII_Code;
+        Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].by_Input_Exten_Code  := Xus_TN_SCREEN.by_Input_Exten_Code;
+        Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].bo_Input_ASCII_IsNum := Xus_TN_SCREEN.bo_Input_ASCII_IsNum;
+
+        IF (bo_Tool_Tip_Update = TRUE) THEN
+
+          FB_TN_SC_WRITE_C.Iin_Y          := Xus_TN_INPUT_CONTROL.in_ToolTip_Y;
+          FB_TN_SC_WRITE_C.Iin_X          := Xus_TN_INPUT_CONTROL.in_ToolTip_X;
+          FB_TN_SC_WRITE_C.Iby_ATTR       := Xus_TN_INPUT_CONTROL.by_ToolTip_Attr;
+          FB_TN_SC_WRITE_C.Iin_OPTION     := INT#02;  
+          FB_TN_SC_WRITE_C.Iin_LENGTH     := Xus_TN_INPUT_CONTROL.in_ToolTip_Size;
+          FB_TN_SC_WRITE_C.Ist_STRING     := Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].st_Input_ToolTip;
+          FB_TN_SC_WRITE_C.Xus_TN_SCREEN  := Xus_TN_SCREEN;
+          FB_TN_SC_WRITE_C();
+          Xus_TN_SCREEN := FB_TN_SC_WRITE_C.Xus_TN_SCREEN;
+
+          bo_Tool_Tip_Update := FALSE;
+
+        END_IF;
+
+      END_IF;
+
+      CASE Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].in_Type OF
+
+      1:
+        FB_TN_INPUT_EDIT_LINE.Xus_TN_INPUT_CONTROL_DATA := Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index];
+        FB_TN_INPUT_EDIT_LINE.Xus_TN_SCREEN             := Xus_TN_SCREEN;
+        FB_TN_INPUT_EDIT_LINE();
+        Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index]  := FB_TN_INPUT_EDIT_LINE.Xus_TN_INPUT_CONTROL_DATA;
+        Xus_TN_SCREEN                                             := FB_TN_INPUT_EDIT_LINE.Xus_TN_SCREEN;
+
+      2: 
+        FB_TN_INPUT_SELECT_TEXT.Xus_TN_INPUT_CONTROL_DATA := Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index];
+        FB_TN_INPUT_SELECT_TEXT.Xus_TN_SCREEN             := Xus_TN_SCREEN;
+        FB_TN_INPUT_SELECT_TEXT();
+        Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index] := FB_TN_INPUT_SELECT_TEXT.Xus_TN_INPUT_CONTROL_DATA;
+        Xus_TN_SCREEN                                            := FB_TN_INPUT_SELECT_TEXT.Xus_TN_SCREEN;
+      3: 
+        FB_TN_INPUT_SELECT_POPUP.Xus_TN_INPUT_CONTROL_DATA := Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index];
+        FB_TN_INPUT_SELECT_POPUP.Xus_TN_SCREEN             := Xus_TN_SCREEN;
+        FB_TN_INPUT_SELECT_POPUP();
+        Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index] := FB_TN_INPUT_SELECT_POPUP.Xus_TN_INPUT_CONTROL_DATA;
+        Xus_TN_SCREEN                                            := FB_TN_INPUT_SELECT_POPUP.Xus_TN_SCREEN;
+
+      END_CASE;
+
+      IF (Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].bo_Focus = TRUE) THEN
+
+        Xus_TN_SCREEN.in_Cursor_X := Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].in_Cursor_X;
+        Xus_TN_SCREEN.in_Cursor_Y := Xus_TN_INPUT_CONTROL.usa_TN_INPUT_CONTROL_DATA[in_index].in_Cursor_Y;
+
+      END_IF;
+    END_IF;
+  END_FOR;
+
+END_FUNCTION_BLOCK
+
+
+===== 702-WEEKDAY_TO_STRING.ST =====
+TYPE
+	oscat_STRING2 : STRING;
+	oscat_STRING10 : STRING;
+END_TYPE
+
+TYPE oscat_HOLIDAY_DATA :
+	STRUCT
+		NAME : STRING;
+		DAY : SINT;
+		MONTH : SINT;
+		USE : SINT;
+		PAD_BYTE : BYTE;
+	END_STRUCT;
+END_TYPE
+
+TYPE
+	oscat_HOLIDAY_DATA_0_29 	: ARRAY [0..29] OF oscat_HOLIDAY_DATA;
+END_TYPE
+
+TYPE
+	oscat_ELEMENT_WEEKDAYS	: ARRAY [1..7] OF oscat_STRING10;
+  	oscat_WEEKDAYS			: ARRAY [1..3] OF oscat_ELEMENT_WEEKDAYS := [0,0,0];
+	oscat_ELEMENT_WEEKDAYS2	: ARRAY [1..7] OF oscat_STRING2;
+  	oscat_WEEKDAYS2			: ARRAY [1..3] OF oscat_ELEMENT_WEEKDAYS2 := [0,0,0];
+END_TYPE
+
+TYPE oscat_LANGUAGE:
+  STRUCT
+    DEFAULT 	: INT;
+	LMAX    	: INT;    
+  END_STRUCT;
+END_TYPE
+
+FUNCTION_BLOCK SETUP_HOLIDAY_FR_Block
+
+	VAR_IN_OUT
+		HD :	oscat_HOLIDAY_DATA_0_29;
+	END_VAR
+
+
+	VAR
+		init :	BOOL;
+	END_VAR
+
+
+	IF init THEN RETURN; END_IF;
+
+	init := TRUE;
+
+	HD[00].NAME := 'Nouve an';
+	HD[00].DAY  := SINT#01;
+	HD[00].MONTH := SINT#01;
+	HD[00].USE := SINT#01;
+
+	HD[01].NAME := 'St Valentin';
+	HD[01].DAY  := SINT#14;
+	HD[01].MONTH := SINT#02;
+	HD[01].USE := SINT#00;
+
+	HD[02].NAME := 'Vendredi Saint (alsace)';
+	HD[02].DAY  := SINT#-2;
+	HD[02].MONTH := SINT#00;
+	HD[02].USE := SINT#00;
+
+	HD[03].NAME := 'Dimanche de pques';
+	HD[03].DAY  := SINT#00;
+	HD[03].MONTH := SINT#00;
+	HD[03].USE := SINT#01;
+
+	HD[04].NAME := 'Lundi de pques';
+	HD[04].DAY  := SINT#01;
+	HD[04].MONTH := SINT#00;
+	HD[04].USE := SINT#01;
+
+	HD[05].NAME := 'Jeudi de Ascension';
+	HD[05].DAY  := SINT#39;
+	HD[05].MONTH := SINT#00;
+	HD[05].USE := SINT#01;
+
+	HD[06].NAME := 'dimanche de Pentecte';
+	HD[06].DAY  := SINT#49;
+	HD[06].MONTH := SINT#00;
+	HD[06].USE := SINT#01;
+
+	HD[07].NAME := 'jeudi de la Trinit';
+	HD[07].DAY  := SINT#60;
+	HD[07].MONTH := SINT#00;
+	HD[07].USE := SINT#00;
+
+	HD[08].NAME := 'Fte du travail';
+	HD[08].DAY  := SINT#01;
+	HD[08].MONTH := SINT#05;
+	HD[08].USE := SINT#01;
+
+	HD[09].NAME := 'Victoire 1945 ';
+	HD[09].DAY  := SINT#08;
+	HD[09].MONTH := SINT#05;
+	HD[09].USE := SINT#01;
+
+	HD[10].NAME := 'Prise de La bastille';
+	HD[10].DAY  := SINT#14;
+	HD[10].MONTH := SINT#07;
+	HD[10].USE := SINT#01;
+
+	HD[11].NAME := '15 Aot 1944';
+	HD[11].DAY  := SINT#15;
+	HD[11].MONTH := SINT#08;
+	HD[11].USE := SINT#01;
+
+	HD[12].NAME := 'Halloween';
+	HD[12].DAY  := SINT#31;
+	HD[12].MONTH := SINT#10;
+	HD[12].USE := SINT#00;
+
+	HD[13].NAME := 'Armistice 1918';
+	HD[13].DAY  := SINT#11;
+	HD[13].MONTH := SINT#11;
+	HD[13].USE := SINT#01;
+
+	HD[14].NAME := 'Nol';
+	HD[14].DAY  := SINT#25;
+	HD[14].MONTH := SINT#12;
+	HD[14].USE := SINT#01;
+
+	HD[15].NAME := 'Saint tienne (alsace)';
+	HD[15].DAY  := SINT#26;
+	HD[15].MONTH := SINT#12;
+	HD[15].USE := SINT#00;
+
+	HD[16].NAME := 'Fte de la musique';
+	HD[16].DAY  := SINT#21;
+	HD[16].MONTH := SINT#06;
+	HD[16].USE := SINT#00;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK SETUP_LANGUAGE_Block
+
+	VAR_IN_OUT
+		LANGUAGE :	oscat_LANGUAGE;
+	END_VAR
+
+	VAR
+		init :	BOOL;
+	END_VAR
+
+	IF init THEN RETURN; END_IF;
+	init := TRUE;
+
+	LANGUAGE.DEFAULT  := 1; (* 1=english, 2=german 3=french *)
+	LANGUAGE.LMAX := 3;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK SETUP_WEEKDAYS_Block
+
+	VAR_IN_OUT
+		WEEKDAYS :	oscat_WEEKDAYS;
+	END_VAR
+
+	VAR
+		init :	BOOL;
+	END_VAR
+
+	IF init THEN RETURN; END_IF;
+	init := TRUE;
+
+	WEEKDAYS[1][01] := 'Monday';
+	WEEKDAYS[1][02] := 'Tuesday';
+	WEEKDAYS[1][03] := 'Wednesday';
+	WEEKDAYS[1][04] := 'Thursday';
+	WEEKDAYS[1][05] := 'Friday';
+	WEEKDAYS[1][06] := 'Saturday';
+	WEEKDAYS[1][07] := 'Sunday';
+
+	WEEKDAYS[2][01] := 'Montag';
+	WEEKDAYS[2][02] := 'Dienstag';
+	WEEKDAYS[2][03] := 'Mittwoch';
+	WEEKDAYS[2][04] := 'Donnerstag';
+	WEEKDAYS[2][05] := 'Freitag';
+	WEEKDAYS[2][06] := 'Samstag';
+	WEEKDAYS[2][07] := 'Sonntag';
+
+	WEEKDAYS[3][01] := 'Lundi';
+	WEEKDAYS[3][02] := 'Mardi';
+	WEEKDAYS[3][03] := 'Mercredi';
+	WEEKDAYS[3][04] := 'Jeudi';
+	WEEKDAYS[3][05] := 'Vendredi';
+	WEEKDAYS[3][06] := 'Samedi';
+	WEEKDAYS[3][07] := 'Dimanche';
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK WEEKDAY_TO_STRING_Block
+	VAR_INPUT
+		WDAY :	INT;
+		LANG :	INT;
+		LX :	INT;
+	END_VAR
+
+	VAR_OUTPUT
+		WEEKDAY_TO_STRING :	STRING;
+	END_VAR
+
+
+	VAR
+		LY :	INT;
+		SETUP_LANGUAGE :	SETUP_LANGUAGE_Block;
+		LANGUAGE :	oscat_LANGUAGE;
+		WEEKDAYS :	oscat_WEEKDAYS;
+		WEEKDAYS2 :	oscat_WEEKDAYS2;
+		SETUP_WEEKDAYS :	SETUP_WEEKDAYS_Block;
+		SETUP_WEEKDAYS2 :	SETUP_WEEKDAYS2_Block;
+	END_VAR
+
+
+	SETUP_WEEKDAYS(WEEKDAYS:=WEEKDAYS);
+	WEEKDAYS:=SETUP_WEEKDAYS.WEEKDAYS;
+	SETUP_WEEKDAYS2(WEEKDAYS2:=WEEKDAYS2);
+	WEEKDAYS2:=SETUP_WEEKDAYS2.WEEKDAYS2;
+	SETUP_LANGUAGE(LANGUAGE:=LANGUAGE);
+	LANGUAGE:=SETUP_LANGUAGE.LANGUAGE;
+
+	IF LANG = 0 THEN ly := LANGUAGE.DEFAULT; ELSE ly := MIN(LANG, LANGUAGE.LMAX); END_IF;
+	IF wday < 1 OR wday > 7 THEN
+		RETURN;
+	ELSIF LX = 0 THEN
+		WEEKDAY_TO_STRING := WEEKDAYS[ly][WDAY];
+	ELSIF Lx = 2 THEN
+		WEEKDAY_TO_STRING := WEEKDAYS2[ly][WDAY];
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK SETUP_WEEKDAYS2_Block
+
+	VAR_IN_OUT
+		WEEKDAYS2 :	oscat_WEEKDAYS2;
+	END_VAR
+
+	VAR
+		init :	BOOL;
+	END_VAR
+
+
+	IF init THEN RETURN; END_IF;
+	init := TRUE;
+
+	WEEKDAYS2[1][01] := 'Mo';
+	WEEKDAYS2[1][02] := 'Tu';
+	WEEKDAYS2[1][03] := 'We';
+	WEEKDAYS2[1][04] := 'Th';
+	WEEKDAYS2[1][05] := 'Fr';
+	WEEKDAYS2[1][06] := 'Sa';
+	WEEKDAYS2[1][07] := 'Su';
+
+	WEEKDAYS2[2][01] := 'Mo';
+	WEEKDAYS2[2][02] := 'Di';
+	WEEKDAYS2[2][03] := 'Mi';
+	WEEKDAYS2[2][04] := 'Do';
+	WEEKDAYS2[2][05] := 'Fr';
+	WEEKDAYS2[2][06] := 'Sa';
+	WEEKDAYS2[2][07] := 'So';
+
+	WEEKDAYS2[3][01] := 'Lu';
+	WEEKDAYS2[3][02] := 'Ma';
+	WEEKDAYS2[3][03] := 'Me';
+	WEEKDAYS2[3][04] := 'Je';
+	WEEKDAYS2[3][05] := 'Ve';
+	WEEKDAYS2[3][06] := 'Sa';
+	WEEKDAYS2[3][07] := 'Di';
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  	VAR
+		WDAY :	INT;
+		LANG :	INT;
+		LX :	INT;
+		WEEKDAY_TO_STRING :	STRING;
+		func_block : WEEKDAY_TO_STRING_Block;
+  	END_VAR
+	func_block.WDAY := WDAY;
+	func_block.LANG := LANG;
+	func_block.LX := LX;
+	func_block();
+	WEEKDAY_TO_STRING := func_block.WEEKDAY_TO_STRING;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+
+===== 703-CSV_PARSER_FILE.ST =====
+TYPE
+  oscat_FILE_SERVER_DATA : STRUCT
+	FILE_OPEN	: BOOL;
+    FILENAME 	: STRING;
+    MODE	 	: BYTE;
+    OFFSET   	: UDINT;
+    FILE_SIZE   : UDINT;
+    AUTO_CLOSE	: TIME;
+    ERROR	 	: BYTE;
+  END_STRUCT;
+END_TYPE
+
+TYPE
+	oscat_arb_0_249 			  : ARRAY [0..249] 	OF BYTE;
+END_TYPE
+
+TYPE
+  oscat_NW_BUF_LONG  : ARRAY [0..4095] OF BYTE;
+  oscat_NETWORK_BUFFER :
+  STRUCT
+    SIZE   : UINT;	
+    BUFFER : oscat_NW_BUF_LONG;
+  END_STRUCT;
+END_TYPE
+
+FUNCTION_BLOCK FILE_BLOCK
+
+	VAR_IN_OUT
+		MODE :	BYTE;
+		FILENAME :	STRING;
+		FSD :	oscat_FILE_SERVER_DATA;
+		PT :	oscat_NETWORK_BUFFER;
+	END_VAR
+
+	VAR_INPUT
+		POS :	UDINT;
+	END_VAR
+
+	VAR_OUTPUT
+		ERROR :	BYTE;
+		DATA :	BYTE;
+	END_VAR
+
+	VAR
+		steppp :	INT;
+		i :	INT;
+		data_start :	UDINT;
+		data_stop :	UDINT;
+	END_VAR
+
+	CASE steppp OF
+	0:	IF MODE > BYTE#0 THEN
+			ERROR := BYTE#0;
+			IF FSD.FILE_OPEN AND (FSD.FILE_SIZE = UDINT#0 OR POS >= FSD.FILE_SIZE) THEN
+				ERROR := BYTE#255;
+				MODE := BYTE#0;
+			ELSIF POS < data_start OR POS > data_stop OR NOT FSD.FILE_OPEN THEN (* Daten lesen notwendig *)
+				FSD.FILENAME := FILENAME;
+				FSD.MODE := BYTE#1; (* open + read *)
+				FSD.OFFSET := POS;
+				PT.SIZE := UINT#65535; 
+				data_start := UDINT#0;
+				data_stop := UDINT#0;
+				steppp := 10;
+			ELSE (* Daten sind im Buffer vorhanden *)
+				i := UDINT_TO_INT(POS - data_start); (* index berechnen *)
+				DATA := PT.BUFFER[i];
+				MODE := BYTE#0;
+				(* ---------------------- Debug-Message ----------------------------*)
+				(*IF _debug_enable THEN
+					LOG_CL.NEW_MSG := 'FB: Pos: ~1 Byte: ~2 >~3<';
+					LOG_CL.PRINTF[1] := UDINT_TO_STRING(POS,'%03u');
+					LOG_CL.PRINTF[2] := BYTE_TO_STRING(DATA,'%03u');
+					LOG_CL.PRINTF[3] := BYTE_TO_STRING(DATA,'%c');
+					LOG_MSG();
+				END_IF;*)
+				(* -----------------------------------------------------------------*)
+			END_IF;
+		END_IF;
+
+	10:	IF FSD.MODE = BYTE#0 THEN (* Befehl beendet *)
+			IF FSD.ERROR > BYTE#0 THEN
+				ERROR := FSD.ERROR; (* Fehler ausgeben *)
+				MODE := BYTE#0;
+			ELSE
+				data_start := POS;
+				data_stop := POS + UINT_TO_UDINT(PT.SIZE) - UDINT#1;
+			END_IF;
+			steppp := 0;
+		END_IF;
+	END_CASE;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK CSV_PARSER_FILE
+	VAR_INPUT
+		SEP :	BYTE;
+	END_VAR
+
+	VAR_IN_OUT
+		FILENAME :	STRING;
+		FSD :	oscat_FILE_SERVER_DATA;
+		RUN :	BYTE;
+		OFFSET :	UDINT;
+		VALUE :	STRING;
+		PT :	oscat_NETWORK_BUFFER;
+	END_VAR
+	
+
+	VAR_OUTPUT
+		RESULT :	BYTE;
+	END_VAR
+
+
+	VAR
+		FB :	FILE_BLOCK;
+		i :	UDINT;
+		state :	BYTE;
+		e :	BYTE;
+		mode :	BYTE;
+		stepp :	INT;
+		c :	BYTE;
+		v_add :	BYTE;
+		v_idx :	INT;
+		v_buf :	oscat_arb_0_249;
+		BUFFER_TO_STRING :	BUFFER_TO_STRING;
+		eof :	BOOL;
+		watchdog :	TON;
+		x :	BOOL;
+	END_VAR
+
+	IF RUN > BYTE#0 THEN
+
+		IF state = BYTE#0 THEN
+			VALUE := '';
+			v_idx := 0;
+			i := OFFSET;
+			RESULT := BYTE#0;
+			state := BYTE#5; (* Befehl in Arbeit (Busy) *)
+			stepp := 0; (* Auswertung neu beginnen *)
+
+		END_IF;
+
+		watchdog(IN:=FALSE,PT:=T#1ms); (* Timer neustarten *)
+		watchdog.IN := TRUE;
+
+		WHILE (state = BYTE#5) DO (* Schleife solange kein Ergebnis *)
+
+			mode := BYTE#1;
+			FB(MODE:=mode,FSD:=fsd,PT:=PT,FILENAME:=FILENAME,POS:=i);
+			FILENAME:=FB.FILENAME;
+			mode:=FB.MODE;
+			fsd:=FB.FSD;
+			PT:=FB.PT;
+			e:=FB.ERROR;
+			c:=FB.DATA;
+
+			eof := i + UDINT#1 = FSD.FILE_SIZE; (* End of File *)
+			watchdog(); (* Timer aktualisieren *)
+
+			IF mode > BYTE#0 OR watchdog.Q THEN (* Baustein noch aktiv, oder watchdog ausgel�st *)
+				state := BYTE#5;
+				EXIT;
+			ELSIF e > BYTE#0 THEN (* File_error oder kein weiteres zeichen vorhanden *)
+				state := BYTE#10; (* nichts gefunden - Daten-Ende erreicht *)
+				EXIT;
+			ELSE
+
+				v_add := BYTE#0;
+
+				IF c = SEP THEN (* Neues Element erkannt *)
+					state := BYTE#1;
+					x := TRUE;
+				ELSIF c >= BYTE#32 THEN (* Element erkannt *)
+					v_add := c; (* Zeichen ablegen *)
+					IF eof THEN
+						state := BYTE#2; (* Element und Zeilenende erkannt *)
+					ELSE
+						x := TRUE;
+					END_IF;
+				ELSE
+					IF x THEN
+						state := BYTE#2; (* Element und Zeilenende erkannt *)
+						x := FALSE;
+					END_IF;
+				END_IF;
+
+				IF v_add > BYTE#0 AND v_idx < 250 THEN (* Zeichen zu Value-String hinzuf�gen *)
+					v_buf[v_idx] := v_add;
+					v_idx := v_idx + 1;
+				END_IF;
+
+				i := i + UDINT#1; (* Datenzeiger erh�hen *)
+
+			END_IF;
+		END_WHILE;
+
+		IF (state = BYTE#1 OR state = BYTE#2) AND v_idx > 0 THEN (* VALUE-String ausgeben *)
+			BUFFER_TO_STRING(PT:=v_buf,SIZE:=INT_TO_UINT(v_idx),START:=UINT#0,STOP:=UINT#249);
+			v_buf := BUFFER_TO_STRING.PT;
+			VALUE := BUFFER_TO_STRING.BUFFER_TO_STRING;
+		END_IF;
+
+		CASE _BYTE_TO_INT(state) OF
+		01:	(* Element gefunden *)
+			RESULT := BYTE#1; (* Element gefunden *)
+			OFFSET := i; (* Offset uebernehmen *)
+			RUN := BYTE#0;
+			state := BYTE#0;
+		02:	(* Element gefunden *)
+			RESULT := BYTE#2; (* Element und Zeilenende erkannt *)
+			OFFSET := i; (* Offset uebernehmen *)
+			RUN := BYTE#0;
+			state := BYTE#0;
+
+		05:	RESULT := BYTE#5; (* in Arbeit *)
+
+		10:	
+			RESULT := BYTE#10; (* nichts gefunden - Datenende erreicht *)
+			OFFSET := i; (* Offset uebernehmen *)
+			RUN := BYTE#0;
+			state := BYTE#0;
+		END_CASE;
+	END_IF;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	SEP      :	BYTE;
+	FILENAME :	STRING;
+	FSD      :	oscat_FILE_SERVER_DATA;
+	RUN      :	BYTE;
+	OFFSET   :	UDINT;
+	VALUE    :	STRING;
+	PT       :	oscat_NETWORK_BUFFER;
+	RESULT   :	BYTE;
+
+	func_block : CSV_PARSER_FILE;
+  END_VAR
+	func_block.SEP      :=SEP     ;
+	func_block.FILENAME :=FILENAME;
+	func_block.FSD      :=FSD     ;
+	func_block.RUN      :=RUN     ;
+	func_block.OFFSET   :=OFFSET  ;
+	func_block.VALUE    :=VALUE   ;
+	func_block.PT       :=PT      ;
+
+	func_block();
+	FILENAME := func_block.FILENAME;
+	FSD      := func_block.FSD     ;
+	RUN      := func_block.RUN     ;
+	OFFSET   := func_block.OFFSET  ;
+	VALUE    := func_block.VALUE   ;
+	PT       := func_block.PT      ;
+	RESULT   := func_block.RESULT  ;
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 704-IRTRANS_DEMO.GE =====
+PROGRAM IRTRANS_DEMO
+
+	VAR
+		IP_C :	oscat_IP_C;
+		IP_CONTROL :	IP_CONTROL;
+		S_BUF :	oscat_NETWORK_BUFFER;
+		R_BUF :	oscat_NETWORK_BUFFER;
+		st_device :	STRING;
+		st_key :	STRING;
+		bo_error :	BOOL;
+		bo_Q0 :	BOOL;
+		bo_Q1 :	BOOL;
+		bo_Q2 :	BOOL;
+		bo_Q3 :	BOOL;
+		DRIVER_4 :	DRIVER_4;
+		IRTRANS_DECODE :	IRTRANS_DECODE;
+		KEY_1 :	BYTE;
+		IN_0 :	BOOL;
+		IN_1 :	BOOL;
+		IN_2 :	BOOL;
+		IN_3 :	BOOL;
+		IN_4 :	BOOL;
+		IN_5 :	BOOL;
+		IN_6 :	BOOL;
+		IN_7 :	BOOL;
+		IRTRANS_SERVER :	IRTRANS_SERVER;
+		MODE :	BOOL;
+		S_ENABLE :	BOOL;
+		R_ENABLE :	BOOL;
+		ERROR :	DWORD;
+		IRTRANS_RCV_4 :	IRTRANS_RCV_4;
+		IRTRANS_SND_8 :	IRTRANS_SND_8;
+	END_VAR
+
+	(*
+	[GRA]
+	250 999 0 0 0 0 0 
+
+	[LIT]
+	17
+	39 25 40 25 0 ""
+	17 29 18 29 0 ""
+	39 29 40 29 0 ""
+	17 33 18 33 0 ""
+	39 33 40 33 0 ""
+	39 13 72 13 0 ""
+	29 158 30 158 0 ""
+	29 170 30 170 0 ""
+	57 170 58 170 0 ""
+	29 174 30 174 0 ""
+	57 174 58 174 0 ""
+	29 178 30 178 0 ""
+	57 178 58 178 0 ""
+	94 25 119 25 0 ""
+	94 29 119 29 0 ""
+	94 33 119 33 0 ""
+	94 37 119 37 0 ""
+
+	[TET]
+	68
+	40 24 50 26 4 3 bo_error
+	145 20 153 22 4 3 bo_Q0
+	145 24 153 26 4 3 bo_Q1
+	145 28 153 30 4 3 bo_Q2
+	145 32 153 34 4 3 bo_Q3
+	112 44 119 46 4 5 TRUE
+	24 203 30 205 4 5 IP_C
+	55 203 61 205 4 3 IP_C
+	22 207 30 209 4 5 S_BUF
+	55 207 63 209 4 3 S_BUF
+	22 211 30 213 4 5 R_BUF
+	55 211 63 213 4 3 R_BUF
+	11 28 17 30 4 5 IP_C
+	9 32 17 34 4 5 R_BUF
+	40 28 46 30 4 3 IP_C
+	40 32 48 34 4 3 R_BUF
+	20 6 38 9 7 6 IRTRANS_DECODE
+	57 61 65 63 4 3 KEY_1
+	19 61 30 63 4 5 'geraet_1'
+	21 65 30 67 4 5 'taste_0'
+	21 69 30 71 4 5 'taste_1'
+	21 73 30 75 4 5 'taste_2'
+	21 77 30 79 4 5 'taste_3'
+	21 81 30 83 4 5 'taste_4'
+	21 85 30 87 4 5 'taste_5'
+	21 89 30 91 4 5 'taste_6'
+	21 93 30 95 4 5 'taste_7'
+	20 129 30 131 4 5 T#500ms
+	24 133 30 135 4 5 IP_C
+	22 137 30 139 4 5 S_BUF
+	24 97 30 99 4 5 IN_0
+	24 101 30 103 4 5 IN_1
+	24 105 30 107 4 5 IN_2
+	24 109 30 111 4 5 IN_3
+	24 113 30 115 4 5 IN_4
+	24 117 30 119 4 5 IN_5
+	24 121 30 123 4 5 IN_6
+	24 125 30 127 4 5 IN_7
+	57 133 63 135 4 3 IP_C
+	57 137 65 139 4 3 S_BUF
+	16 195 30 197 4 5 WORD#21000
+	23 199 30 201 4 5 T#2s
+	22 157 29 159 4 5 MODE
+	21 173 29 175 4 5 S_BUF
+	23 169 29 171 4 5 IP_C
+	58 169 64 171 4 3 IP_C
+	58 173 66 175 4 3 S_BUF
+	21 177 29 179 4 5 R_BUF
+	58 177 66 179 4 3 R_BUF
+	57 157 68 159 4 3 S_ENABLE
+	57 161 68 163 4 3 R_ENABLE
+	57 165 65 167 4 3 ERROR
+	74 6 92 9 7 6 IRTRANS_RCV_4
+	62 16 72 18 4 5 st_device
+	64 20 72 22 4 5 st_key
+	64 24 72 26 4 5 'TEST'
+	67 28 72 30 4 5 'F1'
+	67 32 72 34 4 5 'F2'
+	67 36 72 38 4 5 'F3'
+	67 40 72 42 4 5 'F4'
+	39 16 49 18 4 3 st_device
+	94 16 104 18 4 3 st_device
+	39 20 47 22 4 3 st_key
+	94 20 102 22 4 3 st_key
+	32 55 55 58 7 6 IRTRANS_SND_8
+	32 151 55 154 7 6 IRTRANS_SERVER
+	32 185 53 188 7 6 IP_CONTROL
+	121 14 143 17 7 6 DRIVER_4
+
+	[FBS]
+	6
+	458772 524297 37 37 0 0 IRTRANS_DECODE IRTRANS_DECODE  
+	786506 327689 92 45 0 0 IRTRANS_RCV_4 IRTRANS_RCV_4  
+	917536 524346 55 142 0 0 IRTRANS_SND_8 IRTRANS_SND_8  
+	720928 721050 55 182 0 0 IRTRANS_SERVER IRTRANS_SERVER  
+	786464 524476 53 216 0 0 IP_CONTROL IP_CONTROL  
+	1048697 327697 143 53 0 0 DRIVER_4 DRIVER_4  
+
+	[FPT]
+	64
+	31 12 37 14 CMD 0 0 0 1 0 4225 @ BOOL 
+	32 16 37 18 DEV 0 0 0 1 0 4224 @ STRING 
+	32 20 37 22 KEY 0 0 0 1 0 4224 @ STRING 
+	29 24 37 26 ERROR 0 0 0 1 0 4227 @ BOOL 
+	20 28 37 30 IP_C 0 0 0 2 130 130 @ oscat_IP_C 
+	20 32 37 34 R_BUF 0 0 0 2 130 130 @ oscat_NETWORK_BUFFER 
+	74 12 80 14 CMD 0 0 0 0 4225 0 @ BOOL 
+	74 16 92 18 DEV 0 0 0 2 128 128 @ STRING 
+	74 20 92 22 KEY 0 0 0 2 128 128 @ STRING 
+	74 24 86 26 DEV_CODE 0 0 0 0 4224 0 @ STRING 
+	74 28 87 30 KEY_CODE_0 0 0 0 0 4224 0 @ STRING 
+	74 32 87 34 KEY_CODE_1 0 0 0 0 4224 0 @ STRING 
+	74 36 87 38 KEY_CODE_2 0 0 0 0 4224 0 @ STRING 
+	74 40 87 42 KEY_CODE_3 0 0 0 0 4224 0 @ STRING 
+	88 24 92 26 Q0 0 0 0 1 0 4225 @ BOOL 
+	88 28 92 30 Q1 0 0 0 1 0 4225 @ BOOL 
+	88 32 92 34 Q2 0 0 0 1 0 4225 @ BOOL 
+	88 36 92 38 Q3 0 0 0 1 0 4225 @ BOOL 
+	32 61 45 63 DEV_CODE 0 0 0 0 4224 0 @ STRING 
+	32 65 47 67 KEY_CODE_0 0 0 0 0 4224 0 @ STRING 
+	32 69 47 71 KEY_CODE_1 0 0 0 0 4224 0 @ STRING 
+	32 73 47 75 KEY_CODE_2 0 0 0 0 4224 0 @ STRING 
+	32 77 47 79 KEY_CODE_3 0 0 0 0 4224 0 @ STRING 
+	32 81 47 83 KEY_CODE_4 0 0 0 0 4224 0 @ STRING 
+	32 85 47 87 KEY_CODE_5 0 0 0 0 4224 0 @ STRING 
+	32 89 47 91 KEY_CODE_6 0 0 0 0 4224 0 @ STRING 
+	32 93 47 95 KEY_CODE_7 0 0 0 0 4224 0 @ STRING 
+	32 97 39 99 IN_0 0 0 0 0 4225 0 @ BOOL 
+	32 101 39 103 IN_1 0 0 0 0 4225 0 @ BOOL 
+	32 105 39 107 IN_2 0 0 0 0 4225 0 @ BOOL 
+	32 109 39 111 IN_3 0 0 0 0 4225 0 @ BOOL 
+	32 113 39 115 IN_4 0 0 0 0 4225 0 @ BOOL 
+	32 117 39 119 IN_5 0 0 0 0 4225 0 @ BOOL 
+	32 121 39 123 IN_6 0 0 0 0 4225 0 @ BOOL 
+	32 125 39 127 IN_7 0 0 0 0 4225 0 @ BOOL 
+	32 129 45 131 T_REPEAT 0 0 0 0 4224 0 @ TIME 
+	49 61 55 63 KEY 0 0 0 1 0 4224 @ BYTE 
+	32 133 55 135 IP_C 0 0 0 2 128 128 @ oscat_IP_C 
+	32 137 55 139 S_BUF 0 0 0 2 128 128 @ oscat_NETWORK_BUFFER 
+	32 157 44 159 UDP_TCP 0 0 0 0 4225 0 @ BOOL 
+	44 157 55 159 S_ENABLE 0 0 0 1 0 4225 @ BOOL 
+	44 161 55 163 R_ENABLE 0 0 0 1 0 4225 @ BOOL 
+	47 165 55 167 ERROR 0 0 0 1 0 4224 @ DWORD 
+	32 169 55 171 IP_C 0 0 0 2 128 128 @ oscat_IP_C 
+	32 173 55 175 S_BUF 0 0 0 2 128 128 @ oscat_NETWORK_BUFFER 
+	32 177 55 179 R_BUF 0 0 0 2 128 128 @ oscat_NETWORK_BUFFER 
+	32 191 37 193 IP 0 0 0 0 4224 0 @ DWORD 
+	32 195 40 197 PORT 0 0 0 0 4224 0 @ WORD 
+	32 199 45 201 TIME_OUT 0 0 0 0 4224 0 @ TIME 
+	32 203 53 205 IP_C 0 0 0 2 128 128 @ oscat_IP_C 
+	32 207 53 209 S_BUF 0 0 0 2 128 128 @ oscat_NETWORK_BUFFER 
+	32 211 53 213 R_BUF 0 0 0 2 128 128 @ oscat_NETWORK_BUFFER 
+	121 20 128 22 SET 0 0 0 0 4225 0 @ BOOL 
+	121 24 127 26 IN0 0 0 0 0 4225 0 @ BOOL 
+	121 28 127 30 IN1 0 0 0 0 4225 0 @ BOOL 
+	121 32 127 34 IN2 0 0 0 0 4225 0 @ BOOL 
+	121 36 127 38 IN3 0 0 0 0 4225 0 @ BOOL 
+	121 40 128 42 RST 0 0 0 0 4225 0 @ BOOL 
+	121 44 138 46 TOGGLE_MODE 0 0 0 0 4225 0 @ BOOL 
+	121 48 133 50 TIMEOUT 0 0 0 0 4224 0 @ TIME 
+	138 20 143 22 Q0 0 0 0 1 0 4225 @ BOOL 
+	138 24 143 26 Q1 0 0 0 1 0 4225 @ BOOL 
+	138 28 143 30 Q2 0 0 0 1 0 4225 @ BOOL 
+	138 32 143 34 Q3 0 0 0 1 0 4225 @ BOOL 
+
+	[AKT]
+	0
+
+	[STT]
+	0
+
+	[TRT]
+	0
+
+	[KOT]
+	0
+
+	[VER]
+	0
+
+	[IBX]
+	0
+	*)
+
+END_PROGRAM
+
+
+===== 705-CTRL_PID.ST =====
+FUNCTION_BLOCK T_PLC_US_Block
+	VAR_OUTPUT
+		T_PLC_US :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;
+		N :	INT;
+		Offset :	UDINT;
+		temp :	DWORD := DWORD#1;
+		mode :	BOOL;
+		faktor :	UDINT;
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000000;
+	END_VAR
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1000;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_US := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_US := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_US := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_US),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK FT_PIWL
+
+	VAR_INPUT
+		IN :	REAL;
+		KP :	REAL := 1.0;
+		KI :	REAL := 1.0;
+		LIM_L :	REAL := -1.0E38;
+		LIM_H :	REAL := 1.0E38;
+		RST :	BOOL;
+	END_VAR
+
+	VAR_OUTPUT
+		Y :	REAL;
+		LIM :	BOOL;
+	END_VAR
+
+	VAR
+		init :	BOOL;
+		tx :	UDINT;
+		tc :	REAL;
+		t_last :	UDINT;
+		in_last :	REAL;
+		i :	REAL;
+		p :	REAL;
+		T_PLC_US :	T_PLC_US_Block;
+	END_VAR
+
+	IF NOT init OR RST THEN
+		init := TRUE;
+		in_last := in;
+		T_PLC_US();
+		t_last := T_PLC_US.T_PLC_US;
+		i := 0.0;
+		tc := 0.0;
+	ELSE
+		(* read last cycle time in Microseconds *)
+		T_PLC_US();
+		tx := T_PLC_US.T_PLC_US;
+		tc := UDINT_TO_REAL(tx - t_last);
+		t_last := tx;
+
+		(* calculate proportional part *)
+		p := KP * IN;
+
+		(* run integrator *)
+		i := (IN + in_last) * 5.0E-7 * KI * tc + i;
+		in_last := IN;
+
+		(* calculate output Y *)
+		Y := p + i;
+
+		(* check output for limits *)
+		IF Y >= LIM_H THEN
+			Y := LIM_H;
+			IF ki <> 0.0 THEN
+				i := LIM_H - p;
+			ELSE
+				i := 0.0;
+			END_IF;
+			LIM := TRUE;
+		ELSIF Y <= LIM_L THEN
+			Y := LIM_L;
+			IF ki <> 0.0 THEN
+				i := LIM_L - p;
+			ELSE
+				i := 0.0;
+			END_IF;
+			LIM := TRUE;
+		ELSE
+			LIM := FALSE;
+		END_IF;
+	END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK FT_DERIV
+	VAR_INPUT
+		IN :	REAL;
+		K :	REAL := 1.0;
+		RUN :	BOOL := TRUE;
+	END_VAR
+
+	VAR_OUTPUT
+		OUT :	REAL;
+	END_VAR
+
+	VAR
+		old :	REAL;
+		tx :	UDINT;
+		last :	UDINT;
+		init :	BOOL;
+		tc :	REAL;
+		T_PLC_US :	T_PLC_US_Block;
+	END_VAR
+
+	T_PLC_US();
+	tx:= T_PLC_US.T_PLC_US;
+	tc := UDINT_TO_REAL(tx - last);
+
+	IF NOT init THEN
+		init := TRUE;
+		old := in;
+	ELSIF run AND tc > 0.0 THEN
+		out := (in - old) / tc * 1000000.0 * K;
+		old := in;
+	ELSE
+		out := 0.0;
+	END_IF;
+
+	last := tx;
+
+	T_PLC_US();
+	tx:= T_PLC_US.T_PLC_US;
+
+	IF NOT init THEN
+		init := TRUE;
+	ELSIF run AND tx - last > UDINT#0 THEN
+		out := (in - old) / UDINT_TO_REAL(tx - last) * 1000000.0 * K;
+	ELSE
+		out := 0.0;
+	END_IF;
+	old := in;
+	last := tx;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK FT_PIDWL
+	VAR_INPUT
+		IN :	REAL;
+		KP :	REAL := 1.0;
+		TN :	REAL := 1.0;
+		TV :	REAL := 1.0;
+		LIM_L :	REAL := -1.0E38;
+		LIM_H :	REAL := 1.0E38;
+		RST :	BOOL;
+	END_VAR
+
+	VAR_OUTPUT
+		Y :	REAL;
+		LIM :	BOOL;
+	END_VAR
+
+	VAR
+		piwl :	FT_PIWL;
+		diff :	FT_DERIV;
+	END_VAR
+
+	IF rst THEN
+		piwl(rst := TRUE);
+		piwl.RST := FALSE;
+	ELSE
+		IF TN = 0.0 THEN
+			piwl(in := IN * KP, KP := 1.0, KI := 0.0, LIM_L := LIM_L, LIM_H := LIM_H);
+		ELSE
+			piwl(in := IN * KP, KP := 1.0, KI := 1.0 / TN, LIM_L := LIM_L, LIM_H := LIM_H);
+		END_IF;
+
+		diff(IN := IN, K := KP * TV);
+		Y := piwl.Y + diff.out;
+
+		IF Y < LIM_L THEN
+			LIM := TRUE;
+			Y := LIM_L;
+		ELSIF Y > LIM_H THEN
+			LIM := TRUE;
+			Y := LIM_H;
+		ELSE
+			LIM := FALSE;
+		END_IF;
+	END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK CTRL_OUT
+	VAR_INPUT
+		CI :	REAL;
+		OFFSET :	REAL;
+		MAN_IN :	REAL;
+		LIM_L :	REAL;
+		LIM_H :	REAL;
+		MANUAL :	BOOL;
+	END_VAR
+
+	VAR_OUTPUT
+		Y :	REAL;
+		LIM :	BOOL;
+	END_VAR
+
+	Y := SEL(manual, CI, MAN_IN) + OFFSET;
+
+	IF Y >= LIM_H THEN
+		Y := LIM_H;
+		LIM := TRUE;
+	ELSIF Y <= lim_L THEN
+		Y := LIM_L;
+		LIM := TRUE;
+	ELSE
+		LIM := FALSE;
+	END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION DEAD_ZONE:REAL
+
+	VAR_INPUT
+		X :	REAL;
+		L :	REAL;
+	END_VAR
+
+	IF ABS(x) > L THEN
+		dead_zone := X;
+	ELSE
+		DEAD_ZONE := 0.0;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION CTRL_IN:REAL
+	VAR_INPUT
+		SET_POINT :	REAL;
+		ACTUAL :	REAL;
+		NOISE :	REAL;
+	END_VAR
+	CTRL_IN := DEAD_ZONE(SET_POINT - ACTUAL, NOISE);
+END_FUNCTION
+
+FUNCTION_BLOCK CTRL_PID
+	VAR_INPUT
+		ACT :	REAL;
+		SET :	REAL;
+		SUP :	REAL;
+		OFS :	REAL;
+		M_I :	REAL;
+		MAN :	BOOL;
+		RST :	BOOL := FALSE;
+		KP :	REAL := 1.0;
+		TN :	REAL := 1.0;
+		TV :	REAL := 1.0;
+		LL :	REAL := -1000.0;
+		LH :	REAL := 1000.0;
+	END_VAR
+
+	VAR_OUTPUT
+		Y :	REAL;
+		DIFF :	REAL;
+		LIM :	BOOL;
+	END_VAR
+
+	VAR
+		pidd :	FT_PIDWL;
+		co :	CTRL_OUT;
+	END_VAR
+
+	DIFF := CTRL_IN(SET, ACT, SUP);
+	pidd(in := DIFF, kp := KP, tn := TN, tv := TV, lim_l := LL, lim_h := LH, rst := RST);
+	co(ci := pidd.Y, OFFSET := OFS, man_in := M_I, lim_l := LL, lim_h := LH, manual := MAN);
+	Y := co.Y;
+	LIM := co.LIM;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+		ACT :	REAL;
+		SET :	REAL;
+		SUP :	REAL;
+		OFS :	REAL;
+		M_I :	REAL;
+		MAN :	BOOL;
+		RST :	BOOL;
+		KP :	REAL;
+		TN  :	REAL;
+		TV  :	REAL;
+		LL  :	REAL;
+		LH  :	REAL;
+
+		Y    :	REAL;
+		DIFF :	REAL;
+		LIM  :	BOOL;
+
+	func_block : CTRL_PID;
+  END_VAR
+	func_block.ACT  :=ACT ;
+	func_block.SET  :=SET ;
+	func_block.SUP  :=SUP ;
+	func_block.OFS  :=OFS ;
+	func_block.M_I  :=M_I ;
+	func_block.MAN  :=MAN ;
+	func_block.RST  :=RST ;
+	func_block.KP   :=KP  ;
+	func_block.TV   :=TV  ;
+	func_block.TN   :=TN  ;
+	func_block.LL   :=LL  ;
+	func_block.LH   :=LH  ;
+	
+	
+	func_block();
+	Y    := func_block.Y   ;
+	DIFF := func_block.DIFF;
+	LIM  := func_block.LIM ;
+END_PROGRAM
+
+
+CONFIGURATION Config0
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+END_CONFIGURATION
+
+===== 706-IP_CONTROL2.ST =====
+FUNCTION_BLOCK IP_CONTROL2
+
+  VAR
+
+  END_VAR
+
+
+  VAR_EXTERNAL
+
+  END_VAR
+
+
+  VAR
+
+  END_VAR
+
+  VAR
+    T_PLC_MS :	T_PLC_MS;
+    IP4_TO_STRING :	IP4_TO_STRING;
+    FB_IP_CONNECT :	IP_CONNECT;
+    FB_IP_URCV :	IP_URCV;
+    FB_IP_USEND :	IP_USEND;
+  END_VAR
+
+  VAR_INPUT
+    IP :	DWORD;
+    PORT :	WORD;
+    TIME_OUT :	TIME;
+  END_VAR
+
+
+  VAR_IN_OUT
+    IP_C :	oscat_IP_C;
+    S_BUF :	oscat_NETWORK_BUFFER_SHORT;
+    R_BUF :	oscat_NETWORK_BUFFER_SHORT;
+  END_VAR
+
+  VAR
+    C_TIME :	UDINT;
+    S_TIME :	UDINT;
+    R_TIME :	UDINT;
+    C_ENABLE :	BOOL;
+    C_IP :	DWORD;
+    C_PORT :	WORD;
+    C_MODE :	BYTE;
+    C_ERROR :	BOOL;
+    C_STATUS :	INT;
+    C_ID :	INT;
+    C_RECONNECT :	BOOL;
+    C_RECONNECT_COUNT :	INT;
+    S_DONE :	BOOL;
+    S_ERROR :	BOOL;
+    S_STATUS :	INT;
+    S_ACTIVE :	BOOL;
+    R_NDR :	BOOL;
+    R_ERROR :	BOOL;
+    R_STATUS :	INT;
+    NEW_CONNECTION :	BOOL;
+    C_ENABLE_OLD :	BOOL;
+    C_READY :	BOOL;
+    C_READY_OLD :	BOOL;
+    DELAY_STOP :	UDINT;
+    DELAY :	UDINT;
+    DELAY_VALUE :	UDINT;
+    C :	INT;
+    C2 :	INT;
+    CS :	oscat_STRING50;
+    TX :	UDINT;
+    ERROR_TIME :	UDINT;
+    ERROR_CON :	BYTE;
+    ERROR_SND :	BYTE;
+    ERROR_RCV :	BYTE;
+  END_VAR
+
+  T_PLC_MS();
+  TX := T_PLC_MS.T_PLC_MS;
+
+  IF (TX - DELAY < DELAY_VALUE) THEN
+    IF IP_C.C_STATE <> BYTE#1 AND IP_C.C_STATE <> BYTE#254 THEN 
+    RETURN;
+    END_IF;
+  END_IF;
+  DELAY := TX;
+
+  IF C_ENABLE AND DELAY_VALUE > UDINT#00 THEN
+    IF (TX - DELAY_STOP > UDINT#1000) THEN 
+      DELAY_VALUE := UDINT#00;
+
+    END_IF;
+  ELSE
+    DELAY_STOP := TX;  
+  END_IF;
+
+  IF IP_C.C_PORT = WORD#00 THEN
+    IP_C.C_PORT := PORT;
+  END_IF;
+  IF IP_C.C_IP=DWORD#00 AND IP_C.C_MODE<BYTE#4 THEN
+    IP_C.C_IP := IP; 
+  END_IF;
+
+  NEW_CONNECTION := C_IP <> IP_C.C_IP OR C_MODE <> IP_C.C_MODE OR C_PORT <> IP_C.C_PORT;
+
+  IF IP_C.C_ENABLE AND NOT C_READY AND NEW_CONNECTION THEN
+
+    C_IP   := IP_C.C_IP; 
+    C_MODE := IP_C.C_MODE;
+    C_PORT := IP_C.C_PORT;
+
+    CS := SEL_STRING((C_MODE AND BYTE#1) = BYTE#1,'','/UDP ');
+    CS := CONCAT(CS,SEL_STRING(C_MODE<BYTE#2,'/PASSIVE','/ACTIVE'));
+    CS := CONCAT(CS,' /PORT=');
+    CS := CONCAT(CS,WORD_TO_STRING(C_PORT,'%u'));
+
+    IF C_MODE<BYTE#4 THEN 
+      IP4_TO_STRING(IP4:=C_IP); 
+      CS := CONCAT(CS,' /IP=');
+      CS := CONCAT(CS,IP4_TO_STRING.IP4_TO_STRING);
+    END_IF;
+
+    ERROR_TIME := MAX(UDINT#200,TIME_TO_UDINT2(TIME_OUT));
+    IP_C.TIME_RESET := TRUE;   
+  END_IF;
+
+  C_ENABLE := IP_C.C_ENABLE AND NOT C_RECONNECT AND NOT NEW_CONNECTION AND IP_C.ERROR = DWORD#0;
+
+  FB_IP_CONNECT.EN_C    := C_ENABLE;  
+  FB_IP_CONNECT.PARTNER := CS;
+  FB_IP_CONNECT(); 
+  C_READY  := FB_IP_CONNECT.VALID;
+  C_ERROR  := FB_IP_CONNECT.ERROR;
+  C_STATUS := FB_IP_CONNECT.STATUS;
+  C_ID     := FB_IP_CONNECT.ID;
+
+  IF C_ENABLE THEN
+    IF NOT C_ENABLE_OLD THEN
+      DELAY_VALUE := UDINT#50; 
+    END_IF;
+  ELSE
+    IF C_ENABLE_OLD THEN
+      C_RECONNECT := FALSE;
+      DELAY_VALUE := UDINT#50; 
+    END_IF;
+  END_IF;
+
+  C_ENABLE_OLD := C_ENABLE;
+
+  IF C_READY THEN
+    IF NOT C_READY_OLD THEN
+      IP_C.C_STATE := BYTE#254;
+      DELAY_VALUE := UDINT#50;  
+      IP_C.TIME_RESET := TRUE;  
+    ELSE
+      IP_C.C_STATE := BYTE#255;  
+    END_IF;
+  ELSE
+    IF C_READY_OLD THEN
+      IP_C.C_STATE := BYTE#1;
+    IP_C.MAILBOX[1] := BYTE#0; 
+    IP_C.MAILBOX[2] := BYTE#0; 
+    IP_C.MAILBOX[3] := BYTE#0; 
+      DELAY_VALUE := UDINT#50;  
+
+      IF NOT NEW_CONNECTION THEN
+        S_ACTIVE := FALSE;        
+        S_BUF.SIZE := UINT#0;     
+      END_IF;
+    ELSE
+      IP_C.C_STATE := BYTE#000; 
+    END_IF;
+  END_IF;
+
+  C_READY_OLD := C_READY;
+  C := 1; 
+  IF S_BUF.SIZE > UINT#0 THEN
+    IF C_READY AND C_ENABLE AND S_ACTIVE = FALSE AND IP_C.MAILBOX[2] = BYTE#0 THEN
+      S_ACTIVE := TRUE; 
+      S_TIME := tx; 
+      R_TIME := tx;
+      C := 0;
+    END_IF;
+  END_IF;
+
+  FOR C2 := C TO 1 DO
+    FB_IP_USEND.REQ    := S_ACTIVE AND C2=1;
+    FB_IP_USEND.ID     := C_ID;
+    FB_IP_USEND.R_ID   := '';
+    FB_IP_USEND.SD_1   := S_BUF;
+    FB_IP_USEND();
+    S_DONE   := FB_IP_USEND.DONE;
+    S_ERROR  := FB_IP_USEND.ERROR;
+    S_STATUS := FB_IP_USEND.STATUS;
+    S_BUF    := FB_IP_USEND.SD_1;
+  END_FOR;
+
+  IF S_DONE THEN    
+      S_ACTIVE := FALSE;
+      S_BUF.SIZE := UINT#0;
+  END_IF;
+
+  FB_IP_URCV.EN_R := C_READY AND NOT S_ACTIVE AND IP_C.MAILBOX[3] = BYTE#0; 
+  FB_IP_URCV.ID   := C_ID;
+  FB_IP_URCV.R_ID := '';
+  FB_IP_URCV.RD_1 := R_BUF;
+  FB_IP_URCV();
+  R_NDR    := FB_IP_URCV.NDR;
+  R_ERROR  := FB_IP_URCV.ERROR;
+  R_STATUS := FB_IP_URCV.STATUS;
+  R_BUF    := FB_IP_URCV.RD_1;
+
+  IF R_NDR THEN
+      R_TIME := TX;
+      IP_C.MAILBOX[1] := USINT_TO_BYTE(BYTE_TO_USINT(IP_C.MAILBOX[1]) + USINT#1); 
+      IF IP_C.MAILBOX[1] = BYTE#0 THEN IP_C.MAILBOX[1] := BYTE#1; END_IF;
+  END_IF;
+
+  IF IP_C.TIME_RESET THEN     
+    IP_C.TIME_RESET := FALSE;
+    C_RECONNECT_COUNT := 0;  
+    C_TIME := tx;           
+    S_TIME := tx;             
+    R_TIME := tx;            
+
+    ERROR_CON := BYTE#0;	
+    ERROR_SND := BYTE#0;		
+    ERROR_RCV := BYTE#0;	
+  END_IF;
+
+  IF IP_C.R_OBSERVE = FALSE OR s_active THEN
+      R_TIME := tx;
+  END_IF;
+
+  C_RECONNECT := FALSE;
+
+  IF ERROR_CON = BYTE#0 THEN
+    IF C_ERROR THEN 
+    IF C_STATUS = 16#31 THEN
+      ERROR_CON := BYTE#253;
+    ELSE
+      ERROR_CON := INT_TO_BYTE(C_STATUS);
+    END_IF;
+    ELSIF TX - C_TIME > ERROR_TIME AND C_ENABLE AND NOT C_READY AND C_MODE < BYTE#2 THEN
+      IF C_RECONNECT_COUNT >= 3 THEN
+        ERROR_CON := BYTE#255;
+      ELSE
+        C_TIME := TX; 
+        C_RECONNECT_COUNT := C_RECONNECT_COUNT + 1;
+        C_RECONNECT := TRUE;
+      END_IF;
+    END_IF;
+  END_IF;
+
+  IF ERROR_SND = BYTE#0 THEN
+    IF S_ERROR AND S_STATUS <> 16#65 THEN
+      ERROR_SND := INT_TO_BYTE(S_STATUS);
+    ELSIF TX - S_TIME > ERROR_TIME AND S_ACTIVE THEN 
+      ERROR_SND := BYTE#255; 
+    END_IF;
+  END_IF;
+
+  IF ERROR_RCV = BYTE#0 THEN
+    IF R_ERROR AND (R_STATUS <> 16#33) AND (R_STATUS <> 16#31) AND (R_STATUS <> 16#65) THEN
+      ERROR_RCV := INT_TO_BYTE(R_STATUS);
+    ELSIF TX - R_TIME > ERROR_TIME AND C_READY AND IP_C.R_OBSERVE THEN
+      ERROR_RCV := BYTE#255; 
+    END_IF;
+  END_IF;
+
+  IP_C.ERROR := DWORD_OF_BYTE(ERROR_CON,ERROR_SND,ERROR_RCV,BYTE#0);
+
+END_FUNCTION_BLOCK
+
+
+===== 707-TIMER_EXT.ST =====
+FUNCTION_BLOCK MANUAL_2_Block
+
+	VAR_INPUT
+		_IN :	BOOL;
+		ENA :	BOOL;
+		_ON :	BOOL;
+		OFF :	BOOL;
+		MAN :	BOOL;
+	END_VAR
+
+
+	VAR_OUTPUT
+		Q :	BOOL;
+		STATUS :	BYTE;
+	END_VAR
+
+	IF ena THEN
+		IF NOT _ON AND NOT OFF THEN
+			Q := _IN;
+			STATUS := BYTE#100;
+		ELSIF _on AND NOT off THEN
+			Q := TRUE;
+			STATUS := BYTE#101;
+		ELSIF NOT _on AND off THEN
+			q := FALSE;
+			STATUS := BYTE#102;
+		ELSE
+			Q := MAN;
+			STATUS := BYTE#103;
+		END_IF;
+	ELSE
+		Q := FALSE;
+		STATUS := BYTE#104;
+	END_IF;
+
+END_FUNCTION_BLOCK

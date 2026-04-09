@@ -1,0 +1,2031 @@
+
+
+===== 728-HOLIDAY.ST (cont.) =====
+	END_CASE;
+	ELSE
+		CASE day_of_month OF
+			32..59	:	day_of_month := day_of_month - 31;
+			60..90	:	day_of_month := day_of_month - 59;
+			91..120 :	day_of_month := day_of_month - 90;
+			121..151:	day_of_month := day_of_month - 120;
+			152..181:	day_of_month := day_of_month - 151;
+			182..212:	day_of_month := day_of_month - 181;
+			213..243:	day_of_month := day_of_month - 212;
+			244..273:	day_of_month := day_of_month - 243;
+			274..304:	day_of_month := day_of_month - 273;
+			305..334:	day_of_month := day_of_month - 304;
+			335..365:	day_of_month := day_of_month - 334;
+		END_CASE;
+	END_IF;
+END_FUNCTION
+
+
+FUNCTION DATE_ADD:UDINT
+	VAR_INPUT
+		IDATE :	UDINT;
+		D :	INT;
+		W :	INT; 
+		M :	INT;
+		Y :	INT;
+	END_VAR
+
+	VAR
+		mo :	INT;
+		yr :	INT;
+		dm :	INT;
+	END_VAR
+
+	DATE_ADD := IDATE + INT_TO_UDINT(D + W * 7) * UDINT#86400;
+	yr := Y + YEAR_OF_DATE(DATE_ADD);
+	mo := M + MONTH_OF_DATE(DATE_ADD);
+	dm := DAY_OF_MONTH(DATE_ADD);
+	WHILE mo > 12 DO
+		mo := mo - 12;
+		yr := yr + 1;
+	END_WHILE;
+	WHILE mo < 1 DO
+		mo := mo + 12;
+		yr := yr - 1;
+	END_WHILE;
+	DATE_ADD := SET_DATE(yr, mo, dm);
+END_FUNCTION
+
+FUNCTION_BLOCK HOLIDAY_Block
+	VAR_INPUT
+		DATE_IN :	UDINT;
+		LANGU :	INT;
+		FRIDAY :	BOOL;
+		SATURDAY :	BOOL;
+		SUNDAY :	BOOL;
+	END_VAR
+
+	VAR_IN_OUT
+		HOLIDAYS :	oscat_HOLIDAY_DATA_0_29;
+	END_VAR
+
+	VAR_OUTPUT
+		Y :	BOOL;
+		NAME :	STRING;
+	END_VAR
+
+
+	
+
+	VAR
+		size :	INT := INT#29;
+		last_active :	UDINT;
+		ostern :	UDINT;
+		i :	INT;
+		jahr :	INT;
+		x_date :	UDINT;
+		lx :	INT;
+		wdx :	INT;
+		SETUP_LOCATIONS :	SETUP_LOCATION;
+		SETUP_WEEKDAYSS :	SETUP_WEEKDAYS;
+		SETUP_LANGUAGES :	SETUP_LANGUAGE_Block;
+		LOCATION :	oscat_LOCATION;
+		WEEKDAYS :	oscat_WEEKDAYS;
+		LANGUAGE :	oscat_LANGUAGE;
+		wd :	INT;
+	END_VAR
+
+
+	IF last_active = date_in THEN RETURN; END_IF;
+	last_active := DATE_IN;
+
+	SETUP_LOCATIONS(LOCATION:=LOCATION);
+	LOCATION:=SETUP_LOCATIONS.LOCATION;
+
+	SETUP_WEEKDAYSS(WEEKDAYS:=WEEKDAYS);
+	WEEKDAYS:=SETUP_WEEKDAYSS.WEEKDAYS;
+
+	SETUP_LANGUAGES(LANGUAGE:=LANGUAGE);
+	LANGUAGE:=SETUP_LANGUAGES.LANGUAGE;
+
+
+	IF LANGU = 0 THEN
+		lx := language.DEFAULT;
+	ELSE
+		lx := MIN(language.LMAX, LANGU);
+	END_IF;
+
+	jahr := YEAR_OF_DATE(date_in);
+	ostern := EASTER(jahr);
+	wdx := DAY_OF_WEEK(DATE_IN);
+	Y := FALSE;
+
+	FOR i := 0 TO size DO
+		x_date := SET_DATE(jahr, SINT_TO_INT(HOLIDAYS[i].MONTH) , SINT_TO_INT(HOLIDAYS[i].DAY));
+		IF HOLIDAYS[i].USE = SINT#1 AND HOLIDAYS[i].MONTH > SINT#0 THEN
+			(* check for fixed date holiday *)
+			IF x_date = date_in THEN
+				Y := TRUE;
+				NAME := HOLIDAYS[i].NAME;
+				RETURN;
+			END_IF;
+		ELSIF HOLIDAYS[i].USE = SINT#1 AND HOLIDAYS[i].MONTH = SINT#0 THEN
+			(* check for holiday in reference to easter *)
+			IF DATE_ADD(ostern, SINT_TO_INT(HOLIDAYS[i].DAY),0,0,0) = date_in THEN
+				Y := TRUE;
+				NAME := HOLIDAYS[i].NAME;
+				RETURN;
+			END_IF;
+		ELSIF HOLIDAYS[i].USE < SINT#0 THEN
+			(* check for holiday on a weekday before date *)
+			IF DAY_OF_WEEK(date_in) = SINT_TO_INT(ABS(HOLIDAYS[i].USE)) AND date_in < x_date AND date_in >= DATE_ADD(x_date,-7,0,0,0) THEN
+				Y := TRUE;
+				NAME := HOLIDAYS[i].NAME;
+				RETURN;
+			END_IF;
+		END_IF;
+	END_FOR;
+
+	IF NOT Y AND (wdx = 5 AND FRIDAY OR wdx = 6 AND SATURDAY OR wdx = 7 AND SUNDAY) THEN
+		Y := TRUE;
+		wd := LOCATION.LANGUAGE[lx];
+		NAME := WEEKDAYS[wd][wdx];
+	ELSE
+		NAME := '';
+	END_IF;
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	DATE_IN  :	UDINT;
+	LANGU    :	INT;
+	FRIDAY   :	BOOL;
+	SATURDAY :	BOOL;
+	SUNDAY   :	BOOL;
+
+	Y :	BOOL;
+	NAME :	STRING;
+
+	HOLIDAYS :	oscat_HOLIDAY_DATA_0_29;
+
+	func_block : HOLIDAY_Block;
+  END_VAR
+	func_block.DATE_IN :=DATE_IN ;
+	func_block.LANGU   :=LANGU   ;
+	func_block.FRIDAY  :=FRIDAY  ;
+	func_block.SATURDAY:=SATURDAY;
+	func_block.SUNDAY  :=SUNDAY  ;
+	func_block.HOLIDAYS  :=HOLIDAYS ;
+
+	func_block();
+	Y := func_block.Y;
+	NAME := func_block.NAME;
+	HOLIDAYS := func_block.HOLIDAYS;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+  RESOURCE Res0 ON PLC
+    TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    PROGRAM instance0 WITH task0 : program0;
+  END_RESOURCE
+END_CONFIGURATION
+
+===== 729-NET_VAR_MASTER_DEMO.GE =====
+PROGRAM NET_VAR_MASTER_DEMO
+
+	VAR
+		x :	oscat_NET_VAR_DATA;
+		NET_VAR_CONTROL_1 :	NET_VAR_CONTROL;
+		activate :	BOOL := TRUE;
+		run :	BOOL;
+		udp :	BOOL := TRUE;
+		error :	DWORD;
+		remote_port :	WORD := 10000;
+		master :	BOOL := TRUE;
+		scan_time :	TIME := T#1s;
+		watchdog :	TIME := T#2s;
+		in_dw1 :	DWORD;
+		in_dw2 :	DWORD;
+		in_dw3 :	DWORD;
+		in_dw4 :	DWORD;
+		in_dw5 :	DWORD;
+		in_dw6 :	DWORD;
+		in_dw7 :	DWORD;
+		in_dw8 :	DWORD;
+		out_dw1 :	DWORD;
+		out_dw2 :	DWORD;
+		out_dw3 :	DWORD;
+		out_dw4 :	DWORD;
+		out_dw5 :	DWORD;
+		out_dw6 :	DWORD;
+		out_dw7 :	DWORD;
+		out_dw8 :	DWORD;
+		id_dw :	BYTE;
+		NET_VAR_BOOL8_1 :	NET_VAR_BOOL8;
+		in_b1 :	BOOL;
+		in_b2 :	BOOL;
+		in_b3 :	BOOL;
+		in_b4 :	BOOL;
+		in_b5 :	BOOL;
+		in_b6 :	BOOL;
+		in_b7 :	BOOL;
+		in_b8 :	BOOL;
+		out_b1 :	BOOL;
+		out_b2 :	BOOL;
+		out_b3 :	BOOL;
+		out_b4 :	BOOL;
+		out_b5 :	BOOL;
+		out_b6 :	BOOL;
+		out_b7 :	BOOL;
+		out_b8 :	BOOL;
+		in_r1 :	REAL;
+		in_r2 :	REAL;
+		in_r3 :	REAL;
+		in_r4 :	REAL;
+		in_r5 :	REAL;
+		in_r6 :	REAL;
+		in_r7 :	REAL;
+		in_r8 :	REAL;
+		out_r1 :	REAL;
+		out_r2 :	REAL;
+		out_r3 :	REAL;
+		out_r4 :	REAL;
+		out_r5 :	REAL;
+		out_r6 :	REAL;
+		out_r7 :	REAL;
+		out_r8 :	REAL;
+		NET_VAR_STRING_1 :	NET_VAR_STRING;
+		in_s1 :	oscat_STRING250;
+		out_s1 :	oscat_STRING250;
+		NET_VAR_BUFFER_1 :	NET_VAR_BUFFER;
+		BUF_IN :	oscat_aB1_64;
+		BUF_OUT :	oscat_aB1_64;
+		NET_VAR_DWORD8_1 :	NET_VAR_DWORD8;
+		NET_VAR_REAL8_1 :	NET_VAR_REAL8;
+		id_r :	BYTE;
+		id_s :	BYTE;
+		id_bu :	BYTE;
+		id_b8 :	BYTE;
+		NET_VAR_X8_1 :	NET_VAR_X8;
+		id_x8 :	BYTE;
+		in_x_re1 :	REAL;
+		in_x_re2 :	REAL;
+		in_x_ud1 :	UDINT;
+		in_x_ud2 :	UDINT;
+		in_x_di1 :	DINT;
+		in_x_di2 :	DINT;
+		in_x_dw1 :	DWORD;
+		in_x_dw2 :	DWORD;
+		out_x_re1 :	REAL;
+		out_x_re2 :	REAL;
+		out_x_ud1 :	UDINT;
+		out_x_ud2 :	UDINT;
+		out_x_di1 :	DINT;
+		out_x_di2 :	DINT;
+		out_x_dw1 :	DWORD;
+		out_x_dw2 :	DWORD;
+	END_VAR
+
+	(*
+	[GRA]
+	400 400 0 0 0 0 0 
+
+	[LIT]
+	1
+	38 157 55 157 0 ""
+
+	[TET]
+	112
+	81 144 87 146 4 3 run
+	81 148 88 150 4 3 error
+	45 144 55 146 4 5 activate
+	46 148 55 150 4 5 master
+	4 156 17 158 4 5 BYTE#192
+	4 160 17 162 4 5 BYTE#168
+	4 164 17 166 4 5 BYTE#178
+	6 168 17 170 4 5 BYTE#03
+	41 160 55 162 4 5 remote_port
+	51 172 55 174 4 5 x
+	81 172 85 174 4 3 x
+	23 44 27 46 4 5 x
+	51 44 55 46 4 3 x
+	18 8 27 10 4 5 in_dw1
+	51 8 62 10 4 3 out_dw1
+	51 40 59 42 4 3 id_dw
+	43 164 55 166 4 5 scan_time
+	43 168 55 170 4 5 watchdog
+	141 45 145 47 4 5 x
+	167 45 171 47 4 3 x
+	137 9 145 11 4 5 in_b1
+	137 13 145 15 4 5 in_b2
+	137 17 145 19 4 5 in_b3
+	137 21 145 23 4 5 in_b4
+	137 25 145 27 4 5 in_b5
+	137 29 145 31 4 5 in_b6
+	137 33 145 35 4 5 in_b7
+	137 37 145 39 4 5 in_b8
+	167 9 176 11 4 3 out_b1
+	167 13 176 15 4 3 out_b2
+	167 17 176 19 4 3 out_b3
+	167 21 176 23 4 3 out_b4
+	167 25 176 27 4 3 out_b5
+	167 29 176 31 4 3 out_b6
+	167 33 176 35 4 3 out_b7
+	167 37 176 39 4 3 out_b8
+	167 41 175 43 4 3 id_b8
+	81 8 88 10 4 5 in_r1
+	84 44 88 46 4 5 x
+	110 44 114 46 4 3 x
+	110 8 119 10 4 3 out_r1
+	110 40 116 42 4 3 id_r
+	105 67 112 69 4 5 in_s1
+	135 67 142 69 4 3 in_s1
+	103 71 112 73 4 5 out_s1
+	135 71 144 73 4 3 out_s1
+	135 63 141 65 4 3 id_s
+	108 75 112 77 4 5 x
+	135 75 139 77 4 3 x
+	49 152 55 154 4 5 udp
+	23 73 27 75 4 5 x
+	54 73 58 75 4 3 x
+	54 61 62 63 4 3 id_bu
+	18 65 27 67 4 5 BUF_IN
+	54 65 63 67 4 3 BUF_IN
+	16 69 27 71 4 5 BUF_OUT
+	54 69 65 71 4 3 BUF_OUT
+	18 12 27 14 4 5 in_dw2
+	18 16 27 18 4 5 in_dw3
+	18 20 27 22 4 5 in_dw4
+	18 24 27 26 4 5 in_dw5
+	18 28 27 30 4 5 in_dw6
+	18 32 27 34 4 5 in_dw7
+	18 36 27 38 4 5 in_dw8
+	51 12 62 14 4 3 out_dw2
+	51 16 62 18 4 3 out_dw3
+	51 20 62 22 4 3 out_dw4
+	51 24 62 26 4 3 out_dw5
+	51 28 62 30 4 3 out_dw6
+	51 32 62 34 4 3 out_dw7
+	51 36 62 38 4 3 out_dw8
+	81 12 88 14 4 5 in_r2
+	81 16 88 18 4 5 in_r3
+	81 20 88 22 4 5 in_r4
+	81 24 88 26 4 5 in_r5
+	81 28 88 30 4 5 in_r6
+	81 32 88 34 4 5 in_r7
+	81 36 88 38 4 5 in_r8
+	110 12 119 14 4 3 out_r2
+	110 16 119 18 4 3 out_r3
+	110 20 119 22 4 3 out_r4
+	110 24 119 26 4 3 out_r5
+	110 28 119 30 4 3 out_r6
+	110 32 119 34 4 3 out_r7
+	110 36 119 38 4 3 out_r8
+	31 139 50 142 65536 6 4 0 229 0 0 0 0 0 0 Tahoma 
+	Daten�bertragung
+	23 125 27 127 4 5 x
+	62 125 66 127 4 3 x
+	62 121 69 123 4 3 id_x8
+	17 89 27 91 4 5 in_x_re1
+	17 93 27 95 4 5 in_x_re2
+	17 97 27 99 4 5 in_x_di1
+	17 101 27 103 4 5 in_x_di2
+	16 105 27 107 4 5 in_x_ud1
+	16 109 27 111 4 5 in_x_ud2
+	16 113 27 115 4 5 in_x_dw1
+	16 117 27 119 4 5 in_x_dw2
+	62 89 74 91 4 3 out_x_re1
+	62 93 74 95 4 3 out_x_re2
+	62 97 74 99 4 3 out_x_di1
+	62 101 74 103 4 3 out_x_di2
+	62 105 75 107 4 3 out_x_ud1
+	62 109 75 111 4 3 out_x_ud2
+	62 113 75 115 4 3 out_x_dw1
+	62 117 75 119 4 3 out_x_dw2
+	57 138 79 141 7 6 NET_VAR_CONTROL_1
+	29 83 60 86 7 6 NET_VAR_X8_1
+	29 55 52 58 7 6 NET_VAR_BUFFER_1
+	28 2 50 5 7 6 NET_VAR_DWORD8_1
+	89 2 109 5 7 6 NET_VAR_REAL8_1
+	146 3 166 6 7 6 NET_VAR_BOOL8_1
+	114 57 134 60 7 6 NET_VAR_STRING_1
+
+	[FBS]
+	8
+	262163 196761 36 173 1 0 DWORD_OF_BYTE @  
+	917561 458893 79 177 0 0 NET_VAR_CONTROL NET_VAR_CONTROL_1  
+	917533 1048662 60 130 0 0 NET_VAR_X8 NET_VAR_X8_1  
+	720925 720954 52 78 0 0 NET_VAR_BUFFER NET_VAR_BUFFER_1  
+	327709 458757 49 49 0 0 NET_VAR_DWORD8 NET_VAR_DWORD8_1  
+	327770 458757 108 49 0 0 NET_VAR_REAL8 NET_VAR_REAL8_1  
+	327827 458758 165 50 0 0 NET_VAR_BOOL8 NET_VAR_BOOL8_1  
+	393330 393276 133 80 0 0 NET_VAR_STRING NET_VAR_STRING_1  
+
+	[FPT]
+	95
+	19 156 24 158 B3 0 0 0 0 4224 0 @ BYTE 
+	19 160 24 162 B2 0 0 0 0 4224 0 @ BYTE 
+	19 164 24 166 B1 0 0 0 0 4224 0 @ BYTE 
+	19 168 24 170 B0 0 0 0 0 4224 0 @ BYTE 
+	35 156 36 158 DWORD_OF_BYTE 0 0 0 1 0 4736 @ DWORD 
+	57 144 68 146 ACTIVATE 0 0 0 0 4225 0 @ BOOL 
+	57 148 67 150 MASTER 0 0 0 0 4225 0 @ BOOL 
+	57 152 63 154 UDP 0 0 0 0 4225 0 @ BOOL 
+	57 156 70 158 REMOTE_IP4 0 0 0 0 4224 0 @ DWORD 
+	57 160 72 162 REMOTE_PORT 0 0 0 0 4224 0 @ WORD 
+	57 164 69 166 SCAN_TIME 0 0 0 0 4224 0 @ TIME 
+	57 168 70 170 WATCHDOG 0 0 0 0 4224 0 @ TIME 
+	74 144 79 146 RUN 0 0 0 1 0 4225 @ BOOL 
+	72 148 79 150 ERROR 0 0 0 1 0 4224 @ DWORD 
+	57 172 79 174 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	29 89 41 91 IN_REAL1 0 0 0 0 4224 0 @ REAL 
+	29 93 41 95 IN_REAL2 0 0 0 0 4224 0 @ REAL 
+	29 97 41 99 IN_DINT1 0 0 0 0 4224 0 @ DINT 
+	29 101 41 103 IN_DINT2 0 0 0 0 4224 0 @ DINT 
+	29 105 42 107 IN_UDINT1 0 0 0 0 4224 0 @ UDINT 
+	29 109 42 111 IN_UDINT2 0 0 0 0 4224 0 @ UDINT 
+	29 113 44 115 IN_DWORD1 0 0 0 0 4224 0 @ DWORD 
+	29 117 44 119 IN_DWORD2 0 0 0 0 4224 0 @ DWORD 
+	47 89 60 91 OUT_REAL1 0 0 0 1 0 4224 @ REAL 
+	47 93 60 95 OUT_REAL2 0 0 0 1 0 4224 @ REAL 
+	47 97 60 99 OUT_DINT1 0 0 0 1 0 4224 @ DINT 
+	47 101 60 103 OUT_DINT2 0 0 0 1 0 4224 @ DINT 
+	46 105 60 107 OUT_UDINT1 0 0 0 1 0 4224 @ UDINT 
+	46 109 60 111 OUT_UDINT2 0 0 0 1 0 4224 @ UDINT 
+	44 113 60 115 OUT_DWORD1 0 0 0 1 0 4224 @ DWORD 
+	44 117 60 119 OUT_DWORD2 0 0 0 1 0 4224 @ DWORD 
+	56 121 60 123 ID 0 0 0 1 0 4224 @ BYTE 
+	29 125 60 127 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	48 61 52 63 ID 0 0 0 1 0 4224 @ BYTE 
+	29 65 52 67 BUF_IN 0 0 0 2 128 128 @ oscat_aB1_64 
+	29 69 52 71 BUF_OUT 0 0 0 2 128 128 @ oscat_aB1_64 
+	29 73 52 75 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	29 8 35 10 IN1 0 0 0 0 4224 0 @ DWORD 
+	29 12 35 14 IN2 0 0 0 0 4224 0 @ DWORD 
+	29 16 35 18 IN3 0 0 0 0 4224 0 @ DWORD 
+	29 20 35 22 IN4 0 0 0 0 4224 0 @ DWORD 
+	29 24 35 26 IN5 0 0 0 0 4224 0 @ DWORD 
+	29 28 35 30 IN6 0 0 0 0 4224 0 @ DWORD 
+	29 32 35 34 IN7 0 0 0 0 4224 0 @ DWORD 
+	29 36 35 38 IN8 0 0 0 0 4224 0 @ DWORD 
+	42 8 49 10 OUT1 0 0 0 1 0 4224 @ DWORD 
+	42 12 49 14 OUT2 0 0 0 1 0 4224 @ DWORD 
+	42 16 49 18 OUT3 0 0 0 1 0 4224 @ DWORD 
+	42 20 49 22 OUT4 0 0 0 1 0 4224 @ DWORD 
+	42 24 49 26 OUT5 0 0 0 1 0 4224 @ DWORD 
+	42 28 49 30 OUT6 0 0 0 1 0 4224 @ DWORD 
+	42 32 49 34 OUT7 0 0 0 1 0 4224 @ DWORD 
+	42 36 49 38 OUT8 0 0 0 1 0 4224 @ DWORD 
+	45 40 49 42 ID 0 0 0 1 0 4224 @ BYTE 
+	29 44 49 46 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	90 8 96 10 IN1 0 0 0 0 4224 0 @ REAL 
+	90 12 96 14 IN2 0 0 0 0 4224 0 @ REAL 
+	90 16 96 18 IN3 0 0 0 0 4224 0 @ REAL 
+	90 20 96 22 IN4 0 0 0 0 4224 0 @ REAL 
+	90 24 96 26 IN5 0 0 0 0 4224 0 @ REAL 
+	90 28 96 30 IN6 0 0 0 0 4224 0 @ REAL 
+	90 32 96 34 IN7 0 0 0 0 4224 0 @ REAL 
+	90 36 96 38 IN8 0 0 0 0 4224 0 @ REAL 
+	101 8 108 10 OUT1 0 0 0 1 0 4224 @ REAL 
+	101 12 108 14 OUT2 0 0 0 1 0 4224 @ REAL 
+	101 16 108 18 OUT3 0 0 0 1 0 4224 @ REAL 
+	101 20 108 22 OUT4 0 0 0 1 0 4224 @ REAL 
+	101 24 108 26 OUT5 0 0 0 1 0 4224 @ REAL 
+	101 28 108 30 OUT6 0 0 0 1 0 4224 @ REAL 
+	101 32 108 34 OUT7 0 0 0 1 0 4224 @ REAL 
+	101 36 108 38 OUT8 0 0 0 1 0 4224 @ REAL 
+	104 40 108 42 ID 0 0 0 1 0 4224 @ BYTE 
+	90 44 108 46 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	147 9 153 11 IN1 0 0 0 0 4225 0 @ BOOL 
+	147 13 153 15 IN2 0 0 0 0 4225 0 @ BOOL 
+	147 17 153 19 IN3 0 0 0 0 4225 0 @ BOOL 
+	147 21 153 23 IN4 0 0 0 0 4225 0 @ BOOL 
+	147 25 153 27 IN5 0 0 0 0 4225 0 @ BOOL 
+	147 29 153 31 IN6 0 0 0 0 4225 0 @ BOOL 
+	147 33 153 35 IN7 0 0 0 0 4225 0 @ BOOL 
+	147 37 153 39 IN8 0 0 0 0 4225 0 @ BOOL 
+	158 9 165 11 OUT1 0 0 0 1 0 4225 @ BOOL 
+	158 13 165 15 OUT2 0 0 0 1 0 4225 @ BOOL 
+	158 17 165 19 OUT3 0 0 0 1 0 4225 @ BOOL 
+	158 21 165 23 OUT4 0 0 0 1 0 4225 @ BOOL 
+	158 25 165 27 OUT5 0 0 0 1 0 4225 @ BOOL 
+	158 29 165 31 OUT6 0 0 0 1 0 4225 @ BOOL 
+	158 33 165 35 OUT7 0 0 0 1 0 4225 @ BOOL 
+	158 37 165 39 OUT8 0 0 0 1 0 4225 @ BOOL 
+	161 41 165 43 ID 0 0 0 1 0 4224 @ BYTE 
+	147 45 165 47 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	129 63 133 65 ID 0 0 0 1 0 4224 @ BYTE 
+	114 67 133 69 IN 0 0 0 2 128 128 @ oscat_STRING250 
+	114 71 133 73 OUT 0 0 0 2 128 128 @ oscat_STRING250 
+	114 75 133 77 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+
+	[AKT]
+	0
+
+	[STT]
+	0
+
+	[TRT]
+	0
+
+	[KOT]
+	0
+
+	[VER]
+	0
+
+	[IBX]
+	0
+	*)
+
+END_PROGRAM
+
+
+===== 730-NET_VAR_SLAVE_DEMO.GE =====
+PROGRAM NET_VAR_SLAVE_DEMO
+
+	VAR
+		x :	oscat_NET_VAR_DATA;
+		NET_VAR_CONTROL_1 :	NET_VAR_CONTROL;
+		activate :	BOOL := TRUE;
+		run :	BOOL;
+		udp :	BOOL := TRUE;
+		error :	DWORD;
+		remote_port :	WORD := 10000;
+		master :	BOOL := FALSE;
+		scan_time :	TIME := T#1s;
+		watchdog :	TIME := T#2s;
+		in_dw1 :	DWORD;
+		in_dw2 :	DWORD;
+		in_dw3 :	DWORD;
+		in_dw4 :	DWORD;
+		in_dw5 :	DWORD;
+		in_dw6 :	DWORD;
+		in_dw7 :	DWORD;
+		in_dw8 :	DWORD;
+		out_dw1 :	DWORD;
+		out_dw2 :	DWORD;
+		out_dw3 :	DWORD;
+		out_dw4 :	DWORD;
+		out_dw5 :	DWORD;
+		out_dw6 :	DWORD;
+		out_dw7 :	DWORD;
+		out_dw8 :	DWORD;
+		id_dw :	BYTE;
+		NET_VAR_BOOL8_1 :	NET_VAR_BOOL8;
+		in_b1 :	BOOL;
+		in_b2 :	BOOL;
+		in_b3 :	BOOL;
+		in_b4 :	BOOL;
+		in_b5 :	BOOL;
+		in_b6 :	BOOL;
+		in_b7 :	BOOL;
+		in_b8 :	BOOL;
+		out_b1 :	BOOL;
+		out_b2 :	BOOL;
+		out_b3 :	BOOL;
+		out_b4 :	BOOL;
+		out_b5 :	BOOL;
+		out_b6 :	BOOL;
+		out_b7 :	BOOL;
+		out_b8 :	BOOL;
+		in_r1 :	REAL;
+		in_r2 :	REAL;
+		in_r3 :	REAL;
+		in_r4 :	REAL;
+		in_r5 :	REAL;
+		in_r6 :	REAL;
+		in_r7 :	REAL;
+		in_r8 :	REAL;
+		out_r1 :	REAL;
+		out_r2 :	REAL;
+		out_r3 :	REAL;
+		out_r4 :	REAL;
+		out_r5 :	REAL;
+		out_r6 :	REAL;
+		out_r7 :	REAL;
+		out_r8 :	REAL;
+		NET_VAR_STRING_1 :	NET_VAR_STRING;
+		in_s1 :	oscat_STRING250;
+		out_s1 :	oscat_STRING250;
+		NET_VAR_BUFFER_1 :	NET_VAR_BUFFER;
+		BUF_IN :	oscat_aB1_64;
+		BUF_OUT :	oscat_aB1_64;
+		NET_VAR_DWORD8_1 :	NET_VAR_DWORD8;
+		NET_VAR_REAL8_1 :	NET_VAR_REAL8;
+		id_r :	BYTE;
+		id_s :	BYTE;
+		id_bu :	BYTE;
+		id_b8 :	BYTE;
+		NET_VAR_X8_1 :	NET_VAR_X8;
+		id_x8 :	BYTE;
+		in_x_re1 :	REAL;
+		in_x_re2 :	REAL;
+		in_x_ud1 :	UDINT;
+		in_x_ud2 :	UDINT;
+		in_x_di1 :	DINT;
+		in_x_di2 :	DINT;
+		in_x_dw1 :	DWORD;
+		in_x_dw2 :	DWORD;
+		out_x_re1 :	REAL;
+		out_x_re2 :	REAL;
+		out_x_ud1 :	UDINT;
+		out_x_ud2 :	UDINT;
+		out_x_di1 :	DINT;
+		out_x_di2 :	DINT;
+		out_x_dw1 :	DWORD;
+		out_x_dw2 :	DWORD;
+	END_VAR
+
+	(*
+	[GRA]
+	400 400 0 0 0 0 0 
+
+	[LIT]
+	1
+	38 157 55 157 0 ""
+
+	[TET]
+	112
+	84 144 90 146 4 3 run
+	84 148 91 150 4 3 error
+	45 144 55 146 4 5 activate
+	46 148 55 150 4 5 master
+	4 156 17 158 4 5 BYTE#192
+	4 160 17 162 4 5 BYTE#168
+	4 164 17 166 4 5 BYTE#178
+	6 168 17 170 4 5 BYTE#25
+	41 160 55 162 4 5 remote_port
+	51 172 55 174 4 5 x
+	84 172 88 174 4 3 x
+	23 44 27 46 4 5 x
+	51 44 55 46 4 3 x
+	18 8 27 10 4 5 in_dw1
+	51 8 62 10 4 3 out_dw1
+	51 40 59 42 4 3 id_dw
+	43 164 55 166 4 5 scan_time
+	43 168 55 170 4 5 watchdog
+	141 45 145 47 4 5 x
+	167 45 171 47 4 3 x
+	137 9 145 11 4 5 in_b1
+	137 13 145 15 4 5 in_b2
+	137 17 145 19 4 5 in_b3
+	137 21 145 23 4 5 in_b4
+	137 25 145 27 4 5 in_b5
+	137 29 145 31 4 5 in_b6
+	137 33 145 35 4 5 in_b7
+	137 37 145 39 4 5 in_b8
+	167 9 176 11 4 3 out_b1
+	167 13 176 15 4 3 out_b2
+	167 17 176 19 4 3 out_b3
+	167 21 176 23 4 3 out_b4
+	167 25 176 27 4 3 out_b5
+	167 29 176 31 4 3 out_b6
+	167 33 176 35 4 3 out_b7
+	167 37 176 39 4 3 out_b8
+	167 41 175 43 4 3 id_b8
+	81 8 88 10 4 5 in_r1
+	84 44 88 46 4 5 x
+	110 44 114 46 4 3 x
+	110 8 119 10 4 3 out_r1
+	110 40 116 42 4 3 id_r
+	105 67 112 69 4 5 in_s1
+	135 67 142 69 4 3 in_s1
+	103 71 112 73 4 5 out_s1
+	135 71 144 73 4 3 out_s1
+	135 63 141 65 4 3 id_s
+	108 75 112 77 4 5 x
+	135 75 139 77 4 3 x
+	49 152 55 154 4 5 udp
+	23 73 27 75 4 5 x
+	54 73 58 75 4 3 x
+	54 61 62 63 4 3 id_bu
+	18 65 27 67 4 5 BUF_IN
+	54 65 63 67 4 3 BUF_IN
+	16 69 27 71 4 5 BUF_OUT
+	54 69 65 71 4 3 BUF_OUT
+	18 12 27 14 4 5 in_dw2
+	18 16 27 18 4 5 in_dw3
+	18 20 27 22 4 5 in_dw4
+	18 24 27 26 4 5 in_dw5
+	18 28 27 30 4 5 in_dw6
+	18 32 27 34 4 5 in_dw7
+	18 36 27 38 4 5 in_dw8
+	51 12 62 14 4 3 out_dw2
+	51 16 62 18 4 3 out_dw3
+	51 20 62 22 4 3 out_dw4
+	51 24 62 26 4 3 out_dw5
+	51 28 62 30 4 3 out_dw6
+	51 32 62 34 4 3 out_dw7
+	51 36 62 38 4 3 out_dw8
+	81 12 88 14 4 5 in_r2
+	81 16 88 18 4 5 in_r3
+	81 20 88 22 4 5 in_r4
+	81 24 88 26 4 5 in_r5
+	81 28 88 30 4 5 in_r6
+	81 32 88 34 4 5 in_r7
+	81 36 88 38 4 5 in_r8
+	110 12 119 14 4 3 out_r2
+	110 16 119 18 4 3 out_r3
+	110 20 119 22 4 3 out_r4
+	110 24 119 26 4 3 out_r5
+	110 28 119 30 4 3 out_r6
+	110 32 119 34 4 3 out_r7
+	110 36 119 38 4 3 out_r8
+	31 139 50 142 65536 6 4 0 229 0 0 0 0 0 0 Tahoma 
+	Daten�bertragung
+	23 125 27 127 4 5 x
+	62 125 66 127 4 3 x
+	62 121 69 123 4 3 id_x8
+	17 89 27 91 4 5 in_x_re1
+	17 93 27 95 4 5 in_x_re2
+	17 97 27 99 4 5 in_x_di1
+	17 101 27 103 4 5 in_x_di2
+	16 105 27 107 4 5 in_x_ud1
+	16 109 27 111 4 5 in_x_ud2
+	16 113 27 115 4 5 in_x_dw1
+	16 117 27 119 4 5 in_x_dw2
+	62 89 74 91 4 3 out_x_re1
+	62 93 74 95 4 3 out_x_re2
+	62 97 74 99 4 3 out_x_di1
+	62 101 74 103 4 3 out_x_di2
+	62 105 75 107 4 3 out_x_ud1
+	62 109 75 111 4 3 out_x_ud2
+	62 113 75 115 4 3 out_x_dw1
+	62 117 75 119 4 3 out_x_dw2
+	29 83 60 86 7 6 NET_VAR_X8_1
+	28 2 50 5 7 6 NET_VAR_DWORD8_1
+	29 55 52 58 7 6 NET_VAR_BUFFER_1
+	57 138 82 141 7 6 NET_VAR_CONTROL_1
+	146 3 166 6 7 6 NET_VAR_BOOL8_1
+	89 2 109 5 7 6 NET_VAR_REAL8_1
+	114 57 134 60 7 6 NET_VAR_STRING_1
+
+	[FBS]
+	8
+	262163 196761 36 173 1 0 DWORD_OF_BYTE @  
+	917533 1048662 60 130 0 0 NET_VAR_X8 NET_VAR_X8_1  
+	327709 458757 49 49 0 0 NET_VAR_DWORD8 NET_VAR_DWORD8_1  
+	720925 720954 52 78 0 0 NET_VAR_BUFFER NET_VAR_BUFFER_1  
+	1048633 524429 82 177 0 0 NET_VAR_CONTROL NET_VAR_CONTROL_1  
+	327827 458758 165 50 0 0 NET_VAR_BOOL8 NET_VAR_BOOL8_1  
+	327770 458757 108 49 0 0 NET_VAR_REAL8 NET_VAR_REAL8_1  
+	393330 393276 133 80 0 0 NET_VAR_STRING NET_VAR_STRING_1  
+
+	[FPT]
+	95
+	19 156 24 158 B3 0 0 0 0 4224 0 @ BYTE 
+	19 160 24 162 B2 0 0 0 0 4224 0 @ BYTE 
+	19 164 24 166 B1 0 0 0 0 4224 0 @ BYTE 
+	19 168 24 170 B0 0 0 0 0 4224 0 @ BYTE 
+	35 156 36 158 DWORD_OF_BYTE 0 0 0 1 0 4736 @ DWORD 
+	29 89 41 91 IN_REAL1 0 0 0 0 4224 0 @ REAL 
+	29 93 41 95 IN_REAL2 0 0 0 0 4224 0 @ REAL 
+	29 97 41 99 IN_DINT1 0 0 0 0 4224 0 @ DINT 
+	29 101 41 103 IN_DINT2 0 0 0 0 4224 0 @ DINT 
+	29 105 42 107 IN_UDINT1 0 0 0 0 4224 0 @ UDINT 
+	29 109 42 111 IN_UDINT2 0 0 0 0 4224 0 @ UDINT 
+	29 113 44 115 IN_DWORD1 0 0 0 0 4224 0 @ DWORD 
+	29 117 44 119 IN_DWORD2 0 0 0 0 4224 0 @ DWORD 
+	47 89 60 91 OUT_REAL1 0 0 0 1 0 4224 @ REAL 
+	47 93 60 95 OUT_REAL2 0 0 0 1 0 4224 @ REAL 
+	47 97 60 99 OUT_DINT1 0 0 0 1 0 4224 @ DINT 
+	47 101 60 103 OUT_DINT2 0 0 0 1 0 4224 @ DINT 
+	46 105 60 107 OUT_UDINT1 0 0 0 1 0 4224 @ UDINT 
+	46 109 60 111 OUT_UDINT2 0 0 0 1 0 4224 @ UDINT 
+	44 113 60 115 OUT_DWORD1 0 0 0 1 0 4224 @ DWORD 
+	44 117 60 119 OUT_DWORD2 0 0 0 1 0 4224 @ DWORD 
+	56 121 60 123 ID 0 0 0 1 0 4224 @ BYTE 
+	29 125 60 127 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	29 8 35 10 IN1 0 0 0 0 4224 0 @ DWORD 
+	29 12 35 14 IN2 0 0 0 0 4224 0 @ DWORD 
+	29 16 35 18 IN3 0 0 0 0 4224 0 @ DWORD 
+	29 20 35 22 IN4 0 0 0 0 4224 0 @ DWORD 
+	29 24 35 26 IN5 0 0 0 0 4224 0 @ DWORD 
+	29 28 35 30 IN6 0 0 0 0 4224 0 @ DWORD 
+	29 32 35 34 IN7 0 0 0 0 4224 0 @ DWORD 
+	29 36 35 38 IN8 0 0 0 0 4224 0 @ DWORD 
+	42 8 49 10 OUT1 0 0 0 1 0 4224 @ DWORD 
+	42 12 49 14 OUT2 0 0 0 1 0 4224 @ DWORD 
+	42 16 49 18 OUT3 0 0 0 1 0 4224 @ DWORD 
+	42 20 49 22 OUT4 0 0 0 1 0 4224 @ DWORD 
+	42 24 49 26 OUT5 0 0 0 1 0 4224 @ DWORD 
+	42 28 49 30 OUT6 0 0 0 1 0 4224 @ DWORD 
+	42 32 49 34 OUT7 0 0 0 1 0 4224 @ DWORD 
+	42 36 49 38 OUT8 0 0 0 1 0 4224 @ DWORD 
+	45 40 49 42 ID 0 0 0 1 0 4224 @ BYTE 
+	29 44 49 46 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	48 61 52 63 ID 0 0 0 1 0 4224 @ BYTE 
+	29 65 52 67 BUF_IN 0 0 0 2 128 128 @ oscat_aB1_64 
+	29 69 52 71 BUF_OUT 0 0 0 2 128 128 @ oscat_aB1_64 
+	29 73 52 75 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	57 144 70 146 ACTIVATE 0 0 0 0 4225 0 @ BOOL 
+	57 148 68 150 MASTER 0 0 0 0 4225 0 @ BOOL 
+	57 152 64 154 UDP 0 0 0 0 4225 0 @ BOOL 
+	57 156 72 158 REMOTE_IP4 0 0 0 0 4224 0 @ DWORD 
+	57 160 74 162 REMOTE_PORT 0 0 0 0 4224 0 @ WORD 
+	57 164 71 166 SCAN_TIME 0 0 0 0 4224 0 @ TIME 
+	57 168 71 170 WATCHDOG 0 0 0 0 4224 0 @ TIME 
+	76 144 82 146 RUN 0 0 0 1 0 4225 @ BOOL 
+	74 148 82 150 ERROR 0 0 0 1 0 4224 @ DWORD 
+	57 172 82 174 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	147 9 153 11 IN1 0 0 0 0 4225 0 @ BOOL 
+	147 13 153 15 IN2 0 0 0 0 4225 0 @ BOOL 
+	147 17 153 19 IN3 0 0 0 0 4225 0 @ BOOL 
+	147 21 153 23 IN4 0 0 0 0 4225 0 @ BOOL 
+	147 25 153 27 IN5 0 0 0 0 4225 0 @ BOOL 
+	147 29 153 31 IN6 0 0 0 0 4225 0 @ BOOL 
+	147 33 153 35 IN7 0 0 0 0 4225 0 @ BOOL 
+	147 37 153 39 IN8 0 0 0 0 4225 0 @ BOOL 
+	158 9 165 11 OUT1 0 0 0 1 0 4225 @ BOOL 
+	158 13 165 15 OUT2 0 0 0 1 0 4225 @ BOOL 
+	158 17 165 19 OUT3 0 0 0 1 0 4225 @ BOOL 
+	158 21 165 23 OUT4 0 0 0 1 0 4225 @ BOOL 
+	158 25 165 27 OUT5 0 0 0 1 0 4225 @ BOOL 
+	158 29 165 31 OUT6 0 0 0 1 0 4225 @ BOOL 
+	158 33 165 35 OUT7 0 0 0 1 0 4225 @ BOOL 
+	158 37 165 39 OUT8 0 0 0 1 0 4225 @ BOOL 
+	161 41 165 43 ID 0 0 0 1 0 4224 @ BYTE 
+	147 45 165 47 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	90 8 96 10 IN1 0 0 0 0 4224 0 @ REAL 
+	90 12 96 14 IN2 0 0 0 0 4224 0 @ REAL 
+	90 16 96 18 IN3 0 0 0 0 4224 0 @ REAL 
+	90 20 96 22 IN4 0 0 0 0 4224 0 @ REAL 
+	90 24 96 26 IN5 0 0 0 0 4224 0 @ REAL 
+	90 28 96 30 IN6 0 0 0 0 4224 0 @ REAL 
+	90 32 96 34 IN7 0 0 0 0 4224 0 @ REAL 
+	90 36 96 38 IN8 0 0 0 0 4224 0 @ REAL 
+	101 8 108 10 OUT1 0 0 0 1 0 4224 @ REAL 
+	101 12 108 14 OUT2 0 0 0 1 0 4224 @ REAL 
+	101 16 108 18 OUT3 0 0 0 1 0 4224 @ REAL 
+	101 20 108 22 OUT4 0 0 0 1 0 4224 @ REAL 
+	101 24 108 26 OUT5 0 0 0 1 0 4224 @ REAL 
+	101 28 108 30 OUT6 0 0 0 1 0 4224 @ REAL 
+	101 32 108 34 OUT7 0 0 0 1 0 4224 @ REAL 
+	101 36 108 38 OUT8 0 0 0 1 0 4224 @ REAL 
+	104 40 108 42 ID 0 0 0 1 0 4224 @ BYTE 
+	90 44 108 46 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+	129 63 133 65 ID 0 0 0 1 0 4224 @ BYTE 
+	114 67 133 69 IN 0 0 0 2 128 128 @ oscat_STRING250 
+	114 71 133 73 OUT 0 0 0 2 128 128 @ oscat_STRING250 
+	114 75 133 77 X 0 0 0 2 128 128 @ oscat_NET_VAR_DATA 
+
+	[AKT]
+	0
+
+	[STT]
+	0
+
+	[TRT]
+	0
+
+	[KOT]
+	0
+
+	[VER]
+	0
+
+	[IBX]
+	0
+	*)
+
+END_PROGRAM
+
+
+===== 731-WORLD_WEATHER.ST =====
+TYPE
+  oscat_STRING30              : STRING;
+  oscat_STRING250             : STRING;
+  oscat_STRING8               : STRING;
+  oscat_STRING60               : STRING;
+  oscat_STRING3               : STRING;
+  oscat_STRING10               : STRING;
+END_TYPE
+
+
+
+TYPE
+  oscat_IP_FIFO128_DATA  : ARRAY [1..128] OF BYTE;
+  oscat_Mailbox  : ARRAY [1..16] OF BYTE;
+
+  oscat_IP_FIFO_DATA :
+  STRUCT
+	X       : oscat_IP_FIFO128_DATA; (* IP_ID FIFO Speicher          *)
+	Y       : oscat_IP_FIFO128_DATA; (* IP_ID Z�hler                 *)
+	ID      : BYTE;                  (* h�chste vergabene id         *)
+	MAX_ID  : BYTE;                  (* maximal Anmeldungen pro ID   *)
+    INIT    : BOOL;                  (* Initialisierung durchgef�hrt *)
+	EMPTY   : BOOL;                  (* FIFO leer                    *)
+	FULL    : BOOL;                  (* FIFO voll                    *)
+	TOP     : INT;                   (* maximale anzahl in FIFO      *)
+	NW      : INT;                   (* Schreibzeiger                *)
+	NR      : INT;                   (* Lesezeiger                   *)
+  END_STRUCT;
+
+  oscat_IP_C:
+  STRUCT
+  	C_MODE:			BYTE;          		(*W Mode: TCP/UCP AKTIV/PASSIV                               *)
+	C_PORT:         WORD;          		(*W Portnummer                                               *)
+	C_IP:           DWORD;         		(*W IP-Adresse gepackt wwxxyyzz = www.xxx.yyy.zzz            *)
+    C_STATE:        BYTE;          		(*R Verbindungsstatus ON/OFF + Flanke ON/OFF                 *)
+	C_ENABLE:       BOOL;          		(*W Freigabe f�r Connect                                     *)
+    R_OBSERVE:      BOOL;          		(*W Empfang ueberwachen                                      *)
+    TIME_RESET:     BOOL;          		(*W Alle Timer ruecksetzen                                   *)
+	ERROR:          DWORD;         		(*R vvwwxxyy (vv = CON_ERROR, ww = SEN_ERROR, xx = REC_ERROR *)
+    FIFO:           oscat_IP_FIFO_DATA; (*I IP FIFO Struktur                                         *) 
+	MAILBOX:		oscat_Mailbox;		(*I Mailbox: Datenbereich f�r Bausteindatenaustausch         *) 
+  END_STRUCT;
+
+  oscat_XML_CONTROL:
+  STRUCT
+    COMMAND:             WORD;            (*W                 *)
+    WATCHDOG:            TIME;            (*W                 *)
+    START_POS:           UINT;            (*W                 *)
+    STOP_POS:            UINT;            (*W                 *)
+    COUNT:               UINT;            (*R                 *)
+    TYP:                 INT;             (*R                 *)
+    LEVEL:               UINT;            (*R                 *)
+    PATH:                oscat_STRING250; (*R                 *)
+    ELEMENT:             oscat_STRING250; (*R                 *)
+    ATTRIBUTE:           oscat_STRING250; (*R                 *)
+    VALUE:               oscat_STRING250; (*R                 *)
+    BLOCK1_START:        UINT;            (*R                 *)
+    BLOCK1_STOP:         UINT;            (*R                 *)
+    BLOCK2_START:        UINT;            (*R                 *)
+    BLOCK2_STOP:         UINT;            (*R                 *)
+  END_STRUCT;
+
+  (* --------- WORLD WEATHER --------- *)
+
+  oscat_WORLD_WEATHER_CUR :
+  STRUCT
+	OBSERVATION_TIME : oscat_STRING8;
+	TEMP_C           : INT;
+	WEATHER_CODE     : INT;
+	WEATHER_DESC 	 : oscat_STRING60;
+	WEATHER_ICON     : INT;
+	WIND_SPEED_MILES : INT;
+	WIND_SPEED_KMPH  : INT;
+	WIND_DIR_DEGREE  : INT;
+	WIND_DIR16POINT  : oscat_STRING3;
+	PRECIPMM         : REAL;
+	HUMIDITY         : INT;
+	VISIBILITY       : INT;
+	PRESSURE         : INT;
+	CLOUDOVER        : INT;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_DAY :
+  STRUCT
+	DATE_OF_DAY      : oscat_STRING10;
+	TEMP_MAX_C       : INT;
+	TEMP_MAX_F       : INT;
+	TEMP_MIN_C       : INT;
+	TEMP_MIN_F       : INT;
+	WIND_SPEED_MILES : INT;
+	WIND_SPEED_KMPH  : INT;
+	WIND_DIR_DEGREE  : INT;
+	WIND_DIR16POINT  : oscat_STRING3;
+	WEATHER_CODE     : INT;
+	WEATHER_DESC     : oscat_STRING60;
+	WEATHER_ICON     : INT;
+	PRECIPMM         : REAL;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_DAY_ARR : ARRAY [0..4] OF oscat_WORLD_WEATHER_DAY;
+
+  oscat_WORLD_WEATHER_DATA :
+  STRUCT
+	CUR : oscat_WORLD_WEATHER_CUR;
+	DAY : oscat_WORLD_WEATHER_DAY_ARR;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_aI0_41 : ARRAY[0..41] OF INT;
+
+END_TYPE
+
+TYPE
+  oscat_NW_BUF_LONG  : ARRAY [0..4095] OF BYTE;
+
+  oscat_NETWORK_BUFFER :
+  STRUCT
+    SIZE   : UINT;	
+    BUFFER : oscat_NW_BUF_LONG;
+  END_STRUCT;
+
+END_TYPE
+
+FUNCTION_BLOCK WORLD_WEATHER_Block
+
+	VAR_INPUT
+		ACTIVATE :	BOOL;
+		LATITUDE :	REAL;
+		LONGITUDE :	REAL;
+		KEY :	oscat_STRING30;
+	END_VAR
+
+
+	VAR_OUTPUT
+		BUSY :	BOOL;
+		DONE :	BOOL;
+		ERROR_C :	DWORD;
+		ERROR_T :	BYTE;
+	END_VAR
+
+
+	VAR_IN_OUT
+		IP_C :	oscat_IP_C;
+		S_BUF :	oscat_NETWORK_BUFFER;
+		R_BUF :	oscat_NETWORK_BUFFER;
+		WW :	oscat_WORLD_WEATHER_DATA;
+	END_VAR
+
+	VAR
+		CHK_REAL :	CHK_REAL;
+		REAL_TO_STRF :	REAL_TO_STRF;
+		URL_DATA :	oscat_url;
+		DNS_CLIENT :	DNS_CLIENT;
+		HTTP_GET :	HTTP_GET;
+		CPB :	CSV_PARSER_BUF;
+		STRING_TO_URL :	STRING_TO_URL;
+		FLOAT_TO_REAL :	FLOAT_TO_REAL;
+		last_state :	BOOL;
+		value_int :	INT;
+		value_real :	REAL;
+		v_real :	REAL;
+		state :	INT;
+		url_str :	oscat_STRING250;
+		offset :	UDINT;
+		size :	INT;
+		sep :	BYTE;
+		cnt :	INT;
+		day :	INT;
+		idx :	INT;
+		run :	BYTE;
+		result :	BYTE;
+		value :	oscat_STRING250;
+		DEC_TO_INT :	DEC_TO_INT;
+		pos :	INT;
+	END_VAR
+
+	CASE state OF
+
+	00:
+		IF ACTIVATE AND NOT last_state THEN
+			state := 20;
+			DONE := FALSE;
+			BUSY := TRUE;
+			ERROR_C := DWORD#0;
+			ERROR_T := BYTE#0;
+		END_IF;
+
+	20: 
+		REAL_TO_STRF(IN:=LATITUDE,N:=6,D:='.');
+		url_str := CONCAT('http://free.worldweatheronline.com/feed/weather.ashx?q=',REAL_TO_STRF.REAL_TO_STRF);
+		url_str := CONCAT(url_str,',');
+		REAL_TO_STRF(IN:=LONGITUDE,N:=6,D:='.');
+		url_str := CONCAT(url_str,REAL_TO_STRF.REAL_TO_STRF);
+		url_str := CONCAT(url_str,'&format=csv&num_of_days=5&key=');
+		url_str := CONCAT(url_str,key);
+
+		STRING_TO_URL(STR:=url_str, DEFAULT_PROTOCOL:='', DEFAULT_PATH:='' );
+		URL_DATA:=STRING_TO_URL.STRING_TO_URL;
+
+		state := 40;
+
+	40:
+		IF DNS_CLIENT.DONE THEN
+			state := 60;
+		ELSIF (DNS_CLIENT.ERROR > DWORD#00) THEN
+			ERROR_C := DNS_CLIENT.ERROR;
+			ERROR_T := BYTE#01;
+			state   := 100;
+		END_IF;
+
+	60:
+		IF HTTP_GET.DONE THEN
+			sep := BYTE#0;
+			idx := 0;
+			day := 0;
+			cnt := 0;
+			OFFSET := UINT_TO_UDINT(HTTP_GET.BODY_START); 
+			size := UINT_TO_INT(HTTP_GET.BODY_STOP);
+			run := BYTE#1;
+			state := 80;
+
+		ELSIF (HTTP_GET.ERROR > DWORD#00) THEN
+			ERROR_C := HTTP_GET.ERROR;
+			ERROR_T := BYTE#02;
+			state := 100;
+		END_IF;
+
+	80:	IF run = BYTE#0 THEN 
+			run := BYTE#1;
+			IF result = BYTE#1 OR result = BYTE#2 THEN
+				value_int := 0;
+				value_real := 0.0;
+				IF LEN(value) <= 20 THEN
+					FLOAT_TO_REAL(FLT:=value);
+					v_real := FLOAT_TO_REAL.FLOAT_TO_REAL;
+					CHK_REAL(X := v_real);
+					IF CHK_REAL.CHK_REAL = BYTE#0 THEN
+						value_real := v_real;
+						value_int := REAL_TO_INT(value_real);
+					END_IF;
+				END_IF;
+				cnt := cnt + 1;
+				IF cnt >=8 AND cnt <= 87 THEN
+					IF cnt > 22 THEN
+						CASE idx OF
+						00:	WW.DAY[day].DATE_OF_DAY := value;
+						01:	WW.DAY[day].TEMP_MAX_C := value_int;
+						02:	WW.DAY[day].TEMP_MAX_F := value_int;
+						03:	WW.DAY[day].TEMP_MIN_C := value_int;
+						04:	WW.DAY[day].TEMP_MIN_F := value_int;
+						05:	WW.DAY[day].WIND_SPEED_MILES := value_int;
+						06:	WW.DAY[day].WIND_SPEED_KMPH := value_int;
+						07:	WW.DAY[day].WIND_DIR_DEGREE := value_int;
+						08:	WW.DAY[day].WIND_DIR16POINT := value;
+						09:	WW.DAY[day].WEATHER_CODE := value_int;
+						10:	pos := FIND(value, '/wsymbol_');
+							IF pos > 0 AND LEN(value) > pos + 13 THEN
+								DEC_TO_INT(DEC:=MID(value,4,pos + 9));
+								WW.DAY[day].WEATHER_ICON := DEC_TO_INT.DEC_TO_INT;
+							ELSE
+								WW.DAY[day].WEATHER_ICON := 0;
+							END_IF;
+						11:	WW.DAY[day].WEATHER_DESC := value;
+						12:	WW.DAY[day].PRECIPMM := value_real;
+						END_CASE;
+						idx := idx + 1;
+						IF idx > 12 THEN
+							idx := 0;
+							day := day + 1;
+						END_IF;
+					ELSE
+						CASE cnt OF
+						08:	sep := BYTE#44;
+						09:	WW.CUR.OBSERVATION_TIME := value;
+						10:	WW.CUR.TEMP_C := value_int;
+						11:	WW.CUR.WEATHER_CODE := value_int;
+						12:	pos := FIND(value, '/wsymbol_');
+							IF pos > 0 AND LEN(value) > pos + 13 THEN
+								DEC_TO_INT(DEC:=MID(value,4,pos + 9));
+								WW.CUR.WEATHER_ICON := DEC_TO_INT.DEC_TO_INT;
+							ELSE
+								WW.CUR.WEATHER_ICON := 0;
+							END_IF;
+						13:	WW.CUR.WEATHER_DESC := value;
+						14:	WW.CUR.WIND_SPEED_MILES := value_int;
+						15:	WW.CUR.WIND_SPEED_KMPH := value_int;
+						16:	WW.CUR.WIND_DIR_DEGREE := value_int;
+						17:	WW.CUR.WIND_DIR16POINT := value;
+						18:	WW.CUR.PRECIPMM := value_real;
+						19:	WW.CUR.HUMIDITY := value_int;
+						20:	WW.CUR.VISIBILITY := value_int;
+						21:	WW.CUR.PRESSURE := value_int;
+						22:	WW.CUR.CLOUDOVER := value_int;
+						END_CASE;
+					END_IF;
+				END_IF;
+			ELSIF result = BYTE#10 THEN 
+				DONE  := TRUE;
+				run := BYTE#0; 
+				state := 100;
+			END_IF;
+		END_IF;
+
+	100:
+		IF (NOT HTTP_GET.DONE) THEN
+			state := 0;
+			BUSY := FALSE;
+			DONE := ERROR_T = BYTE#0;
+		END_IF;
+
+	END_CASE;
+
+	DNS_CLIENT.IP_C     := IP_C;
+	DNS_CLIENT.S_BUF    := S_BUF;
+	DNS_CLIENT.R_BUF    := R_BUF;
+	DNS_CLIENT.DOMAIN   := URL_DATA.DOMAIN;
+	DNS_CLIENT.IP4_DNS  := DWORD#00;
+	DNS_CLIENT.ACTIVATE := state=40;
+	DNS_CLIENT();
+	IP_C  := DNS_CLIENT.IP_C;
+	S_BUF := DNS_CLIENT.S_BUF;
+	R_BUF := DNS_CLIENT.R_BUF;
+
+
+	HTTP_GET.IP_C        := IP_C;
+	HTTP_GET.S_BUF       := S_BUF;
+	HTTP_GET.R_BUF       := R_BUF;
+	HTTP_GET.IP4         := DNS_CLIENT.IP4;
+	HTTP_GET.GET         := state=60;
+	HTTP_GET.MODE        := BYTE#2;  
+	HTTP_GET.UNLOCK_BUF  := state=100; 
+	HTTP_GET.URL_DATA    := URL_DATA;
+	HTTP_GET();
+	IP_C     := HTTP_GET.IP_C;
+	S_BUF    := HTTP_GET.S_BUF;
+	R_BUF    := HTTP_GET.R_BUF;
+	URL_DATA := HTTP_GET.URL_DATA;
+
+
+	CPB(SEP:=sep,RUN:=run,OFFSET:=offset,VALUE:=value,PT:=R_BUF); 
+	run:=CPB.RUN;
+	offset:=CPB.OFFSET;
+	value:=CPB.VALUE;
+	R_BUF:=CPB.PT;
+	result:=CPB.RESULT;
+
+	last_state := ACTIVATE;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		ACTIVATE :	BOOL;
+		LATITUDE :	REAL;
+		LONGITUDE :	REAL;
+		KEY :	oscat_STRING30;
+		IP_C :	oscat_IP_C;
+		S_BUF :	oscat_NETWORK_BUFFER;
+		R_BUF :	oscat_NETWORK_BUFFER;
+		WW :	oscat_WORLD_WEATHER_DATA;
+		BUSY :	BOOL;
+		DONE :	BOOL;
+		ERROR_C :	DWORD;
+		ERROR_T :	BYTE;
+
+		func_block : WORLD_WEATHER_Block;
+	END_VAR
+	func_block.ACTIVATE := ACTIVATE;
+	func_block.LATITUDE := LATITUDE;
+	func_block.LONGITUDE := LONGITUDE;
+	func_block.KEY := KEY;
+	func_block.IP_C := IP_C;
+	func_block.S_BUF := S_BUF;
+	func_block.R_BUF := R_BUF;
+	func_block.WW := WW;
+	
+
+	func_block();
+	IP_C  := func_block.IP_C;
+	S_BUF  := func_block.S_BUF;
+	R_BUF  := func_block.R_BUF;
+	WW  := func_block.WW;
+	BUSY  := func_block.BUSY;
+	DONE  := func_block.DONE;
+	ERROR_C  := func_block.ERROR_C;
+	ERROR_T  := func_block.ERROR_T;
+END_PROGRAM
+
+CONFIGURATION Config0
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+END_CONFIGURATION
+
+===== 732-LEGIONELLA.ST =====
+FUNCTION TIMECHECK:BOOL
+
+	VAR_INPUT
+		TD :	UDINT;
+		START :	UDINT;
+		STOP :	UDINT;
+	END_VAR
+
+	IF stop < start THEN
+		TIMECHECK := start <= TD OR  TD < stop;
+	ELSE
+		TIMECHECK := start <= TD AND TD < stop;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION TIME_TO_TOD:UDINT
+
+
+
+	VAR_INPUT
+		IN :	TIME;
+	END_VAR
+
+	TIME_TO_TOD := DWORD_TO_UDINT(TIME_TO_DWORD(IN));
+END_FUNCTION
+
+FUNCTION TOD_TO_TIME:TIME
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+	TOD_TO_TIME := DWORD_TO_TIME(UDINT_TO_DWORD(IN));
+END_FUNCTION
+
+FUNCTION DAY_OF_WEEK:INT
+  VAR_INPUT
+    IDATE :	UDINT;
+  END_VAR
+
+  DAY_OF_WEEK := UDINT_TO_INT((idate / UDINT#86400 + UDINT#3) MOD UDINT#7) + INT#01;
+END_FUNCTION
+
+FUNCTION _DT_TO_DATE_B:UDINT
+
+	VAR_INPUT
+		_INN :	UDINT;
+	END_VAR
+
+	_DT_TO_DATE_B := (_INN / UDINT#86400) * UDINT#86400;
+END_FUNCTION
+
+FUNCTION DT_TO_TOD2:UDINT
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+	DT_TO_TOD2 := (IN MOD UDINT#86400) * UDINT#1000;
+END_FUNCTION
+
+FUNCTION TIME_TO_TOD2:UDINT
+
+	VAR_INPUT
+		IN :	TIME;
+	END_VAR
+
+	TIME_TO_TOD2 := DWORD_TO_UDINT(TIME_TO_DWORD(IN));
+END_FUNCTION
+
+FUNCTION_BLOCK TIMER_1_Block
+
+	VAR_INPUT
+		E :	BOOL := TRUE;
+		DTI :	UDINT;
+		START :	UDINT;
+		DURATION :	TIME;
+		DAY :	BYTE := BYTE#2#0111_1111;
+	END_VAR
+
+
+	VAR_OUTPUT
+		Q :	BOOL;
+		STOP :	TIME;
+	END_VAR
+
+	IF E THEN
+		stop := TOD_TO_TIME(START) + DURATION;
+		IF stop > T#24h THEN stop := stop - T#24h; END_IF;
+		Q := TIMECHECK(DT_TO_TOD2(DTI), START, TIME_TO_TOD2(stop)) AND (SHR(BYTE#128, DAY_OF_WEEK(_DT_TO_DATE_B(DTI))) AND DAY) > BYTE#0;
+	ELSE
+		Q := FALSE; 
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION UDINT_TO_TIME2:TIME
+
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+
+	UDINT_TO_TIME2 := DINT_TO_TIME(UDINT_TO_DINT(IN));
+
+END_FUNCTION
+
+FUNCTION_BLOCK T_PLC_MS_block
+	VAR_OUTPUT
+		T_PLC_MS :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;
+		N :	INT;
+		Offset :	UDINT;
+		temp :	DWORD := DWORD#1;
+		mode :	BOOL;
+		faktor :	UDINT;
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000;
+	END_VAR
+
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_MS := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_MS),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK SEQUENCE_8_Block
+
+	VAR_INPUT
+		IN0 :	BOOL := TRUE;
+		IN1 :	BOOL := TRUE;
+		IN2 :	BOOL := TRUE;
+		IN3 :	BOOL := TRUE;
+		IN4 :	BOOL := TRUE;
+		IN5 :	BOOL := TRUE;
+		IN6 :	BOOL := TRUE;
+		IN7 :	BOOL := TRUE;
+		START :	BOOL;
+		RST :	BOOL;
+		WAIT0 :	TIME;
+		DELAY0 :	TIME;
+		WAIT1 :	TIME;
+		DELAY1 :	TIME;
+		WAIT2 :	TIME;
+		DELAY2 :	TIME;
+		WAIT3 :	TIME;
+		DELAY3 :	TIME;
+		WAIT4 :	TIME;
+		DELAY4 :	TIME;
+		WAIT5 :	TIME;
+		DELAY5 :	TIME;
+		WAIT6 :	TIME;
+		DELAY6 :	TIME;
+		WAIT7 :	TIME;
+		DELAY7 :	TIME;
+		STOP_ON_ERROR :	BOOL;
+	END_VAR
+
+	VAR_OUTPUT
+		Q0 :	BOOL;
+		Q1 :	BOOL;
+		Q2 :	BOOL;
+		Q3 :	BOOL;
+		Q4 :	BOOL;
+		Q5 :	BOOL;
+		Q6 :	BOOL;
+		Q7 :	BOOL;
+		QX :	BOOL;
+		RUN :	BOOL;
+		_STEP :	INT := -1;
+		STATUS :	BYTE;
+	END_VAR
+
+	VAR
+		last :	TIME;
+		edge :	BOOL;
+		tx :	TIME;
+		init :	BOOL;
+		T_PLC_MS :	T_PLC_MS_Block;
+	END_VAR	
+
+	T_PLC_MS();
+	tx:= UDINT_TO_TIME(T_PLC_MS.T_PLC_MS);
+
+	IF NOT init THEN
+		last := tx;
+		init := TRUE;
+		status := BYTE#110;
+	END_IF;
+
+	IF rst THEN
+		_step := -1;
+		Q0 := FALSE;
+		Q1 := FALSE;
+		Q2 := FALSE;
+		Q3 := FALSE;
+		Q4 := FALSE;
+		Q5 := FALSE;
+		Q6 := FALSE;
+		Q7 := FALSE;
+		status := BYTE#110;
+		run := FALSE;
+
+	ELSIF start AND NOT edge THEN
+		_step := 0;
+		last := tx;
+		status := BYTE#111;
+		Q0 := FALSE;
+		Q1 := FALSE;
+		Q2 := FALSE;
+		Q3 := FALSE;
+		Q4 := FALSE;
+		Q5 := FALSE;
+		Q6 := FALSE;
+		Q7 := FALSE;
+		run := TRUE;
+	END_IF;
+	edge := start;
+
+	IF status > BYTE#0 AND status < BYTE#100 AND stop_on_error THEN RETURN; END_IF;
+
+	IF run AND _step = 0 THEN
+		IF NOT q0 AND in0 AND tx - last <= wait0 THEN
+			Q0 := TRUE;
+			last := tx;
+		ELSIF NOT q0 AND tx - last > wait0 THEN
+			status := BYTE#1;
+			run := FALSE;
+		ELSIF q0 AND tx - last >= delay0 THEN
+			_step := 1;
+			last := tx;
+		END_IF;
+	END_IF;
+	IF run AND _step = 1 THEN
+		IF NOT q1 AND in1 AND tx - last <= wait1 THEN
+			Q0 := FALSE;
+			Q1 := TRUE;
+			last := tx;
+		ELSIF NOT q1 AND Tx - last > wait1 THEN
+			status := BYTE#2;
+			q0 := FALSE;
+			run := FALSE;
+		ELSIF q1 AND tx - last >= delay1 THEN
+			_step := 2;
+			last := tx;
+		END_IF;
+	END_IF;
+	IF run AND _step = 2 THEN
+		IF NOT q2 AND in2 AND tx - last <= wait2 THEN
+			Q1 := FALSE;
+			Q2 := TRUE;
+			last := tx;
+		ELSIF NOT q2 AND Tx - last > wait2 THEN
+			status := BYTE#3;
+			q1 := FALSE;
+			run := FALSE;
+		ELSIF q2 AND tx - last >= delay2 THEN
+			_step := 3;
+			last := tx;
+		END_IF;
+	END_IF;
+	IF run AND _step = 3 THEN
+		IF NOT q3 AND in3 AND tx - last <= wait3 THEN
+			Q2 := FALSE;
+			Q3 := TRUE;
+			last := tx;
+		ELSIF NOT q3 AND Tx - last > wait3 THEN
+			status := BYTE#4;
+			q2 := FALSE;
+			run := FALSE;
+		ELSIF q3 AND tx - last >= delay3 THEN
+			_step := 4;
+			last := tx;
+		END_IF;
+	END_IF;
+	IF run AND _step = 4 THEN
+		IF NOT q4 AND in4 AND tx - last <= wait4 THEN
+			Q3 := FALSE;
+			Q4 := TRUE;
+			last := tx;
+		ELSIF NOT q4 AND Tx - last > wait4 THEN
+			status := BYTE#5;
+			q3 := FALSE;
+			run := FALSE;
+		ELSIF q4 AND tx - last >= delay4 THEN
+			_step := 5;
+			last := tx;
+		END_IF;
+	END_IF;
+	IF run AND _step = 5 THEN
+		IF NOT q5 AND in5 AND tx - last <= wait5 THEN
+			Q4 := FALSE;
+			Q5 := TRUE;
+			last := tx;
+		ELSIF NOT q5 AND Tx - last > wait5 THEN
+			status := BYTE#6;
+			q4 := FALSE;
+			run := FALSE;
+		ELSIF q5 AND tx - last >= delay5 THEN
+			_step := 6;
+			last := tx;
+		END_IF;
+	END_IF;
+	IF run AND _step = 6 THEN
+		IF NOT q6 AND in6 AND tx - last <= wait6 THEN
+			Q5 := FALSE;
+			Q6 := TRUE;
+			last := tx;
+		ELSIF NOT q6 AND Tx - last > wait6 THEN
+			status := BYTE#7;
+			q5 := FALSE;
+			run := FALSE;
+		ELSIF q6 AND tx - last >= delay6 THEN
+			_step := 7;
+			last := tx;
+		END_IF;
+	END_IF;
+	IF run AND _step = 7 THEN
+		IF NOT q7 AND in7 AND tx - last <= wait7 THEN
+			Q6 := FALSE;
+			Q7 := TRUE;
+			last := tx;
+		ELSIF NOT q7 AND Tx - last > wait7 THEN
+			status := BYTE#8;
+			q6 := FALSE;
+			run := FALSE;
+		ELSIF q7 AND tx - last >= delay7 THEN
+			_step := -1;
+			Q7 := FALSE;
+			Run := FALSE;
+			status := BYTE#110;
+		END_IF;
+	END_IF;
+	QX := q0 OR q1 OR q2 OR q3 OR q4 OR q5 OR q6 OR q7;
+
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK HYST_1_Block
+
+	VAR_INPUT
+		IN :	REAL;
+		HIGH :	REAL;
+		LOW :	REAL;
+	END_VAR
+
+
+	VAR_OUTPUT
+		Q :	BOOL;
+		WIN :	BOOL;
+	END_VAR
+
+	IF in < low THEN
+		Q := FALSE;
+		win := FALSE;
+	ELSIF in > high THEN
+		Q := TRUE;
+		win := FALSE;
+	ELSE
+		win := TRUE;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK LEGIONELLA_Block
+
+	VAR_INPUT
+		MANUAL :	BOOL;
+		TEMP_BOILER :	REAL;
+		TEMP_RETURN :	REAL := 100.0;
+		DT_IN :	UDINT;
+		RST :	BOOL;
+		T_START :	UDINT := UDINT#10800000;(*tod#03:00:00*)
+		DAY :	INT := 7;
+		TEMP_SET :	REAL := 70.0;
+		TEMP_OFFSET :	REAL := 10.0;
+		TEMP_HYS :	REAL := 5.0;
+		T_MAX_HEAT :	TIME := t#10m;
+		T_MAX_RET :	TIME := t#10m;
+		TP_0 :	TIME := t#5m;
+		TP_1 :	TIME := t#5m;
+		TP_2 :	TIME := t#5m;
+		TP_3 :	TIME := t#5m;
+		TP_4 :	TIME := t#5m;
+		TP_5 :	TIME := t#5m;
+		TP_6 :	TIME := t#5m;
+		TP_7 :	TIME := t#5m;
+	END_VAR
+
+
+	VAR_OUTPUT
+		HEAT :	BOOL;
+		PUMP :	BOOL;
+		VALVE0 :	BOOL;
+		VALVE1 :	BOOL;
+		VALVE2 :	BOOL;
+		VALVE3 :	BOOL;
+		VALVE4 :	BOOL;
+		VALVE5 :	BOOL;
+		VALVE6 :	BOOL;
+		VALVE7 :	BOOL;
+		RUN :	BOOL;
+		_STATUS :	BYTE;
+	END_VAR
+
+
+	VAR
+		X1 :	TIMER_1_Block;
+		x2 :	SEQUENCE_8_Block;
+		x3 :	HYST_1_Block;
+		init :	BOOL;
+	END_VAR
+
+	IF NOT init THEN
+		init := TRUE;
+		X1.day := SHR(BYTE#128,day);
+		X1.start := T_start;
+		X3.low := Temp_offset + temp_set;
+		X3.high := Temp_hys + X3.low;
+		X2.wait0 := T_max_heat;
+		X2.delay0 := TP_0;
+		X2.delay1 := TP_1;
+		X2.delay2 := TP_2;
+		X2.delay3 := TP_3;
+		X2.delay4 := TP_4;
+		X2.delay5 := TP_5;
+		X2.delay6 := TP_6;
+		X2.delay7 := TP_7;
+		X2.wait1 := T_max_ret;
+		X2.wait2 := T_max_ret;
+		X2.wait3 := T_max_ret;
+		X2.wait4 := T_max_ret;
+		X2.wait5 := T_max_ret;
+		X2.wait6 := T_max_ret;
+		X2.wait7 := T_max_ret;
+		X2();
+	END_IF;
+
+	X1(DTi := DT_in);
+	IF X1.Q OR MANUAL OR x2.run THEN
+		X3(in := temp_boiler);
+		X2.in0 := X3.Q OR x3.win;
+		X2.in1 := temp_return >= temp_set;
+		X2.in2 := x2.in1;
+		X2.in3 := x2.in1;
+		X2.in4 := x2.in1;
+		X2.in5 := x2.in1;
+		X2.in6 := x2.in1;
+		X2.in7 := x2.in1;
+		X2.rst := rst;
+		X2(start := X1.Q OR MANUAL);
+		run := x2.run;
+		pump := x2.QX;
+		Heat := NOT X3.Q AND x2.run;
+		valve0 := X2.Q0;
+		valve1 := X2.Q1;
+		valve2 := X2.Q2;
+		valve3 := X2.Q3;
+		valve4 := X2.Q4;
+		valve5 := X2.Q5;
+		valve6 := X2.Q6;
+		valve7 := X2.Q7;
+		pump := X2.QX;
+		_STATUS := X2.status;
+	ELSE
+		X2(start := FALSE);
+		_STATUS := x2.status;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		MANUAL :	BOOL;
+		TEMP_BOILER :	REAL;
+		TEMP_RETURN :	REAL := 100.0;
+		DT_IN :	UDINT;
+		RST :	BOOL;
+		T_START :	UDINT := UDINT#10800000;(*tod#03:00:00*)
+		DAY :	INT := 7;
+		TEMP_SET :	REAL := 70.0;
+		TEMP_OFFSET :	REAL := 10.0;
+		TEMP_HYS :	REAL := 5.0;
+		T_MAX_HEAT :	TIME := t#10m;
+		T_MAX_RET :	TIME := t#10m;
+		TP_0 :	TIME := t#5m;
+		TP_1 :	TIME := t#5m;
+		TP_2 :	TIME := t#5m;
+		TP_3 :	TIME := t#5m;
+		TP_4 :	TIME := t#5m;
+		TP_5 :	TIME := t#5m;
+		TP_6 :	TIME := t#5m;
+		TP_7 :	TIME := t#5m;
+		HEAT :	BOOL;
+		PUMP :	BOOL;
+		VALVE0 :	BOOL;
+		VALVE1 :	BOOL;
+		VALVE2 :	BOOL;
+		VALVE3 :	BOOL;
+		VALVE4 :	BOOL;
+		VALVE5 :	BOOL;
+		VALVE6 :	BOOL;
+		VALVE7 :	BOOL;
+		RUN :	BOOL;
+		_STATUS :	BYTE;
+
+		func_block : LEGIONELLA_Block;
+	END_VAR
+	func_block.MANUAL := MANUAL;
+	func_block.TEMP_BOILER := TEMP_BOILER;
+	func_block.TEMP_RETURN := TEMP_RETURN ;
+	func_block.DT_IN    := DT_IN    ;
+	func_block.RST := RST;
+	func_block.T_START := T_START;
+	func_block.DAY := DAY ;
+	func_block.TEMP_SET := TEMP_SET ;
+	func_block.TEMP_OFFSET    := TEMP_OFFSET    ;
+	func_block.TEMP_HYS    := TEMP_HYS    ;
+	func_block.T_MAX_HEAT := T_MAX_HEAT;
+	func_block.T_MAX_RET := T_MAX_RET;
+	func_block.TP_0 := TP_0;
+	func_block.TP_1 := TP_1 ;
+	func_block.TP_2 := TP_2 ;
+	func_block.TP_3    := TP_3    ;
+	func_block.TP_4    := TP_4    ;
+	func_block.TP_5 := TP_5;
+	func_block.TP_6 := TP_6;
+	func_block.TP_7 := TP_7;
+
+	func_block();
+	HEAT  := func_block.HEAT;
+	PUMP  := func_block.PUMP;
+	VALVE0  := func_block.VALVE0;
+	VALVE1  := func_block.VALVE1;
+	VALVE2  := func_block.VALVE2;
+	VALVE3  := func_block.HEAT;
+	VALVE4  := func_block.VALVE4;
+	VALVE5  := func_block.VALVE5;
+	VALVE6  := func_block.VALVE6;
+	VALVE7  := func_block.VALVE7;
+	RUN  := func_block.RUN;
+	_status  := func_block._status;
+END_PROGRAM
+
+CONFIGURATION Config0
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+END_CONFIGURATION
+
+===== 733-YAHOO_WEATHER_ICON_OSCAT.ST =====
+TYPE
+  oscat_STRING1               : STRING;
+  oscat_STRING2               : STRING;
+  oscat_STRING3               : STRING;
+  oscat_STRING4               : STRING;
+  oscat_STRING5               : STRING;
+  oscat_STRING8               : STRING;
+  oscat_STRING10              : STRING;
+  oscat_STRING12            : STRING;
+  oscat_STRING15            : STRING;
+  oscat_STRING20            : STRING;
+  oscat_STRING27            : STRING;
+  oscat_STRING30            : STRING;
+  oscat_STRING32            : STRING;
+  oscat_STRING40            : STRING;
+  oscat_STRING48            : STRING;
+  oscat_STRING50            : STRING;
+  oscat_STRING60            : STRING;
+  oscat_STRING64            : STRING;
+  oscat_STRING80            : STRING;
+  oscat_STRING120            : STRING;
+  oscat_STRING140            : STRING;
+  oscat_STRING160            : STRING;
+  oscat_STRING180            : STRING;
+  oscat_STRING190            : STRING;
+  oscat_STRING250            : STRING;
+END_TYPE
+
+TYPE
+  oscat_IP_FIFO128_DATA  : ARRAY [1..128] OF BYTE;
+  oscat_Mailbox  : ARRAY [1..16] OF BYTE;
+
+  oscat_IP_FIFO_DATA :
+  STRUCT
+	X       : oscat_IP_FIFO128_DATA; (* IP_ID FIFO Speicher          *)
+	Y       : oscat_IP_FIFO128_DATA; (* IP_ID Z�hler                 *)
+	ID      : BYTE;                  (* h�chste vergabene id         *)
+	MAX_ID  : BYTE;                  (* maximal Anmeldungen pro ID   *)
+    INIT    : BOOL;                  (* Initialisierung durchgef�hrt *)
+	EMPTY   : BOOL;                  (* FIFO leer                    *)
+	FULL    : BOOL;                  (* FIFO voll                    *)
+	TOP     : INT;                   (* maximale anzahl in FIFO      *)
+	NW      : INT;                   (* Schreibzeiger                *)
+	NR      : INT;                   (* Lesezeiger                   *)
+  END_STRUCT;
+
+  oscat_IP_C:
+  STRUCT
+  	C_MODE:			BYTE;          		(*W Mode: TCP/UCP AKTIV/PASSIV                               *)
+	C_PORT:         WORD;          		(*W Portnummer                                               *)
+	C_IP:           DWORD;         		(*W IP-Adresse gepackt wwxxyyzz = www.xxx.yyy.zzz            *)
+    C_STATE:        BYTE;          		(*R Verbindungsstatus ON/OFF + Flanke ON/OFF                 *)
+	C_ENABLE:       BOOL;          		(*W Freigabe f�r Connect                                     *)
+    R_OBSERVE:      BOOL;          		(*W Empfang ueberwachen                                      *)
+    TIME_RESET:     BOOL;          		(*W Alle Timer ruecksetzen                                   *)
+	ERROR:          DWORD;         		(*R vvwwxxyy (vv = CON_ERROR, ww = SEN_ERROR, xx = REC_ERROR *)
+    FIFO:           oscat_IP_FIFO_DATA; (*I IP FIFO Struktur                                         *) 
+	MAILBOX:		oscat_Mailbox;		(*I Mailbox: Datenbereich f�r Bausteindatenaustausch         *) 
+  END_STRUCT;
+
+  oscat_XML_CONTROL:
+  STRUCT
+    COMMAND:             WORD;            (*W                 *)
+    WATCHDOG:            TIME;            (*W                 *)
+    START_POS:           UINT;            (*W                 *)
+    STOP_POS:            UINT;            (*W                 *)
+    COUNT:               UINT;            (*R                 *)
+    TYP:                 INT;             (*R                 *)
+    LEVEL:               UINT;            (*R                 *)
+    PATH:                oscat_STRING250; (*R                 *)
+    ELEMENT:             oscat_STRING250; (*R                 *)
+    ATTRIBUTE:           oscat_STRING250; (*R                 *)
+    VALUE:               oscat_STRING250; (*R                 *)
+    BLOCK1_START:        UINT;            (*R                 *)
+    BLOCK1_STOP:         UINT;            (*R                 *)
+    BLOCK2_START:        UINT;            (*R                 *)
+    BLOCK2_STOP:         UINT;            (*R                 *)
+  END_STRUCT;
+
+  (* --------- WORLD WEATHER --------- *)
+
+  oscat_WORLD_WEATHER_CUR :
+  STRUCT
+	OBSERVATION_TIME : oscat_STRING8;
+	TEMP_C           : INT;
+	WEATHER_CODE     : INT;
+	WEATHER_DESC 	 : oscat_STRING60;
+	WEATHER_ICON     : INT;
+	WIND_SPEED_MILES : INT;
+	WIND_SPEED_KMPH  : INT;
+	WIND_DIR_DEGREE  : INT;
+	WIND_DIR16POINT  : oscat_STRING3;
+	PRECIPMM         : REAL;
+	HUMIDITY         : INT;
+	VISIBILITY       : INT;
+	PRESSURE         : INT;
+	CLOUDOVER        : INT;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_DAY :
+  STRUCT
+	DATE_OF_DAY      : oscat_STRING10;
+	TEMP_MAX_C       : INT;
+	TEMP_MAX_F       : INT;
+	TEMP_MIN_C       : INT;
+	TEMP_MIN_F       : INT;
+	WIND_SPEED_MILES : INT;
+	WIND_SPEED_KMPH  : INT;
+	WIND_DIR_DEGREE  : INT;
+	WIND_DIR16POINT  : oscat_STRING3;
+	WEATHER_CODE     : INT;
+	WEATHER_DESC     : oscat_STRING60;
+	WEATHER_ICON     : INT;
+	PRECIPMM         : REAL;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_DAY_ARR : ARRAY [0..4] OF oscat_WORLD_WEATHER_DAY;
+
+  oscat_WORLD_WEATHER_DATA :
+  STRUCT
+	CUR : oscat_WORLD_WEATHER_CUR;
+	DAY : oscat_WORLD_WEATHER_DAY_ARR;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_aI0_41 : ARRAY[0..41] OF INT;
+
+  (* --------- WEATHER CHANNEL --------- *)
+  oscat_YAHOO_WEATHER_DATA:
+  STRUCT
+    TIMETOLIVE:                 INT;              (* TIME TO LIVE: HOW LONG IN MINUTES THIS FEED SHOULD BE CACHED         *)    
+    LOCATION_CITY:              OSCAT_STRING40;   (* THE LOCATION OF THIS FORECAST: CITY: CITY NAME  *)
+    LOCATION_REGION:            OSCAT_STRING20;   (* THE LOCATION OF THIS FORECAST: REGION: STATE, TERRITORY, OR REGION, IF GIVEN *)
+    LOCATION_COUNTRY:           OSCAT_STRING20;    (* THE LOCATION OF THIS FORECAST: COUNTRY: TWO-CHARACTER COUNTRY CODE *)
+    UNIT_TEMPERATURE:           OSCAT_STRING1;    (* TEMPERATURE: DEGREE UNITS, F FOR FAHRENHEIT OR C FOR CELSIUS *)  
+    UNIT_DISTANCE:              OSCAT_STRING2;    (* DISTANCE: UNITS FOR DISTANCE, MI FOR MILES OR KM FOR KILOMETERS *)  
+    UNIT_PRESSURE:              OSCAT_STRING2;    (* PRESSURE: UNITS OF BAROMETRIC PRESSURE, IN FOR POUNDS PER SQUARE INCH OR MB FOR MILLIBARS *)  
+    UNIT_SPEED:                 OSCAT_STRING4;    (* SPEED: UNITS OF SPEED, MPH FOR MILES PER HOUR OR KPH FOR KILOMETERS PER HOUR *)  
+    WIND_CHILL:                 INT;              (* FORECAST INFORMATION ABOUT WIND CHILL IN DEGREES *)
+    WIND_DIRECTION:             INT;              (* FORECAST INFORMATION ABOUT WIND DIRECTION, IN DEGREES *)
+    WIND_SPEED:                 REAL;             (* FORECAST INFORMATION ABOUT WIND SPEED, IN THE UNITS (MPH OR KPH)*)
+    ATMOSPHERE_HUMIDITY:        INT;              (* FORECAST INFORMATION ABOUT CURRENT ATMOSPHERIC HUMIDITY: HUMIDITY, IN PERCENT  *)
+    ATMOSPHERE_PRESSURE:        INT;              (* FORECAST INFORMATION ABOUT CURRENT ATMOSPHERIC PRESSURE: BAROMETRIC PRESSURE, IN THE UNITS (IN OR MB) *)
+	ATMOSPHERE_VISIBILITY:      REAL;             (* FORECAST INFORMATION ABOUT CURRENT ATMOSPHERIC VISIBILITY, IN THE UNITS (MI OR KM) *)
+	ATMOSPHERE_RISING:          INT;              (* FORECAST INFORMATION ABOUT RISING: STATE OF THE BAROMETRIC PRESSURE: STEADY (0), RISING (1), OR FALLING (2). (INTEGER: 0, 1, 2) *)
+    ASTRONOMY_SUNRISE:          OSCAT_STRING10;   (* SUNRISE: TODAY'S SUNRISE TIME. THE TIME IS A STRING IN A LOCAL TIME FORMAT OF "H:MM AM/PM" *)
+    ASTRONOMY_SUNSET:           OSCAT_STRING10;   (* SUNSET: TODAY'S SUNSET TIME. THE TIME IS A STRING IN A LOCAL TIME FORMAT OF "H:MM AM/PM", *)
+    GEO_LATITUDE:               REAL;             (* THE LATITUDE OF THE LOCATION *)
+    GEO_LONGITUDE:              REAL;             (* THE LONGITUDE OF THE LOCATION *)
+    CUR_CONDITIONS_TEMP:        INT;              (* THE CURRENT WEATHER CONDITIONS: TEMP: THE CURRENT TEMPERATURE, IN THE UNITS (F OR C) *)
+    CUR_CONDITIONS_TEXT:        OSCAT_STRING40;   (* THE CURRENT WEATHER CONDITIONS: TEXT: A TEXTUAL DESCRIPTION OF CONDITIONS *)
+    CUR_CONDITIONS_CODE:        INT;              (* THE CURRENT WEATHER CONDITIONS: CODE: THE CONDITION CODE FOR THIS FORECAST *)
+	CUR_CONDITIONS_ICON:        INT;			  (* THE CURRENT WEATHER CONDITIONS: ICON: THE CONDITION ICON FOR THIS FORECAST *)
+    FORCAST_TODAY_LOW_TEMP:     INT;              (* THE FORCAST TODAY WEATHER CONDITIONS: THE FORECASTED LOW TEMPERATURE FOR THIS DAY IN THE UNITS (F OR C) *)
+    FORCAST_TODAY_HIGH_TEMP:    INT;              (* THE FORCAST TODAY WEATHER CONDITIONS: THE FORECASTED HIGH TEMPERATURE FOR THIS DAY IN THE UNITS (F OR C) *)
+    FORCAST_TODAY_TEXT:         OSCAT_STRING40;   (* THE FORCAST TODAY WEATHER CONDITIONS: TEXT: A TEXTUAL DESCRIPTION OF CONDITIONS *)
+    FORCAST_TODAY_CODE:         INT;              (* THE CURRENT WEATHER CONDITIONS: CODE: THE CONDITION CODE FOR THIS FORECAST *)
+	FORCAS

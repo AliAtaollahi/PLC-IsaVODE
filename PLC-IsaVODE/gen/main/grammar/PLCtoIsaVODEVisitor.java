@@ -1,5 +1,12 @@
 // Generated from D:/10/New/Prague/Parsing/IsaVODEtoCPP/IsaVODEtoCPP/PLC-IsaVODE/src/main/grammar/PLCtoIsaVODE.g4 by ANTLR 4.13.1
 package main.grammar;
+
+    import main.ast.nodes.*;
+    import main.ast.nodes.declaration.*;
+    import main.ast.nodes.Stmt.*;
+    import main.ast.nodes.expr.*;
+    import main.ast.nodes.expr.value.*;
+
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
 /**
@@ -113,11 +120,17 @@ public interface PLCtoIsaVODEVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitVariable_declaration(PLCtoIsaVODEParser.Variable_declarationContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#block}.
+	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#program_block_body}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitBlock(PLCtoIsaVODEParser.BlockContext ctx);
+	T visitProgram_block_body(PLCtoIsaVODEParser.Program_block_bodyContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#statement_list}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStatement_list(PLCtoIsaVODEParser.Statement_listContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#statement}.
 	 * @param ctx the parse tree
@@ -149,6 +162,18 @@ public interface PLCtoIsaVODEVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFor_statement(PLCtoIsaVODEParser.For_statementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#exit_statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExit_statement(PLCtoIsaVODEParser.Exit_statementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#continue_statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitContinue_statement(PLCtoIsaVODEParser.Continue_statementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#while_statement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -173,6 +198,12 @@ public interface PLCtoIsaVODEVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIf_then_else_statement(PLCtoIsaVODEParser.If_then_else_statementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#variable}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitVariable(PLCtoIsaVODEParser.VariableContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -185,9 +216,27 @@ public interface PLCtoIsaVODEVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitArgument_expression_list(PLCtoIsaVODEParser.Argument_expression_listContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#boolean_literal}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBoolean_literal(PLCtoIsaVODEParser.Boolean_literalContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#numeric_literal}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNumeric_literal(PLCtoIsaVODEParser.Numeric_literalContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#literal}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitLiteral(PLCtoIsaVODEParser.LiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link PLCtoIsaVODEParser#integer_literal}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInteger_literal(PLCtoIsaVODEParser.Integer_literalContext ctx);
 }

@@ -1,7 +1,7 @@
-import main.ast.nodes.Program;
+import main.ast.nodes.declaration.Program;
+import main.ast.nodes.declaration.SourceUnit;
 import main.grammar.PLCtoIsaVODELexer;
 import main.grammar.PLCtoIsaVODEParser;
-import main.symbolTable.SymbolTable;
 import main.visitor.CodeGenerator;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -14,10 +14,10 @@ public class PLCtoIsaVODE {
         PLCtoIsaVODELexer PLCtoIsaVODELexer = new PLCtoIsaVODELexer(reader);
         CommonTokenStream tokens = new CommonTokenStream(PLCtoIsaVODELexer);
         PLCtoIsaVODEParser flParser = new PLCtoIsaVODEParser(tokens);
-//        Program program = flParser.program().sourceUnit;
+        SourceUnit source_unit = flParser.source_unit().sourceUnitRet;
 
-//        CodeGenerator codeGenerator = new CodeGenerator();
-//        codeGenerator.visit(program);
+        CodeGenerator codeGenerator = new CodeGenerator();
+        codeGenerator.visit(source_unit);
         System.out.println();
     }
 }

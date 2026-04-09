@@ -1,0 +1,1825 @@
+
+
+===== 733-YAHOO_WEATHER_ICON_OSCAT.ST (cont.) =====
+T_TODAY_ICON:         INT;			  (* THE CURRENT WEATHER CONDITIONS: ICON: THE CONDITION ICON FOR THIS FORECAST *)
+    FORCAST_TOMORROW_LOW_TEMP:  INT;              (* THE FORCAST TOMORROW WEATHER CONDITIONS: THE FORECASTED LOW TEMPERATURE FOR THIS DAY IN THE UNITS (F OR C) *)
+    FORCAST_TOMORROW_HIGH_TEMP: INT;              (* THE FORCAST TOMORROW WEATHER CONDITIONS: THE FORECASTED HIGH TEMPERATURE FOR THIS DAY IN THE UNITS (F OR C) *)
+    FORCAST_TOMORROW_TEXT:      OSCAT_STRING40;   (* THE FORCAST TOMORROW WEATHER CONDITIONS: TEXT: A TEXTUAL DESCRIPTION OF CONDITIONS *)
+    FORCAST_TOMORROW_CODE:      INT;              (* THE CURRENT WEATHER CONDITIONS: CODE: THE CONDITION CODE FOR THIS FORECAST *)
+	FORCAST_TOMORROW_ICON:      INT;			  (* THE CURRENT WEATHER CONDITIONS: ICON: THE CONDITION ICON FOR THIS FORECAST *)
+  END_STRUCT;
+
+  oscat_YAHOO_WEATHER_aI0_48 : ARRAY[0..48] OF INT;
+
+  oscat_IP2GEO_DATA:
+  STRUCT
+	STATE :				BOOL;			  (* STATE *)
+	IP4 :				DWORD;			  (* IP-Adresse *)
+    COUNTRY_CODE :		oscat_STRING2;    (*   *)
+    COUNTRY_NAME :		oscat_STRING20;   (*   *)
+    REGION_CODE :		oscat_STRING2;    (*   *)
+    REGION_NAME :		oscat_STRING20;   (*   *)
+    CITY :				oscat_STRING20;   (*   *)
+    GEO_LATITUDE :		REAL;             (*   *)
+    GEO_LONGITUDE :		REAL;             (*   *)
+	TIME_ZONE_NAME :	oscat_STRING20;
+	GMT_OFFSET :		INT;
+	IS_DST :			BOOL;
+  END_STRUCT;
+END_TYPE
+
+FUNCTION_BLOCK YAHOO_WEATHER_ICON_OSCAT_Block
+
+	VAR_INPUT
+		ACTIVATE :	BOOL;
+	END_VAR
+
+
+	VAR_IN_OUT
+		YW :	oscat_YAHOO_WEATHER_DATA;
+	END_VAR
+
+
+	VAR
+		act_last :	BOOL;
+		x :	INT;
+		init :	BOOL;
+		dat :	oscat_YAHOO_WEATHER_aI0_48;
+	END_VAR
+
+	IF not init THEN
+		init := TRUE;
+
+		dat[00] := 4;
+		dat[01] := 2;
+		dat[02] := 2;
+		dat[03] := 4;
+		dat[04] := 17;
+		dat[05] := 1;
+		dat[06] := 3;
+		dat[07] := 1;
+		dat[08] := 2;
+		dat[09] := 2;
+		dat[10] := 2;
+		dat[11] := 2;
+		dat[12] := 2;
+		dat[13] := 3;
+		dat[14] := 3;
+		dat[15] := 3;
+		dat[16] := 3;
+		dat[17] := 5;
+		dat[18] := 3;
+		dat[19] := 6;
+		dat[20] := 7;
+		dat[21] := 14;
+		dat[22] := 8;
+		dat[23] := 9;
+		dat[24] := 9;
+		dat[25] := 10;
+		dat[26] := 9;
+		dat[27] := 11;
+		dat[28] := 12;
+		dat[29] := 11;
+		dat[30] := 12;
+		dat[31] := 13;
+		dat[32] := 14;
+		dat[33] := 15;
+		dat[34] := 16;
+		dat[35] := 4;
+		dat[36] := 14;
+		dat[37] := 4;
+		dat[38] := 17;
+		dat[39] := 2;
+		dat[40] := 2;
+		dat[41] := 3;
+		dat[42] := 3;
+		dat[43] := 3;
+		dat[44] := 12;
+		dat[45] := 2;
+		dat[46] := 3;
+		dat[47] := 4;
+		dat[48] := 0;
+	END_IF;
+
+	IF ACTIVATE AND act_last = FALSE THEN
+		x := MIN(YW.CUR_CONDITIONS_CODE,48);
+		YW.CUR_CONDITIONS_ICON := dat[x];
+		x := MIN(YW.FORCAST_TODAY_CODE,48);
+		YW.FORCAST_TODAY_ICON := dat[x];
+		x := MIN(YW.FORCAST_TOMORROW_CODE,48);
+		YW.FORCAST_TOMORROW_ICON := dat[x];
+	END_IF;
+	act_last := ACTIVATE;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		ACTIVATE :	BOOL;
+		YW :	oscat_YAHOO_WEATHER_DATA;
+
+		func_block : YAHOO_WEATHER_ICON_OSCAT_Block;
+	END_VAR
+	func_block.ACTIVATE := ACTIVATE;
+	func_block.YW := YW;
+
+	func_block();
+	YW  := func_block.YW;
+END_PROGRAM
+
+CONFIGURATION Config0
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+END_CONFIGURATION
+
+===== 734-DCF77.ST =====
+TYPE
+  oscat_dcf77_bits            : ARRAY [0..58]   OF BOOL;
+END_TYPE
+
+FUNCTION_BLOCK T_PLC_MS_block
+	VAR_OUTPUT
+		T_PLC_MS :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;(*Debug-Mode ON / OFF*)
+		N :	INT;(*Debug-Faktor*)
+		Offset :	UDINT;(*Debug-Offset*)
+		temp :	DWORD := DWORD#1;(*Debug-Offset*)
+		mode :	BOOL;(*modus*)
+		faktor :	UDINT;(*Systemtakt-Faktor*)
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000;
+	END_VAR
+
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_MS := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_MS),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+
+END_FUNCTION_BLOCK
+
+FUNCTION BIT_LOAD_W:WORD
+	VAR_INPUT
+		IN :	WORD;
+		VAL :	BOOL;
+		POS :	INT;
+	END_VAR
+
+	IF VAL THEN
+		BIT_LOAD_W := in OR SHL(WORD#1,pos);
+	ELSE
+		BIT_LOAD_W := in AND (NOT SHL(WORD#1,pos));
+	END_IF;
+END_FUNCTION
+
+FUNCTION BIT_OF_DWORD:BOOL
+	VAR_INPUT
+		IN :	DWORD;
+		N :	INT;
+	END_VAR
+	BIT_OF_DWORD := (SHR(in,n) AND DWORD#1) > DWORD#0;
+END_FUNCTION
+
+FUNCTION EVEN:BOOL
+	VAR_INPUT
+		IN :	DINT;
+	END_VAR
+	even := NOT BIT_OF_DWORD(DINT_TO_DWORD(in),0);
+END_FUNCTION
+
+FUNCTION _INT_TO_UDINT:UDINT
+	VAR_INPUT
+		IN :	INT;
+	END_VAR
+
+	_INT_TO_UDINT := DINT_TO_UDINT(INT_TO_DINT(IN));
+END_FUNCTION
+
+
+FUNCTION SET_DATE:UDINT
+
+	VAR_INPUT
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+	END_VAR
+
+	VAR
+		count :	INT;
+	END_VAR
+
+	IF month > 2 THEN
+		count := (month - 1) * 30;
+		IF month > 7 THEN
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(3)),1));
+		ELSE
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(4)),1));
+		END_IF;
+		IF SHL(INT_TO_WORD(year),14) = WORD#0 THEN
+			count := count + 1;
+		END_IF;
+	ELSE
+		count := (month - 1) * 31;
+	END_IF;
+	SET_DATE := (_INT_TO_UDINT(count + day - 1) + DWORD_TO_UDINT(SHR(UDINT_TO_DWORD(_INT_TO_UDINT(year) * UDINT#1461 - UDINT#2878169), 2))) * UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION DST:BOOL
+	VAR_INPUT
+		UTC :	UDINT;
+	END_VAR
+
+	VAR
+		yr :	INT;
+		yr4 :	UDINT;
+		ltc :	UDINT;
+		idate :	UDINT;
+	END_VAR
+
+	yr := YEAR_OF_DATE(DT_TO_DATE2(UTC));
+	ltc := UTC;
+	idate := SET_DT(yr, 3, 31, 1, 0, 0);
+	yr4 := DWORD_TO_UDINT(SHR(INT_TO_DWORD(5 * yr), 2)) + UDINT#1;
+	DST := (idate - ((yr4 + UDINT#3) MOD UDINT#7) * UDINT#86400 <= ltc) AND (idate + (UDINT#214 - (yr4) MOD UDINT#7) * UDINT#86400 > ltc);
+
+END_FUNCTION
+
+FUNCTION YEAR_OF_DATE:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	YEAR_OF_DATE := UDINT_TO_INT((idate+UDINT#43200) / UDINT#31557600 + UDINT#1970);
+END_FUNCTION
+
+FUNCTION DAY_OF_WEEK:INT
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+
+	DAY_OF_WEEK := UDINT_TO_INT((idate / UDINT#86400 + UDINT#3) MOD UDINT#7) + INT#01;
+END_FUNCTION
+
+FUNCTION SET_DT:UDINT
+	VAR_INPUT
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+		HOUR :	INT;
+		MINUTE :	INT;
+		SECOND :	INT;
+	END_VAR
+
+	SET_DT := SET_DATE(YEAR, MONTH, DAY) + _INT_TO_UDINT(SECOND) + _INT_TO_UDINT(MINUTE) * UDINT#60 + _INT_TO_UDINT(HOUR) * UDINT#3600;
+END_FUNCTION
+
+FUNCTION DT_TO_DATE2:UDINT
+
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+	DT_TO_DATE2 := (IN / UDINT#86400) * UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION_BLOCK DCF77
+	VAR_INPUT
+		REC :	BOOL;
+		SET :	BOOL;
+		SDT :	UDINT;
+		DSI :	BOOL;
+		SYNC_TIMEOUT :	TIME := t#2m;
+		TIME_OFFSET :	INT := 1;
+		DST_EN :	BOOL := TRUE;
+	END_VAR
+
+	VAR_OUTPUT
+		TPp :	BOOL;
+		DS :	BOOL;
+		WDAY :	INT;
+		ERROR :	BOOL;
+		RTC2 :	UDINT;
+		RTC21 :	UDINT;
+		MSEC :	INT;
+		SYNC :	BOOL;
+	END_VAR
+
+	VAR
+		MEZ :	UDINT;
+		UTC :	UDINT;
+		state :	INT;
+		edge :	BOOL;
+		tx :	TIME;
+		ty :	TIME;
+		last :	TIME;
+		bits :	oscat_dcf77_bits;
+		cnt :	INT;
+		i :	INT;
+		old_time :	UDINT;
+		minute :	INT;
+		hour :	INT;
+		day :	INT;
+		month :	INT;
+		year :	INT;
+		last_sync :	TIME;
+		t1 :	TIME;
+		tz :	TIME;
+		init :	BOOL;
+		word_temp :	WORD;
+		bool_temp :	BOOL;
+		T_PLC_MS :	T_PLC_MS_block;
+	END_VAR
+
+
+	TPp := FALSE;
+
+	T_PLC_MS();
+	t1:= UDINT_TO_TIME(T_PLC_MS.T_PLC_MS);
+	tx := t1 - last;
+
+	IF rec XOR edge THEN
+		edge := rec;
+		IF NOT rec AND tx > t#1700ms AND tx < t#2000ms THEN
+			(* start condition reached *)
+			state := 0;
+			tpp := NOT error;
+		ELSIF NOT rec AND tx > t#700ms AND tx < t#1000ms THEN
+			(* second switch detected *)
+			IF state < 58 THEN state := state +1; ELSE state := 0; END_IF;
+		ELSIF rec AND tx  < t#120ms THEN
+			(* bit 0 detected  *)
+			bits[state] := FALSE;
+		ELSIF rec AND tx > t#120ms AND tx < t#250ms THEN
+			(* bit 1 detected *)
+			bits[state] := TRUE;
+		ELSE
+			(* error condition received signal is not valid *)
+			error := TRUE;
+			state := 0;
+		END_IF;
+		last := last + tx;
+		IF rec AND state = 58 THEN
+			error := FALSE;
+
+			IF bits[0] OR NOT (bits[17] XOR bits[18]) OR NOT bits[20] THEN error := TRUE; END_IF;
+			word_temp := WORD#0;
+
+			bool_temp:=bits[21];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,0);   
+			bool_temp:=bits[22];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,1);    
+			bool_temp:=bits[23];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,2); 
+			bool_temp:=bits[24];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,3);   
+
+			minute := WORD_TO_INT(word_temp);
+			IF bits[25] THEN minute := minute +10; END_IF;
+			IF bits[26] THEN minute := minute +20; END_IF;
+			IF bits[27] THEN minute := minute +40; END_IF;
+			IF minute > 59 OR (bits[21] XOR bits[22] XOR bits[23] XOR bits[24] XOR bits[25] XOR bits[26] XOR bits[27] XOR bits[28]) THEN error := TRUE; END_IF;
+
+			(* decode hour *)
+			word_temp := WORD#0;
+
+			bool_temp:=bits[29];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,0);    (* word_temp.X0 := bits[29]; *)
+			bool_temp:=bits[30];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,1);    (* word_temp.X1 := bits[30]; *)
+			bool_temp:=bits[31];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,2);    (* word_temp.X2 := bits[31]; *)
+			bool_temp:=bits[32];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,3);    (* word_temp.X3 := bits[32]; *)
+
+			hour := WORD_TO_INT(word_temp);
+			IF bits[33] THEN hour := hour +10; END_IF;
+			IF bits[34] THEN hour := hour +20; END_IF;
+			IF hour > 23 OR (bits[29] XOR bits[30] XOR bits[31] XOR bits[32] XOR bits[33] XOR bits[34] XOR bits[35]) THEN error := TRUE; END_IF;
+
+			(* decode day of month *)
+			word_temp := WORD#0;
+
+			bool_temp:=bits[36];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,0);    (* word_temp.X0 := bits[36]; *)
+			bool_temp:=bits[37];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,1);    (* word_temp.X1 := bits[37]; *)
+			bool_temp:=bits[38];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,2);    (* word_temp.X2 := bits[38]; *)
+			bool_temp:=bits[39];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,3);    (* word_temp.X3 := bits[39]; *)
+
+			day := WORD_TO_INT(word_temp);
+			IF bits[40] THEN day := day + 10; END_IF;
+			IF bits[41] THEN day := day + 20; END_IF;
+			IF day > 31 THEN error := TRUE; END_IF;
+
+			(* decode day of week *)
+			word_temp := WORD#0;
+
+			bool_temp:=bits[42];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,0);    (* word_temp.X0 := bits[42]; *)
+			bool_temp:=bits[43];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,1);    (* word_temp.X1 := bits[43]; *)
+			bool_temp:=bits[44];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,2);    (* word_temp.X2 := bits[44]; *)
+
+			wday := WORD_TO_INT(word_temp);
+			IF wday > 7 OR wday < 1 THEN error := TRUE; END_IF;
+
+			(* decode month *)
+			word_temp := WORD#0;
+
+			bool_temp:=bits[45];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,0);    (* word_temp.X0 := bits[45]; *)
+			bool_temp:=bits[46];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,1);    (* word_temp.X1 := bits[46]; *)
+			bool_temp:=bits[47];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,2);    (* word_temp.X2 := bits[47]; *)
+			bool_temp:=bits[48];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,3);    (* word_temp.X3 := bits[48]; *)
+
+			month := WORD_TO_INT(word_temp);
+			IF bits[49] THEN month := month +10; END_IF;
+			IF month > 12 THEN error := TRUE; END_IF;
+
+			(* decode year *)
+			word_temp := WORD#0;
+
+			bool_temp:=bits[50];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,0);    (* word_temp.X0 := bits[50]; *)
+			bool_temp:=bits[51];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,1);    (* word_temp.X1 := bits[51]; *)
+			bool_temp:=bits[52];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,2);    (* word_temp.X2 := bits[52]; *)
+			bool_temp:=bits[53];
+			word_temp:=BIT_LOAD_W(word_temp,bool_temp,3);    (* word_temp.X3 := bits[53]; *)
+
+			year := WORD_TO_INT(word_temp);
+			IF bits[54] THEN year := year + 10; END_IF;
+			IF bits[55] THEN year := year + 20; END_IF;
+			IF bits[56] THEN year := year + 40; END_IF;
+			IF bits[57] THEN year := year + 80; END_IF;
+
+			(* check parity for bits 36 to 58 *)
+			cnt := 0;
+			FOR i := 36 TO 58 DO IF bits[i] THEN cnt := cnt + 1; END_IF; END_FOR;
+			IF NOT even(INT_TO_DINT(cnt)) THEN error := TRUE; END_IF;
+
+			(* time must be valid for two cycles to clear error flag *)
+			IF NOT error THEN
+				(* set outputs *)
+				old_time := mez;
+				IF year >= 70 THEN year := year + 1900; ELSE year := year + 2000; END_IF;
+				mez := set_DT(year,month,day,hour,minute,0);
+				DS := bits[17];
+				IF DS THEN
+					UTC := mez - UDINT#7200;
+				ELSE
+					UTC := mez - UDINT#3600;
+				END_IF;
+
+				(* set trigger signal only if the receiver has received 2 successive minutes *)
+				IF mez <> old_time + TIME_TO_UDINT(t#1m) THEN error := TRUE ; END_IF;
+			END_IF;
+		END_IF;
+	END_IF;
+
+	tz := UDINT_TO_TIME(_INT_TO_UDINT(ABS(time_offset))* UDINT#3600000);
+
+	IF NOT init OR SET THEN
+		init := TRUE;
+		utc := sdt;
+		tpp := TRUE;
+		DS := DSI;
+	END_IF;
+
+	IF tpp THEN
+		rtc2 := utc;
+		IF DS AND dst_en THEN
+			IF time_offset < 0 THEN
+				rtc21 := rtc2 - TIME_TO_UDINT(tz + t#1h);
+			ELSE 
+				rtc21 := rtc2 + TIME_TO_UDINT(tz + t#1h);
+			END_IF;
+		ELSE
+			IF time_offset < 0 THEN
+				rtc21 := rtc2 - TIME_TO_UDINT(tz);
+			ELSE
+				rtc21 := rtc2 + TIME_TO_UDINT(tz);
+			END_IF;
+		END_IF;
+		sync := TRUE;
+		last_sync := last;
+		ty := last;
+	ELSIF rtc2 > UDINT#0 AND T1 - ty >= t#1s THEN
+		rtc2 := rtc2 + TIME_TO_UDINT(t#1s);
+		rtc21 := rtc21 + TIME_TO_UDINT(t#1s);
+		ty := ty + t#1s;
+		sync := ty - last_sync < sync_timeout AND last_sync > t#0s;
+		wday := DAY_OF_WEEK(DT_TO_DATE2(rtc21));
+		DS := dst_en AND DST(utc);
+	END_IF;
+	msec := TIME_TO_INT(t1 - ty);
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+  VAR
+	REC         :	BOOL;
+	SET         :	BOOL;
+	SDT         :	UDINT;
+	DSI         :	BOOL;
+	SYNC_TIMEOUT:	TIME;
+	TIME_OFFSET :	INT;
+	DST_EN 	    :	BOOL;
+
+	TPp   :	BOOL;
+	DS   :	BOOL;
+	WDAY :	INT;
+	ERROR:	BOOL;
+	RTC2  :	UDINT;
+	RTC21 :	UDINT;
+	MSEC :	INT;
+	SYNC :	BOOL;
+
+	func_block : DCF77;
+  END_VAR
+	func_block.REC           :=REC         ;
+	func_block.SET           :=SET         ;
+	func_block.SDT           :=SDT         ;
+	func_block.DSI           :=DSI         ;
+	func_block.SYNC_TIMEOUT  :=SYNC_TIMEOUT;
+	func_block.TIME_OFFSET   :=TIME_OFFSET ;
+	func_block.DST_EN 	      :=DST_EN 	    ;
+	func_block();
+	TPp   := func_block.TPp   ;
+	DS   := func_block.DS   ;
+	WDAY := func_block.WDAY ;
+	ERROR:= func_block.ERROR;
+	RTC2  := func_block.RTC2  ;
+	RTC21 := func_block.RTC21 ;
+	MSEC := func_block.MSEC ;
+	SYNC := func_block.SYNC ;
+END_PROGRAM
+
+CONFIGURATION Config0
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+END_CONFIGURATION
+
+===== 735-TN_SEND_ROWS.ST =====
+TYPE
+  oscat_IP_FIFO128_DATA  : ARRAY [1..128] OF BYTE;
+  oscat_Mailbox  : ARRAY [1..16] OF BYTE;
+
+  oscat_IP_FIFO_DATA :
+  STRUCT
+    X       : oscat_IP_FIFO128_DATA; (* IP_ID FIFO Speicher          *)
+    Y       : oscat_IP_FIFO128_DATA; (* IP_ID Z�hler                 *)
+    ID      : BYTE;                  (* h�chste vergabene id         *)
+    MAX_ID  : BYTE;                  (* maximal Anmeldungen pro ID   *)
+    INIT    : BOOL;                  (* Initialisierung durchgef�hrt *)
+    EMPTY   : BOOL;                  (* FIFO leer                    *)
+    FULL    : BOOL;                  (* FIFO voll                    *)
+    TOP     : INT;                   (* maximale anzahl in FIFO      *)
+    NW      : INT;                   (* Schreibzeiger                *)
+    NR      : INT;                   (* Lesezeiger                   *)
+  END_STRUCT;
+
+  oscat_IP_C:
+  STRUCT
+    C_MODE:			BYTE;          		(*W Mode: TCP/UCP AKTIV/PASSIV                               *)
+    C_PORT:         WORD;          		(*W Portnummer                                               *)
+    C_IP:           DWORD;         		(*W IP-Adresse gepackt wwxxyyzz = www.xxx.yyy.zzz            *)
+    C_STATE:        BYTE;          		(*R Verbindungsstatus ON/OFF + Flanke ON/OFF                 *)
+    C_ENABLE:       BOOL;          		(*W Freigabe f�r Connect                                     *)
+    R_OBSERVE:      BOOL;          		(*W Empfang ueberwachen                                      *)
+    TIME_RESET:     BOOL;          		(*W Alle Timer ruecksetzen                                   *)
+    ERROR:          DWORD;         		(*R vvwwxxyy (vv = CON_ERROR, ww = SEN_ERROR, xx = REC_ERROR *)
+    FIFO:           oscat_IP_FIFO_DATA; (*I IP FIFO Struktur                                         *) 
+    MAILBOX:		oscat_Mailbox;		(*I Mailbox: Datenbereich f�r Bausteindatenaustausch         *) 
+    END_STRUCT;
+END_TYPE
+
+TYPE
+
+  oscat_NW_BUF_LONG  : ARRAY [0..4095] OF BYTE;
+
+  oscat_NETWORK_BUFFER :
+  STRUCT
+    SIZE   : UINT;	
+    BUFFER : oscat_NW_BUF_LONG;
+  END_STRUCT;
+
+END_TYPE
+
+TYPE
+
+  bya_TN_CHAR:       	ARRAY [0..1919] OF BYTE;
+  bya_TN_BACKUP:     	ARRAY [0..1919] OF BYTE;
+  bya_TN_COLOR:      	ARRAY [0..1919] OF BYTE;
+  bya_TN_Line_Update:	ARRAY [0..23]   OF BOOL;
+
+  us_TN_SCREEN :
+  STRUCT
+    bya_CHAR:			bya_TN_CHAR;
+    bya_COLOR:			bya_TN_COLOR;
+    bya_BACKUP:			bya_TN_BACKUP;
+    bya_Line_Update:	bya_TN_Line_Update;
+
+    by_Input_Exten_Code:    BYTE;
+    by_Input_ASCII_Code:    BYTE;
+    bo_Input_ASCII_IsNum:   BOOL;
+    in_Page_Number:        	INT;                (* aktive Seiten-Nr.              *)
+    in_Cursor_X:           	INT;                (* Cursor X-Position              *)
+    in_Cursor_Y:           	INT;                (* Cursor Y-Position              *)    
+    in_EOS_Offset:         	INT;                (* End of String Offset           *)
+    by_Clear_Screen_Attr:  	BYTE;               (* Clear-Screen Attr              *)
+    bo_Clear_Screen:       	BOOL;               (* Clear-Screen ausl�sen          *)
+    bo_Modal_Dialog:       	BOOL;               (* Modaler Dialog ist aktiv       *)
+    bo_Menue_Bar_Dialog:   	BOOL;               (* Menue Dialog ist aktiv         *)
+
+  END_STRUCT;
+END_TYPE
+
+FUNCTION INT_TO_BCDC:BYTE
+
+	VAR_INPUT
+		IN :	INT;
+	END_VAR
+
+	INT_TO_BCDC := SHL(INT_TO_BYTE(IN / INT#10),4) OR INT_TO_BYTE(in MOD INT#10);
+
+END_FUNCTION
+
+FUNCTION_BLOCK TN_SEND_ROWS_Block
+
+  VAR_IN_OUT
+    IP_C :	oscat_IP_C;
+    S_BUF :	oscat_NETWORK_BUFFER;
+    Xus_TN_SCREEN :	us_TN_SCREEN;
+  END_VAR
+
+
+  VAR_INPUT
+    S_BUF_SIZE :	INT;
+  END_VAR
+
+  VAR
+    in_Line_Count :	INT;
+    in_Col_Count :	INT;
+    in_Last_Row_Index :	INT;
+    bo_Break_Loop :	BOOL;
+    in_Row_Count :	INT;
+    in_Offset :	INT;
+    in_Write_Index :	INT;
+    in_Write_Index_Backup :	INT;
+    by_Cur_Color :	BYTE;
+    by_last_Color :	BYTE;
+    in_Write_Stop :	INT;
+  END_VAR
+
+  IF (IP_C.C_STATE < BYTE#127 OR S_BUF.SIZE > UINT#0) THEN
+    RETURN;
+  END_IF;
+
+  in_Write_Index := UINT_TO_INT(S_BUF.SIZE) - 1;
+
+  in_Write_Index_Backup := in_Write_Index;
+
+  IF (IP_C.C_STATE = BYTE#254) OR (Xus_TN_SCREEN.bo_Clear_Screen) THEN
+
+    Xus_TN_SCREEN.bo_Clear_Screen := FALSE;
+
+    FOR in_Line_Count := INT#00 TO INT#23 DO
+      Xus_TN_SCREEN.bya_Line_Update[in_Line_Count] := TRUE;
+    END_FOR;
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#1B; 
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#5B;
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#30;
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#3B;
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#33; 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := (SHR(Xus_TN_SCREEN.by_Clear_Screen_Attr,4) OR BYTE#16#30);
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#3B;
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#34;
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := ((Xus_TN_SCREEN.by_Clear_Screen_Attr AND BYTE#16#07) OR BYTE#16#30); 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#6D;
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#1B; 
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#5B; 
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#32;
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#4A; 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#1B; 
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#5B; 
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#3F; 
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#37;
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#6C; 
+
+  END_IF;
+
+  in_Last_Row_Index := INT#0;
+  bo_Break_Loop := FALSE;
+  in_Write_Stop := S_BUF_SIZE-20;
+
+  FOR in_Line_Count := 0 TO 23 DO
+    
+    in_Offset := in_Row_Count * INT#80;
+
+    IF (Xus_TN_SCREEN.bya_Line_Update[in_Row_Count] = TRUE) THEN
+
+      in_Write_Index := in_Write_Index + INT#1;
+      S_BUF.BUFFER[in_Write_Index] := BYTE#16#1B; 
+      in_Write_Index := in_Write_Index + INT#1;
+      S_BUF.BUFFER[in_Write_Index] := BYTE#16#5B;
+
+      in_Write_Index := in_Write_Index + INT#1;
+      S_BUF.BUFFER[in_Write_Index] := 
+        SHR(INT_TO_BCDC(in_Row_Count + INT#1),INT#4) OR BYTE#16#30; 
+
+      in_Write_Index := in_Write_Index + INT#1;
+      S_BUF.BUFFER[in_Write_Index] := 
+        (INT_TO_BCDC(in_Row_Count + INT#1) AND BYTE#16#0F) OR BYTE#16#30; 
+
+      in_Write_Index := in_Write_Index + INT#1;
+      S_BUF.BUFFER[in_Write_Index] := BYTE#16#3B; 
+      in_Write_Index := in_Write_Index + INT#1;
+      S_BUF.BUFFER[in_Write_Index] := BYTE#16#31; 
+      in_Write_Index := in_Write_Index + INT#1;
+      S_BUF.BUFFER[in_Write_Index] := BYTE#16#48; 
+
+      FOR in_Col_Count := 0 TO 79 DO
+
+        by_Cur_Color := Xus_TN_SCREEN.bya_COLOR[in_Offset];
+        IF (by_Cur_Color <> by_last_Color) OR (in_Col_Count = INT#00) THEN
+
+          in_Write_Index := in_Write_Index + INT#1;
+          S_BUF.BUFFER[in_Write_Index] := BYTE#16#1B;
+
+          in_Write_Index := in_Write_Index + INT#1;
+          S_BUF.BUFFER[in_Write_Index] := BYTE#16#5B; 
+
+
+          IF  (((by_Cur_Color AND BYTE#2#10001000) XOR (by_last_Color AND BYTE#2#10001000)) <> BYTE#00) OR (in_Col_Count = 0) THEN 
+
+            in_Write_Index := in_Write_Index + INT#1;
+            S_BUF.BUFFER[in_Write_Index] := BYTE#16#30; 
+            in_Write_Index := in_Write_Index + INT#1;
+            S_BUF.BUFFER[in_Write_Index] := BYTE#16#3B; 
+
+            IF (by_Cur_Color AND BYTE#2#00001000) = BYTE#2#00000000 THEN 
+
+              in_Write_Index := in_Write_Index + INT#1;
+              S_BUF.BUFFER[in_Write_Index] := BYTE#16#31; 
+              in_Write_Index := in_Write_Index + INT#1;
+              S_BUF.BUFFER[in_Write_Index] := BYTE#16#3B;
+
+            END_IF;
+
+            IF (by_Cur_Color AND BYTE#2#10000000) = BYTE#2#10000000 THEN 
+
+              in_Write_Index := in_Write_Index + INT#1;
+              S_BUF.BUFFER[in_Write_Index] := BYTE#16#35;
+              in_Write_Index := in_Write_Index + INT#1;
+              S_BUF.BUFFER[in_Write_Index] := BYTE#16#3B; 
+
+            END_IF;
+
+          END_IF;
+
+          in_Write_Index := in_Write_Index + INT#1;
+          S_BUF.BUFFER[in_Write_Index] := BYTE#16#33;
+
+          in_Write_Index := in_Write_Index + INT#1;
+          S_BUF.BUFFER[in_Write_Index] := ((SHR(by_Cur_Color,4) AND BYTE#2#00000111) OR BYTE#16#30);
+
+          in_Write_Index := in_Write_Index + INT#1;
+          S_BUF.BUFFER[in_Write_Index] := BYTE#16#3B;
+
+          in_Write_Index := in_Write_Index + INT#1;
+          S_BUF.BUFFER[in_Write_Index] := BYTE#16#34;
+
+          in_Write_Index := in_Write_Index + INT#1;
+          S_BUF.BUFFER[in_Write_Index] := ((by_Cur_Color AND BYTE#2#00000111) OR BYTE#16#30); 
+
+          in_Write_Index := in_Write_Index + INT#1;
+          S_BUF.BUFFER[in_Write_Index] := BYTE#16#6D;
+
+          by_last_Color := by_Cur_Color;
+
+        END_IF;
+
+        IF (in_Write_Index > in_Write_Stop) THEN
+
+          bo_Break_Loop := TRUE;
+          EXIT;
+
+        END_IF;
+
+        in_Write_Index := in_Write_Index + INT#1;
+        S_BUF.BUFFER[in_Write_Index] := Xus_TN_SCREEN.bya_CHAR[in_Offset];
+
+        in_Offset := in_Offset + INT#01;
+      END_FOR;
+
+      IF (bo_Break_Loop = TRUE) THEN
+
+        in_Write_Index := in_Last_Row_Index;
+
+        EXIT;
+      END_IF;
+
+      in_Last_Row_Index := in_Write_Index;
+      Xus_TN_SCREEN.bya_Line_Update[in_Row_Count] := FALSE;
+                            
+    END_IF;
+
+    in_Row_Count := in_Row_Count + INT#01;
+
+    IF (in_Row_Count > INT#23) THEN
+      in_Row_Count := INT#00;
+    END_IF;
+  
+                                                    
+  END_FOR;
+
+  IF (bo_Break_Loop = FALSE) THEN
+
+    in_Row_Count := INT#00;
+
+  END_IF;
+
+  IF (in_Write_Index <> in_Write_Index_Backup) THEN
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#1B; 
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#5B; 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := SHR(INT_TO_BCDC(Xus_TN_SCREEN.in_Cursor_Y + 1),INT#4) OR BYTE#16#30; 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := (INT_TO_BCDC(Xus_TN_SCREEN.in_Cursor_Y + 1) AND BYTE#16#0F) OR BYTE#16#30; 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#3B; 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := SHR(INT_TO_BCDC(Xus_TN_SCREEN.in_Cursor_X + 1),INT#4) OR BYTE#16#30; 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := (INT_TO_BCDC(Xus_TN_SCREEN.in_Cursor_X + 1) AND BYTE#16#0F) OR BYTE#16#30; 
+
+    in_Write_Index := in_Write_Index + INT#1;
+    S_BUF.BUFFER[in_Write_Index] := BYTE#16#48; 
+
+  END_IF;
+
+  S_BUF.SIZE := INT_TO_UINT(in_Write_Index + 1);
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		IP_C :	oscat_IP_C;
+    S_BUF :	oscat_NETWORK_BUFFER;
+    Xus_TN_SCREEN :	us_TN_SCREEN;
+    S_BUF_SIZE :	INT;
+
+		func_block : TN_SEND_ROWS_Block;
+	END_VAR
+	func_block.IP_C := IP_C;
+  func_block.S_BUF := S_BUF;
+  func_block.Xus_TN_SCREEN := Xus_TN_SCREEN;
+  func_block.S_BUF_SIZE := S_BUF_SIZE;
+
+	func_block();
+	IP_C  := func_block.IP_C;
+  S_BUF  := func_block.S_BUF;
+  Xus_TN_SCREEN  := func_block.Xus_TN_SCREEN;
+END_PROGRAM
+
+CONFIGURATION Config0
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+END_CONFIGURATION
+
+===== 736-TEMP_EXT.ST =====
+FUNCTION UDINT_TO_TIME2:TIME
+
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+
+	UDINT_TO_TIME2 := DINT_TO_TIME(UDINT_TO_DINT(IN));
+
+END_FUNCTION
+
+FUNCTION_BLOCK T_PLC_MS_block
+	VAR_OUTPUT
+		T_PLC_MS :	UDINT;
+	END_VAR
+
+	VAR_EXTERNAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+
+	VAR
+		debug :	BOOL;(*Debug-Mode ON / OFF*)
+		N :	INT;(*Debug-Faktor*)
+		Offset :	UDINT;(*Debug-Offset*)
+		temp :	DWORD := DWORD#1;(*Debug-Offset*)
+		mode :	BOOL;(*modus*)
+		faktor :	UDINT;(*Systemtakt-Faktor*)
+		init :	BOOL;
+		v_plc_ticks_per_sec :	UDINT;
+		base :	UDINT := UDINT#1000;
+	END_VAR
+
+
+	IF init = FALSE THEN
+		v_plc_ticks_per_sec := INT_TO_UDINT(PLC_TICKS_PER_SEC);
+		IF v_plc_ticks_per_sec = UDINT#1024 THEN
+			faktor := UDINT#1;
+			mode := FALSE;
+		ELSIF v_plc_ticks_per_sec > UDINT#0 THEN
+			IF v_plc_ticks_per_sec <= base THEN
+				faktor := base / v_plc_ticks_per_sec;
+				mode := FALSE;
+			ELSE
+				faktor := v_plc_ticks_per_sec / base;
+				mode := TRUE;
+			END_IF;
+		ELSE
+			faktor := UDINT#1;
+		END_IF;
+		init := TRUE;
+	END_IF;
+
+	IF mode THEN
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) / faktor;
+	ELSE
+		T_PLC_MS := DINT_TO_UDINT(PLC_SYS_TICK_CNT) * faktor;
+	END_IF;
+
+	IF debug THEN
+		T_PLC_MS := (DWORD_TO_UDINT(SHL(UDINT_TO_DWORD(T_PLC_MS),N) OR SHL(temp,N)) - UDINT#1) + Offset;
+	END_IF;
+END_FUNCTION_BLOCK
+
+
+FUNCTION _INT_TO_UDINT:UDINT
+	VAR_INPUT
+		IN :	INT;
+	END_VAR
+
+	_INT_TO_UDINT := DINT_TO_UDINT(INT_TO_DINT(IN));
+END_FUNCTION
+
+FUNCTION SET_DATE:UDINT
+
+	VAR_INPUT
+		YEAR :	INT;
+		MONTH :	INT;
+		DAY :	INT;
+	END_VAR
+
+
+	VAR
+		count :	INT;
+	END_VAR
+
+
+	IF month > 2 THEN
+		count := (month - 1) * 30;
+		IF month > 7 THEN
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(3)),1));
+		ELSE
+			count := count + DWORD_TO_INT(SHR(DINT_TO_DWORD(INT_TO_DINT(month) - INT_TO_DINT(4)),1));
+		END_IF;
+		IF SHL(INT_TO_WORD(year),14) = WORD#0 THEN
+			count := count + 1;
+		END_IF;
+	ELSE
+		count := (month - 1) * 31;
+	END_IF;
+	SET_DATE := (_INT_TO_UDINT(count + day - 1) + DWORD_TO_UDINT(SHR(UDINT_TO_DWORD(_INT_TO_UDINT(year) * UDINT#1461 - UDINT#2878169), 2))) * UDINT#86400;
+
+END_FUNCTION
+
+FUNCTION LEAP_OF_DATE:BOOL
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	LEAP_OF_DATE := SHL(UDINT_TO_DWORD((idate + UDINT#43200) / UDINT#31557600), 30) = DWORD#16#80000000;
+
+END_FUNCTION
+
+FUNCTION DAY_OF_YEAR:INT
+	VAR_INPUT
+		IDATE :	DATE;
+	END_VAR
+
+	DAY_OF_YEAR := UDINT_TO_INT((DATE_TO_UDINT(idate) / UDINT#86400) MOD UDINT#1461);
+	IF DAY_OF_YEAR > 729 THEN
+		IF DAY_OF_YEAR > 1095 THEN DAY_OF_YEAR := DAY_OF_YEAR - 1095; ELSE DAY_OF_YEAR := DAY_OF_YEAR - 729; END_IF;
+	ELSIF DAY_OF_YEAR > 364 THEN
+		DAY_OF_YEAR := DAY_OF_YEAR - 364;
+	ELSE
+		DAY_OF_YEAR := DAY_OF_YEAR + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION DAY_OF_YEAR_UDINT:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	DAY_OF_YEAR_UDINT := UDINT_TO_INT((idate / UDINT#86400) MOD UDINT#1461);
+	IF DAY_OF_YEAR_UDINT > 729 THEN
+		IF DAY_OF_YEAR_UDINT > 1095 THEN DAY_OF_YEAR_UDINT := DAY_OF_YEAR_UDINT - 1095; ELSE DAY_OF_YEAR_UDINT := DAY_OF_YEAR_UDINT - 729; END_IF;
+	ELSIF DAY_OF_YEAR_UDINT > 364 THEN
+		DAY_OF_YEAR_UDINT := DAY_OF_YEAR_UDINT - 364;
+	ELSE
+		DAY_OF_YEAR_UDINT := DAY_OF_YEAR_UDINT + 1;
+	END_IF;
+END_FUNCTION
+
+FUNCTION MONTH_OF_DATE_UDINT:INT
+
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	MONTH_OF_DATE_UDINT := DAY_OF_YEAR_UDINT(idate);
+	IF MONTH_OF_DATE_UDINT < 32 THEN
+		MONTH_OF_DATE_UDINT := 1;
+	ELSIF LEAP_OF_DATE(IDATE) THEN
+		MONTH_OF_DATE_UDINT := (MONTH_OF_DATE_UDINT * 53 + 1668) / 1623;
+	ELSE
+		MONTH_OF_DATE_UDINT := (MONTH_OF_DATE_UDINT * 53 + 1700) / 1620;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION DAY_OF_MONTH:INT
+	VAR_INPUT
+		IDATE :	UDINT;
+	END_VAR
+
+	day_of_month := day_of_year_UDINT(idate);
+
+	IF leap_of_Date(idate) THEN
+		CASE day_of_month OF
+			32..60	:	day_of_month := day_of_month - 31;
+			61..91	:	day_of_month := day_of_month - 60;
+			92..121 :	day_of_month := day_of_month - 91;
+			122..152:	day_of_month := day_of_month - 121;
+			153..182:	day_of_month := day_of_month - 152;
+			183..213:	day_of_month := day_of_month - 182;
+			214..244:	day_of_month := day_of_month - 213;
+			245..274:	day_of_month := day_of_month - 244;
+			275..305:	day_of_month := day_of_month - 274;
+			306..335:	day_of_month := day_of_month - 305;
+			336..366:	day_of_month := day_of_month - 335;
+		END_CASE;
+	ELSE
+		CASE day_of_month OF
+			32..59	:	day_of_month := day_of_month - 31;
+			60..90	:	day_of_month := day_of_month - 59;
+			91..120 :	day_of_month := day_of_month - 90;
+			121..151:	day_of_month := day_of_month - 120;
+			152..181:	day_of_month := day_of_month - 151;
+			182..212:	day_of_month := day_of_month - 181;
+			213..243:	day_of_month := day_of_month - 212;
+			244..273:	day_of_month := day_of_month - 243;
+			274..304:	day_of_month := day_of_month - 273;
+			305..334:	day_of_month := day_of_month - 304;
+			335..365:	day_of_month := day_of_month - 334;
+		END_CASE;
+	END_IF;
+
+END_FUNCTION
+
+FUNCTION MID3:REAL
+
+	VAR_INPUT
+		IN1 :	REAL;
+		IN2 :	REAL;
+		IN3 :	REAL;
+	END_VAR
+
+	VAR
+		_IN1 :	REAL;
+		_IN2 :	REAL;
+		_IN3 :	REAL;
+	END_VAR
+
+	_IN1 := IN1;
+	_IN2 := IN2;
+	_IN3 := IN3;
+
+	IF _IN1 > _IN2 THEN MID3 := _IN1; _IN1 := _IN2; _IN2 := MID3; END_IF;
+	IF _IN2 > _IN3 THEN _IN2 := _IN3; END_IF;
+	MID3 := SEL(_IN1 > _IN2, _IN2, _IN1);
+
+END_FUNCTION
+
+FUNCTION _BYTE_TO_INT:INT
+	VAR_INPUT
+		IN :	BYTE;
+	END_VAR
+
+	_BYTE_TO_INT := USINT_TO_INT(BYTE_TO_USINT(IN));
+END_FUNCTION
+
+FUNCTION MULTI_IN:REAL
+
+	VAR_INPUT
+		IN_1 :	REAL;
+		IN_2 :	REAL;
+		IN_3 :	REAL;
+		DEFAULT :	REAL;
+		IN_MIN :	REAL;
+		IN_MAX :	REAL;
+		MODE :	BYTE;
+	END_VAR
+
+	VAR
+		count :	INT;
+		F1 :	BOOL;
+		F2 :	BOOL;
+		F3 :	BOOL;
+	END_VAR
+
+	F1 :=  in_1 > in_min AND in_1 < in_max;
+	F2 :=  in_2 > in_min AND in_2 < in_max;
+	F3 :=  in_3 > in_min AND in_3 < in_max;
+
+	CASE _BYTE_TO_INT(mode) OF
+	0:	count := 0;
+		IF F1 THEN
+			count := count + 1;
+			MULTI_IN := in_1;
+		ELSE
+			MULTI_IN := 0.0;
+		END_IF;
+		IF F2 THEN
+			count := count + 1;
+			MULTI_IN := MULTI_IN + in_2;
+		END_IF;
+		IF F3 THEN
+			count := count + 1;
+			MULTI_IN := MULTI_IN + in_3;
+		END_IF;
+		MULTI_IN := SEL_REAL(count = 0, MULTI_IN / INT_TO_REAL(count), default);
+
+	1:	MULTI_IN := SEL_REAL(F1, default, IN_1);
+
+	2:	MULTI_IN := SEL_REAL(F2, default, IN_2);
+
+	3:	MULTI_IN := SEL_REAL(F3, default, IN_3);
+
+	4:	MULTI_IN := default;
+
+	5:	MULTI_IN := SEL_REAL(F1, in_max, IN_1);
+		IF F2 AND in_2 < MULTI_IN THEN MULTI_IN := in_2; END_IF;
+		IF F3 AND in_3 < MULTI_IN THEN MULTI_IN := in_3; END_IF;
+		IF MULTI_IN = in_max THEN MULTI_IN := default; END_IF;
+
+	6:	MULTI_IN := SEL_REAL(F1, in_min, IN_1);
+		IF F2 AND in_2 > MULTI_IN THEN MULTI_IN := in_2; END_IF;
+		IF F3 AND in_3 > MULTI_IN THEN MULTI_IN := in_3; END_IF;
+		IF MULTI_IN = in_min THEN MULTI_IN := default; END_IF;
+
+	7:	IF F1 AND F2 AND F3 THEN MULTI_IN := MID3(in_1, in_2, in_3);
+		ELSIF F1 AND F2 THEN MULTI_IN := MIN(in_1, in_2);
+		ELSIF F1 AND F3 THEN MULTI_IN := MIN(in_1, in_3);
+		ELSIF F2 AND F3 THEN MULTI_IN := MIN(in_2, in_3);
+		ELSIF F1 THEN MULTI_IN := in_1;
+		ELSIF F2 THEN MULTI_IN := in_2;
+		ELSIF F3 THEN MULTI_IN := in_3;
+		ELSE MULTI_IN := default;
+		END_IF;
+
+	END_CASE;
+
+END_FUNCTION
+
+FUNCTION _DT_TO_DATE_B:UDINT
+
+	VAR_INPUT
+		_INN :	UDINT;
+	END_VAR
+
+	_DT_TO_DATE_B := (_INN / UDINT#86400) * UDINT#86400;
+END_FUNCTION
+
+FUNCTION DT_TO_TOD2:UDINT
+	VAR_INPUT
+		IN :	UDINT;
+	END_VAR
+
+	DT_TO_TOD2 := (IN MOD UDINT#86400) * UDINT#1000;
+END_FUNCTION
+
+FUNCTION_BLOCK TEMP_EXT_Block
+
+	VAR_INPUT
+		T_EXT1 :	REAL;
+		T_EXT2 :	REAL;
+		T_EXT3 :	REAL;
+		T_EXT_CONFIG :	BYTE := 0;
+		DT_IN :	UDINT;
+		T_EXT_MIN :	REAL := REAL#-40.0;
+		T_EXT_MAX :	REAL := REAL#60.0;
+		T_EXT_DEFAULT :	REAL := REAL#-10.0;
+		HEAT_PERIOD_START :	UDINT := UDINT#20995200;
+		HEAT_PERIOD_STOP :	UDINT := UDINT#10281600;
+		COOL_PERIOD_START :	UDINT := UDINT#07776000;
+		COOL_PERIOD_STOP :	UDINT := UDINT#23500800;
+		HEAT_START_TEMP_DAY :	REAL := REAL#15.0;
+		HEAT_START_TEMP_NIGHT :	REAL := REAL#10.0;
+		HEAT_STOP_TEMP :	REAL := REAL#18.0;
+		COOL_START_TEMP_DAY :	REAL := REAL#26.0;
+		COOL_START_TEMP_NIGHT :	REAL := REAL#26.0;
+		COOL_STOP_TEMP :	REAL := REAL#24.0;
+		START_DAY :	UDINT := UDINT#32400000;
+		START_NIGHT :	UDINT := UDINT#75600000;
+		CYCLE_TIME :	TIME := t#10m;
+	END_VAR
+
+
+	VAR_OUTPUT
+		T_EXT :	REAL;
+		HEAT :	BOOL;
+		COOL :	BOOL;
+	END_VAR
+
+
+	VAR
+		tx :	TIME;
+		last_run :	TIME;
+		init :	BOOL;
+		cool_start :	UDINT;
+		cool_stop :	UDINT;
+		heat_start :	UDINT;
+		heat_stop :	UDINT;
+		xdate :	UDINT;
+		day :	BOOL;
+		T_PLC_MS :	T_PLC_MS_Block;
+	END_VAR
+
+	IF NOT init THEN
+		init := TRUE;
+		heat_start := SET_DATE(1972,MONTH_OF_DATE_UDINT(heat_period_start),DAY_OF_MONTH(heat_period_start));
+		heat_stop := SET_DATE(1972,MONTH_OF_DATE_UDINT(heat_period_stop),DAY_OF_MONTH(heat_period_stop));
+		cool_start := SET_DATE(1972,MONTH_OF_DATE_UDINT(cool_period_start),DAY_OF_MONTH(cool_period_start));
+		cool_stop := SET_DATE(1972,MONTH_OF_DATE_UDINT(cool_period_stop),DAY_OF_MONTH(cool_period_stop));
+	END_IF;
+
+	T_PLC_MS();
+	tx:= UDINT_TO_TIME(T_PLC_MS.T_PLC_MS);
+
+	IF tx - last_run < cycle_time THEN RETURN; END_IF;
+
+	xdate := SET_DATE(1972,MONTH_OF_DATE_UDINT(_DT_TO_DATE_B(dt_in)),DAY_OF_MONTH(_DT_TO_DATE_B(dt_in)));
+	day := DT_TO_TOD2(dt_in) >= start_day AND  DT_TO_TOD2(dt_in) < start_night;
+
+	t_ext := MULTI_IN(t_ext1, t_ext2, t_ext3, t_ext_default, t_ext_min, t_ext_max, t_ext_config);
+
+	IF (heat_start <= heat_stop AND xdate >= heat_start AND xdate <= heat_stop) OR (heat_start > heat_stop AND (xdate >= heat_start OR xdate <= heat_stop)) THEN
+		IF day AND t_ext <= heat_start_temp_day THEN
+			heat := TRUE;
+		ELSIF NOT day AND t_ext <= heat_start_temp_night THEN
+			heat := TRUE;
+		ELSIF t_ext >= heat_stop_temp THEN
+			heat := FALSE;
+		END_IF;
+	ELSE
+		heat := FALSE;
+	END_IF;
+
+	IF (cool_start <= cool_stop AND xdate >= cool_start AND xdate <= cool_stop) OR (cool_start > cool_stop AND (xdate >= cool_start OR xdate <= cool_stop)) THEN
+		IF day AND t_ext >= cool_start_temp_day THEN
+			cool := TRUE;
+		ELSIF NOT day AND t_ext >= cool_start_temp_night THEN
+			cool := TRUE;
+		ELSIF t_ext <= cool_stop_temp THEN
+			cool := FALSE;
+		END_IF;
+	ELSE
+		cool := FALSE;
+	END_IF;
+
+	last_run := tx;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		T_EXT1 :	REAL;
+		T_EXT2 :	REAL;
+		T_EXT3 :	REAL;
+		T_EXT_CONFIG :	BYTE := 0;
+		DT_IN :	UDINT;
+		T_EXT_MIN :	REAL := REAL#-40.0;
+		T_EXT_MAX :	REAL := REAL#60.0;
+		T_EXT_DEFAULT :	REAL := REAL#-10.0;
+		HEAT_PERIOD_START :	UDINT := UDINT#20995200;
+		HEAT_PERIOD_STOP :	UDINT := UDINT#10281600;
+		COOL_PERIOD_START :	UDINT := UDINT#07776000;
+		COOL_PERIOD_STOP :	UDINT := UDINT#23500800;
+		HEAT_START_TEMP_DAY :	REAL := REAL#15.0;
+		HEAT_START_TEMP_NIGHT :	REAL := REAL#10.0;
+		HEAT_STOP_TEMP :	REAL := REAL#18.0;
+		COOL_START_TEMP_DAY :	REAL := REAL#26.0;
+		COOL_START_TEMP_NIGHT :	REAL := REAL#26.0;
+		COOL_STOP_TEMP :	REAL := REAL#24.0;
+		START_DAY :	UDINT := UDINT#32400000;
+		START_NIGHT :	UDINT := UDINT#75600000;
+		CYCLE_TIME :	TIME := t#10m;
+		T_EXT :	REAL;
+		HEAT :	BOOL;
+		COOL :	BOOL;
+
+		func_block : TEMP_EXT_Block;
+	END_VAR
+
+	func_block.T_EXT1 := T_EXT1;
+	func_block.T_EXT2 := T_EXT2;
+	func_block.T_EXT3 := T_EXT3 ;
+	func_block.T_EXT_CONFIG := T_EXT_CONFIG;
+	func_block.DT_IN := DT_IN;
+	func_block.T_EXT_MIN := T_EXT_MIN ;
+	func_block.T_EXT_MAX := T_EXT_MAX;
+	func_block.T_EXT_DEFAULT := T_EXT_DEFAULT;
+	func_block.HEAT_PERIOD_START := HEAT_PERIOD_START ;
+	func_block.HEAT_PERIOD_STOP := HEAT_PERIOD_STOP;
+	func_block.COOL_PERIOD_START := COOL_PERIOD_START;
+	func_block.COOL_PERIOD_STOP := COOL_PERIOD_STOP ;
+	func_block.HEAT_START_TEMP_DAY := HEAT_START_TEMP_DAY;
+	func_block.HEAT_START_TEMP_NIGHT := HEAT_START_TEMP_NIGHT;
+	func_block.HEAT_STOP_TEMP := HEAT_STOP_TEMP ;
+	func_block.COOL_START_TEMP_DAY := COOL_START_TEMP_DAY;
+	func_block.COOL_START_TEMP_NIGHT := COOL_START_TEMP_NIGHT;
+	func_block.COOL_STOP_TEMP:= COOL_STOP_TEMP ;
+	func_block.START_DAY := START_DAY;
+	func_block.START_NIGHT := START_NIGHT;
+	func_block.CYCLE_TIME:= CYCLE_TIME ;
+
+	func_block();
+	T_EXT  := func_block.T_EXT;
+	HEAT  := func_block.HEAT;
+	COOL  := func_block.COOL;
+
+END_PROGRAM
+
+CONFIGURATION Config0
+	VAR_GLOBAL
+		PLC_TICKS_PER_SEC :	INT;
+		PLC_SYS_TICK_CNT :	DINT;
+	END_VAR
+  	RESOURCE Res0 ON PLC
+    	TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+    	PROGRAM instance0 WITH task0 : program0;
+  	END_RESOURCE
+END_CONFIGURATION
+
+===== 737-YAHOO_WEATHER_DESC_GE.ST =====
+TYPE
+  oscat_STRING1               : STRING;
+  oscat_STRING2               : STRING;
+  oscat_STRING3               : STRING;
+  oscat_STRING4               : STRING;
+  oscat_STRING5               : STRING;
+  oscat_STRING8               : STRING;
+  oscat_STRING10              : STRING;
+  oscat_STRING12            : STRING;
+  oscat_STRING15            : STRING;
+  oscat_STRING20            : STRING;
+  oscat_STRING27            : STRING;
+  oscat_STRING30            : STRING;
+  oscat_STRING32            : STRING;
+  oscat_STRING40            : STRING;
+  oscat_STRING48            : STRING;
+  oscat_STRING50            : STRING;
+  oscat_STRING60            : STRING;
+  oscat_STRING64            : STRING;
+  oscat_STRING80            : STRING;
+  oscat_STRING120            : STRING;
+  oscat_STRING140            : STRING;
+  oscat_STRING160            : STRING;
+  oscat_STRING180            : STRING;
+  oscat_STRING190            : STRING;
+  oscat_STRING250            : STRING;
+END_TYPE
+
+TYPE
+  oscat_IP_FIFO128_DATA  : ARRAY [1..128] OF BYTE;
+  oscat_Mailbox  : ARRAY [1..16] OF BYTE;
+
+  oscat_IP_FIFO_DATA :
+  STRUCT
+	X       : oscat_IP_FIFO128_DATA; (* IP_ID FIFO Speicher          *)
+	Y       : oscat_IP_FIFO128_DATA; (* IP_ID Z�hler                 *)
+	ID      : BYTE;                  (* h�chste vergabene id         *)
+	MAX_ID  : BYTE;                  (* maximal Anmeldungen pro ID   *)
+    INIT    : BOOL;                  (* Initialisierung durchgef�hrt *)
+	EMPTY   : BOOL;                  (* FIFO leer                    *)
+	FULL    : BOOL;                  (* FIFO voll                    *)
+	TOP     : INT;                   (* maximale anzahl in FIFO      *)
+	NW      : INT;                   (* Schreibzeiger                *)
+	NR      : INT;                   (* Lesezeiger                   *)
+  END_STRUCT;
+
+  oscat_IP_C:
+  STRUCT
+  	C_MODE:			BYTE;          		(*W Mode: TCP/UCP AKTIV/PASSIV                               *)
+	C_PORT:         WORD;          		(*W Portnummer                                               *)
+	C_IP:           DWORD;         		(*W IP-Adresse gepackt wwxxyyzz = www.xxx.yyy.zzz            *)
+    C_STATE:        BYTE;          		(*R Verbindungsstatus ON/OFF + Flanke ON/OFF                 *)
+	C_ENABLE:       BOOL;          		(*W Freigabe f�r Connect                                     *)
+    R_OBSERVE:      BOOL;          		(*W Empfang ueberwachen                                      *)
+    TIME_RESET:     BOOL;          		(*W Alle Timer ruecksetzen                                   *)
+	ERROR:          DWORD;         		(*R vvwwxxyy (vv = CON_ERROR, ww = SEN_ERROR, xx = REC_ERROR *)
+    FIFO:           oscat_IP_FIFO_DATA; (*I IP FIFO Struktur                                         *) 
+	MAILBOX:		oscat_Mailbox;		(*I Mailbox: Datenbereich f�r Bausteindatenaustausch         *) 
+  END_STRUCT;
+
+  oscat_XML_CONTROL:
+  STRUCT
+    COMMAND:             WORD;            (*W                 *)
+    WATCHDOG:            TIME;            (*W                 *)
+    START_POS:           UINT;            (*W                 *)
+    STOP_POS:            UINT;            (*W                 *)
+    COUNT:               UINT;            (*R                 *)
+    TYP:                 INT;             (*R                 *)
+    LEVEL:               UINT;            (*R                 *)
+    PATH:                oscat_STRING250; (*R                 *)
+    ELEMENT:             oscat_STRING250; (*R                 *)
+    ATTRIBUTE:           oscat_STRING250; (*R                 *)
+    VALUE:               oscat_STRING250; (*R                 *)
+    BLOCK1_START:        UINT;            (*R                 *)
+    BLOCK1_STOP:         UINT;            (*R                 *)
+    BLOCK2_START:        UINT;            (*R                 *)
+    BLOCK2_STOP:         UINT;            (*R                 *)
+  END_STRUCT;
+
+  (* --------- WORLD WEATHER --------- *)
+
+  oscat_WORLD_WEATHER_CUR :
+  STRUCT
+	OBSERVATION_TIME : oscat_STRING8;
+	TEMP_C           : INT;
+	WEATHER_CODE     : INT;
+	WEATHER_DESC 	 : oscat_STRING60;
+	WEATHER_ICON     : INT;
+	WIND_SPEED_MILES : INT;
+	WIND_SPEED_KMPH  : INT;
+	WIND_DIR_DEGREE  : INT;
+	WIND_DIR16POINT  : oscat_STRING3;
+	PRECIPMM         : REAL;
+	HUMIDITY         : INT;
+	VISIBILITY       : INT;
+	PRESSURE         : INT;
+	CLOUDOVER        : INT;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_DAY :
+  STRUCT
+	DATE_OF_DAY      : oscat_STRING10;
+	TEMP_MAX_C       : INT;
+	TEMP_MAX_F       : INT;
+	TEMP_MIN_C       : INT;
+	TEMP_MIN_F       : INT;
+	WIND_SPEED_MILES : INT;
+	WIND_SPEED_KMPH  : INT;
+	WIND_DIR_DEGREE  : INT;
+	WIND_DIR16POINT  : oscat_STRING3;
+	WEATHER_CODE     : INT;
+	WEATHER_DESC     : oscat_STRING60;
+	WEATHER_ICON     : INT;
+	PRECIPMM         : REAL;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_DAY_ARR : ARRAY [0..4] OF oscat_WORLD_WEATHER_DAY;
+
+  oscat_WORLD_WEATHER_DATA :
+  STRUCT
+	CUR : oscat_WORLD_WEATHER_CUR;
+	DAY : oscat_WORLD_WEATHER_DAY_ARR;
+  END_STRUCT;
+
+  oscat_WORLD_WEATHER_aI0_41 : ARRAY[0..41] OF INT;
+
+  (* --------- WEATHER CHANNEL --------- *)
+  oscat_YAHOO_WEATHER_DATA:
+  STRUCT
+    TIMETOLIVE:                 INT;              (* TIME TO LIVE: HOW LONG IN MINUTES THIS FEED SHOULD BE CACHED         *)    
+    LOCATION_CITY:              OSCAT_STRING40;   (* THE LOCATION OF THIS FORECAST: CITY: CITY NAME  *)
+    LOCATION_REGION:            OSCAT_STRING20;   (* THE LOCATION OF THIS FORECAST: REGION: STATE, TERRITORY, OR REGION, IF GIVEN *)
+    LOCATION_COUNTRY:           OSCAT_STRING20;    (* THE LOCATION OF THIS FORECAST: COUNTRY: TWO-CHARACTER COUNTRY CODE *)
+    UNIT_TEMPERATURE:           OSCAT_STRING1;    (* TEMPERATURE: DEGREE UNITS, F FOR FAHRENHEIT OR C FOR CELSIUS *)  
+    UNIT_DISTANCE:              OSCAT_STRING2;    (* DISTANCE: UNITS FOR DISTANCE, MI FOR MILES OR KM FOR KILOMETERS *)  
+    UNIT_PRESSURE:              OSCAT_STRING2;    (* PRESSURE: UNITS OF BAROMETRIC PRESSURE, IN FOR POUNDS PER SQUARE INCH OR MB FOR MILLIBARS *)  
+    UNIT_SPEED:                 OSCAT_STRING4;    (* SPEED: UNITS OF SPEED, MPH FOR MILES PER HOUR OR KPH FOR KILOMETERS PER HOUR *)  
+    WIND_CHILL:                 INT;              (* FORECAST INFORMATION ABOUT WIND CHILL IN DEGREES *)
+    WIND_DIRECTION:             INT;              (* FORECAST INFORMATION ABOUT WIND DIRECTION, IN DEGREES *)
+    WIND_SPEED:                 REAL;             (* FORECAST INFORMATION ABOUT WIND SPEED, IN THE UNITS (MPH OR KPH)*)
+    ATMOSPHERE_HUMIDITY:        INT;              (* FORECAST INFORMATION ABOUT CURRENT ATMOSPHERIC HUMIDITY: HUMIDITY, IN PERCENT  *)
+    ATMOSPHERE_PRESSURE:        INT;              (* FORECAST INFORMATION ABOUT CURRENT ATMOSPHERIC PRESSURE: BAROMETRIC PRESSURE, IN THE UNITS (IN OR MB) *)
+	ATMOSPHERE_VISIBILITY:      REAL;             (* FORECAST INFORMATION ABOUT CURRENT ATMOSPHERIC VISIBILITY, IN THE UNITS (MI OR KM) *)
+	ATMOSPHERE_RISING:          INT;              (* FORECAST INFORMATION ABOUT RISING: STATE OF THE BAROMETRIC PRESSURE: STEADY (0), RISING (1), OR FALLING (2). (INTEGER: 0, 1, 2) *)
+    ASTRONOMY_SUNRISE:          OSCAT_STRING10;   (* SUNRISE: TODAY'S SUNRISE TIME. THE TIME IS A STRING IN A LOCAL TIME FORMAT OF "H:MM AM/PM" *)
+    ASTRONOMY_SUNSET:           OSCAT_STRING10;   (* SUNSET: TODAY'S SUNSET TIME. THE TIME IS A STRING IN A LOCAL TIME FORMAT OF "H:MM AM/PM", *)
+    GEO_LATITUDE:               REAL;             (* THE LATITUDE OF THE LOCATION *)
+    GEO_LONGITUDE:              REAL;             (* THE LONGITUDE OF THE LOCATION *)
+    CUR_CONDITIONS_TEMP:        INT;              (* THE CURRENT WEATHER CONDITIONS: TEMP: THE CURRENT TEMPERATURE, IN THE UNITS (F OR C) *)
+    CUR_CONDITIONS_TEXT:        OSCAT_STRING40;   (* THE CURRENT WEATHER CONDITIONS: TEXT: A TEXTUAL DESCRIPTION OF CONDITIONS *)
+    CUR_CONDITIONS_CODE:        INT;              (* THE CURRENT WEATHER CONDITIONS: CODE: THE CONDITION CODE FOR THIS FORECAST *)
+	CUR_CONDITIONS_ICON:        INT;			  (* THE CURRENT WEATHER CONDITIONS: ICON: THE CONDITION ICON FOR THIS FORECAST *)
+    FORCAST_TODAY_LOW_TEMP:     INT;              (* THE FORCAST TODAY WEATHER CONDITIONS: THE FORECASTED LOW TEMPERATURE FOR THIS DAY IN THE UNITS (F OR C) *)
+    FORCAST_TODAY_HIGH_TEMP:    INT;              (* THE FORCAST TODAY WEATHER CONDITIONS: THE FORECASTED HIGH TEMPERATURE FOR THIS DAY IN THE UNITS (F OR C) *)
+    FORCAST_TODAY_TEXT:         OSCAT_STRING40;   (* THE FORCAST TODAY WEATHER CONDITIONS: TEXT: A TEXTUAL DESCRIPTION OF CONDITIONS *)
+    FORCAST_TODAY_CODE:         INT;              (* THE CURRENT WEATHER CONDITIONS: CODE: THE CONDITION CODE FOR THIS FORECAST *)
+	FORCAST_TODAY_ICON:         INT;			  (* THE CURRENT WEATHER CONDITIONS: ICON: THE CONDITION ICON FOR THIS FORECAST *)
+    FORCAST_TOMORROW_LOW_TEMP:  INT;              (* THE FORCAST TOMORROW WEATHER CONDITIONS: THE FORECASTED LOW TEMPERATURE FOR THIS DAY IN THE UNITS (F OR C) *)
+    FORCAST_TOMORROW_HIGH_TEMP: INT;              (* THE FORCAST TOMORROW WEATHER CONDITIONS: THE FORECASTED HIGH TEMPERATURE FOR THIS DAY IN THE UNITS (F OR C) *)
+    FORCAST_TOMORROW_TEXT:      OSCAT_STRING40;   (* THE FORCAST TOMORROW WEATHER CONDITIONS: TEXT: A TEXTUAL DESCRIPTION OF CONDITIONS *)
+    FORCAST_TOMORROW_CODE:      INT;              (* THE CURRENT WEATHER CONDITIONS: CODE: THE CONDITION CODE FOR THIS FORECAST *)
+	FORCAST_TOMORROW_ICON:      INT;			  (* THE CURRENT WEATHER CONDITIONS: ICON: THE CONDITION ICON FOR THIS FORECAST *)
+  END_STRUCT;
+
+  oscat_YAHOO_WEATHER_aI0_48 : ARRAY[0..48] OF INT;
+
+  oscat_IP2GEO_DATA:
+  STRUCT
+	STATE :				BOOL;			  (* STATE *)
+	IP4 :				DWORD;			  (* IP-Adresse *)
+    COUNTRY_CODE :		oscat_STRING2;    (*   *)
+    COUNTRY_NAME :		oscat_STRING20;   (*   *)
+    REGION_CODE :		oscat_STRING2;    (*   *)
+    REGION_NAME :		oscat_STRING20;   (*   *)
+    CITY :				oscat_STRING20;   (*   *)
+    GEO_LATITUDE :		REAL;             (*   *)
+    GEO_LONGITUDE :		REAL;             (*   *)
+	TIME_ZONE_NAME :	oscat_STRING20;
+	GMT_OFFSET :		INT;
+	IS_DST :			BOOL;
+  END_STRUCT;
+END_TYPE
+
+FUNCTION_BLOCK YAHOO_WEATHER_DESC_GE_Block
+
+	VAR_INPUT
+		ACTIVATE :	BOOL;
+	END_VAR
+
+
+	VAR_IN_OUT
+		YW :	oscat_YAHOO_WEATHER_DATA;
+	END_VAR
+
+
+	VAR
+		act_last :	BOOL;
+		x :	INT;
+		y :	INT;
+		str :	oscat_STRING40;
+	END_VAR
+
+	IF ACTIVATE AND act_last = FALSE THEN
+		FOR y := 1 TO 4 DO
+			CASE y OF
+			1:	x := YW.CUR_CONDITIONS_CODE;
+			2 :	YW.CUR_CONDITIONS_TEXT := str;
+				x := YW.FORCAST_TODAY_CODE;
+			3 :	YW.FORCAST_TODAY_TEXT := str;
+				x := YW.FORCAST_TOMORROW_CODE;
+			4 :	YW.FORCAST_TOMORROW_TEXT := str;
+			END_CASE;
+
+			CASE x OF
+			00:	str := 'Wirbelsturm';
+			01:	str := 'Tropensturm';
+			02:	str := 'Wirbelsturm';
+			03:	str := 'starkes Gewitter ';
+			04:	str := 'Gewitter';
+			05:	str := 'Schneeregen';
+			06:	str := 'Schneeregen';
+			07:	str := 'Schneeregen';
+			08:	str := 'gefrierender Nieselregen';
+			09:	str := 'Nieselregen';
+			10:	str := 'gefrierender Regen';
+			11:	str := 'sertsehn';
+			12:	str := 'sertstrets';
+			13:	str := 'sjstj';
+			14:	str := 'leichte yrderew';
+			15:	str := 'Schneetreiben';
+			16:	str := 'Schnee';
+			17:	str := 'Hagel';
+			18:	str := 'Schneeregen';
+			19:	str := 'Staub';
+			20:	str := 'nebelig';
+			21:	str := 'Dunst';
+			22:	str := 'rauchig';
+			23:	str := 'sertsert';
+			24:	str := 'windig';
+			25:	str := 'kalt';
+			26:	str := 'sertsert';
+			27:	str := 'meist sertsert';
+			28:	str := 'meist sertsert';
+			29:	str := 'teilweise serhser';
+			30:	str := 'teilweise sertsertshe';
+			31:	str := 'klar';
+			32:	str := 'sonnig';
+			33:	str := 'heiter';
+			34:	str := 'heiter';
+			35:	str := 'Regen und Hagel';
+			36:	str := 'WRYTWRYH';
+			37:	str := 'esrertsertr';
+			38:	str := 'vereinzelte Gewitter';
+			39:	str := 'vereinzelte Gewitter';
+			40:	str := 'verteesr';
+			41:	str := 'sjstjtj';
+			42:	str := 'sertsert';
+			43:	str := 'sertsert';
+			44:	str := 'sertsert';
+			45:	str := 'sertsert';
+			46:	str := 'sertsert';
+			47:	str := 'srtsert';
+			ELSE
+				str := 'sertsert';
+			END_CASE;
+		END_FOR;
+	END_IF;
+	act_last := ACTIVATE;
+
+END_FUNCTION_BLOCK
+
+PROGRAM program0
+	VAR
+		ACTIVATE :	BOOL;
+		YW :	oscat_YAHOO_WEATHER_DATA;
+
+		func_block : YAHOO_WEATHER_DESC_GE_Block;
+	END_VAR
+	func_block.ACTIVATE := ACTIVATE;
+	func_block.YW := YW;
+
+	func_block();
+	YW  := func_block.YW;
+END_PROGRAM
+
+CONFIGURATION Config0
+	RESOURCE Res0 ON PLC
+		TASK task0(INTERVAL := T#20ms,PRIORITY := 0);
+		PROGRAM instance0 WITH task0 : program0;
+	END_RESOURCE
+END_CONFIGURATION
+
+===== 738-OSCAT.IEC =====
+(*@PROPERTIES_EX@
+TYPE: DATA_TYPE
+LOCALE: 0
+*)
+TYPE
+  oscat_STRING1               : STRING(1);
+  oscat_STRING2               : STRING(2);
+  oscat_STRING3               : STRING(3);
+  oscat_STRING4               : STRING(4);
+  oscat_STRING5               : STRING(5);
+  oscat_STRING8               : STRING(8);
+  oscat_STRING10              : STRING(10);
+  oscat_STRING12              : STRING(12);
+  oscat_STRING15              : STRING(15);
+  oscat_STRING20              : STRING(20);
+  oscat_STRING27              : STRING(27);
+  oscat_STRING30              : STRING(30);
+  oscat_STRING32              : STRING(32);
+  oscat_STRING40              : STRING(40);
+  oscat_STRING48              : STRING(48);
+  oscat_STRING50              : STRING(50);
+  oscat_STRING60              : STRING(60);
+  oscat_STRING64              : STRING(64);
+  oscat_STRING80              : STRING(80);
+  oscat_STRING120             : STRING(120);
+  oscat_STRING144             : STRING(144);
+  oscat_STRING160             : STRING(160);
+  oscat_STRING189             : STRING(189);
+  oscat_STRING192             : STRING(192);
+  oscat_STRING250             : STRING(250);
+END_TYPE
+
+(*----------------------------------------------------------------------------------*)
+TYPE
+
+  oscat_arr_0_7               : ARRAY [0..7]    OF REAL;
+  oscat_arr_0_15              : ARRAY [0..15]   OF REAL;
+  oscat_delay_buf             : ARRAY [0..31]   OF REAL;
+  oscat_FT_TN64_array         : ARRAY [0..63]   OF REAL;
+  oscat_pt_ARRAY              : ARRAY [1..100]  OF REAL;
+
+  oscat_ardw_0_15             : ARRAY [0..15]   OF DWORD;
+  oscat_ardw_0_31             : ARRAY [0..31]   OF DWORD;
+
+  oscat_FILTER_MAV_W          : ARRAY [0..31]   OF WORD;
+  oscat_arb_0_3               : ARRAY [0..3]    OF BYTE;
+
+  oscat_esr_collect_data      : ARRAY [0..7]    OF BYTE;
+  oscat_DRIVER_4C 			  : ARRAY [1..7] 	OF BYTE;
+  oscat_arb_0_249 			  : ARRAY [0..249] 	OF BYTE;
+  oscat_bya_LIST_CLEAN        : ARRAY [1..250]  OF BYTE;
+
+  oscat_ari_0_30         	  : ARRAY [0..30]   OF INT;
+
+  oscat_stack_array 		  : ARRAY [1..32]   OF INT;
+
+  oscat_dcf77_bits            : ARRAY [0..58]   OF BOOL;
+
+  oscat_array64_time          : ARRAY [0..63]   OF TIME;
+
+  (* -------------------------------------------------- *)
+  oscat_PERIOD2_Y             : ARRAY [0..1]    OF UDINT;
+  oscat_PERIOD2_X             : ARRAY [0..3]    OF oscat_PERIOD2_Y;
+
+  oscat_ARRAY_X               : ARRAY [0..1]    OF REAL;
+  oscat_XY                    : ARRAY [1..20]   OF
